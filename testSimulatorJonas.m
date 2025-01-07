@@ -1,10 +1,10 @@
-%test simulator
-%%PhaseFLUX
-% clear all
-% fl=MFfluorophore;
-% psfphaseflux=PSFMF_PhaseFLUX;
-% 
-% sim=MFSimulator(fl);
+% test simulator
+%PhaseFLUX
+clear all
+fl=staticfluorophore;
+psfphaseflux=PSFMF_PhaseFLUX;
+
+sim=MFSimulator(fl);
 %%
 
 psfphaseflux.zerooffset=0.0;
@@ -71,10 +71,10 @@ disp(['mean(phot): ', num2str(mean(photall),ff),...
 
 %% Donut
 %%PhaseFLUX
-% fl=MFfluorophore;
-% psfphaseflux=PSFMF_PhaseFLUX;
-% psfdonut=PSFMF_donut2D;
-% sim=MFSimulator(fl);
+fl=MFfluorophore;
+psfphaseflux=PSFMF_PhaseFLUX;
+psfdonut=PSFMF_donut2D;
+sim=MFSimulator(fl);
 %%
 psfphaseflux.zerooffset=0.0;
 numlocs=1000;
@@ -121,26 +121,26 @@ disp(['mean(phot): ', num2str(mean(photall),ff),...
     ' sqrtCRB: ', num2str(lp,ff)])
 
 
+% 
+% function xest=positionestimatequad(photonsi,patternpos)
+%     pi=photonsi/sum(photonsi);
+%     % eq 2.63
+%     xest=-sum(pi'.*patternpos);
+% end
+% 
+% function xest=positionestimatedonut(photonsi,patternpos,L,fwhm)
+%     pi=photonsi/sum(photonsi);
+%     % eq 2.63
+%     xest=-1/(1-(L^2*log(2)/fwhm^2))*sum(pi'.*patternpos);
+% end
+% 
+% function xest=positionestimate1D(photonsi,L,coord)
+% xest=[0 0 0];
+%     % ph=photonsi/sum(photonsi);
+%     % eq 2.63
+%     xest(coord)=L/(1+sqrt(photonsi(end)/photonsi(1)))-L/2;
+% end
 
-function xest=positionestimatequad(photonsi,patternpos)
-    pi=photonsi/sum(photonsi);
-    % eq 2.63
-    xest=-sum(pi'.*patternpos);
-end
-
-function xest=positionestimatedonut(photonsi,patternpos,L,fwhm)
-    pi=photonsi/sum(photonsi);
-    % eq 2.63
-    xest=-1/(1-(L^2*log(2)/fwhm^2))*sum(pi'.*patternpos);
-end
-
-function xest=positionestimate1D(photonsi,L,coord)
-xest=[0 0 0];
-    % ph=photonsi/sum(photonsi);
-    % eq 2.63
-    xest(coord)=L/(1+sqrt(photonsi(end)/photonsi(1)))-L/2;
-end
-
-function recenter(obj,coord)
-obj.pospattern=obj.pospattern+coord;
-end
+% function recenter(obj,coord)
+% obj.pospattern=obj.pospattern+coord;
+% end

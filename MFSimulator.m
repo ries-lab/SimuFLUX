@@ -69,11 +69,11 @@ classdef MFSimulator<handle
                 inten=0;
                 for f=length(fl):-1:1
                     ih=pattern.psf(k).intensity(pattern.psfpar(k),pattern.zeropos(k),fl(f).pos-pattern.pos(k,:)-obj.pospattern);
-                    inten=inten+fl(f).intensity(ih);
+                    inten=inten+fl(f).intensity(ih,obj.dwelltime);
                 end
                  intall(k)=inten+obj.background;
             end
-            phot=poissrnd(intall*obj.dwelltime); %later: fl.tophot(intenall): adds bg, multiplies with brightness, does 
+            phot=poissrnd(intall); %later: fl.tophot(intenall): adds bg, multiplies with brightness, does 
             photbg=obj.background*numpoints*obj.dwelltime;
         end
 
@@ -90,18 +90,21 @@ classdef MFSimulator<handle
             obj.sequences(key)={sequencelist};
         end
 
-        function [xest,photall]=runSequence(obj,key,repetitions)
+        function [xest,photch,photall]=runSequence(obj,key,repetitions)
+            % obj.fluorophores(1).reset;
             seq=obj.sequences(key);
             seq=seq{1};
             for s=size(seq,1):-1:1
                 pat=obj.patterns(seq{s,1});
                 ls=length(pat.zeropos);
-                photall{s}=zeros(repetitions,ls);
+                photch{s}=zeros(repetitions,ls);
             end
             xest=zeros(repetitions,3);
             
+            photall=zeros(repetitions,1);
             
             for k=1:repetitions
+                obj.fluorophores(1).reset;
                 for s=1:size(seq,1)
                     phot=obj.patternrepeat(seq{s,1},seq{s,2});
                     xh=seq{s,3}(phot);
@@ -109,7 +112,8 @@ classdef MFSimulator<handle
                     if seq{s,6} %recenter
                         seq{s,5}(xest(k,:));
                     end
-                    photall{s}(k,:)=phot;
+                    photall(k)=photall(k)+sum(phot);
+                    photch{s}(k,:)=phot;
                 end
             end
         end
@@ -171,7 +175,17 @@ classdef MFSimulator<handle
                     end
                     iho=ih/ihm;
             end
-            
+        end
+        function displayresults(obj,xest, photall, lp,L)
+            fl=obj.fluorophores(1);
+            ff='%1.2f,';
+            disp(['mean(phot): ', num2str(mean(photall),ff),...
+                ' std: ', num2str(std(xest,'omitnan'),ff),...
+                ' rmse: ', num2str(rmse(xest,fl.pos,'omitnan'),ff),...
+                ' pos: ', num2str(mean(xest,'omitnan'),ff),...
+                ' bias: ', num2str(mean(xest-fl.pos,'omitnan'),ff),...
+                ' locprec: ', num2str(obj.locprec(mean(photall),L),ff),...
+                ' sqrtCRB: ', num2str(lp,ff)])
         end
     end
 end

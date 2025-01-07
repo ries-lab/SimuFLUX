@@ -1,0 +1,34 @@
+function xest=estimators(estimatorname, photons, patternpos, varargin)
+switch estimatorname
+    case 'quadraticND'
+        xest=positionestimatequad(photons,patternpos);
+    case 'donut2D'
+        xest=positionestimatedonut(photons,patternpos,varargin{:});
+    case 'phaseflux1D'
+        xest=positionestimate1D(photons,patternpos,varargin{:});
+    otherwise
+        disp('estimator not found')
+end
+
+end
+
+
+
+function xest=positionestimatequad(photonsi,patternpos)
+    pi=photonsi/sum(photonsi);
+    % eq 2.63
+    xest=-sum(pi'.*patternpos);
+end
+
+function xest=positionestimatedonut(photonsi,patternpos,L,fwhm)
+    pi=photonsi/sum(photonsi);
+    % eq 2.63
+    xest=-1/(1-(L^2*log(2)/fwhm^2))*sum(pi'.*patternpos);
+end
+
+function xest=positionestimate1D(photonsi,coord,L)
+xest=[0 0 0];
+    % ph=photonsi/sum(photonsi);
+    % eq 2.63
+    xest(coord)=L/(1+sqrt(photonsi(end)/photonsi(1)))-L/2;
+end
