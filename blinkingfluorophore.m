@@ -1,8 +1,6 @@
-classdef blinkingfluorophore<handle
+classdef blinkingfluorophore<MFfluorophore
     properties
-        pos=[0, 0, 0]; %nm
-        brightness=1; %kHz;
-        % blinking = false;
+   
         ton =100;
         toff =100;
         starton=false;

@@ -1,7 +1,6 @@
-classdef staticfluorophore<handle
+classdef staticfluorophore<MFfluorophore
     properties
-        pos=[0, 0, 0]; %nm
-        brightness=1; %kHz;
+
     end
     methods
         function Io=intensity(obj,I0,dwelltime, brightness)
@@ -15,8 +14,6 @@ classdef staticfluorophore<handle
         end
         function io=tointensity(ii)
             io=ii*obj.brightness+obj.background;
-        end
-        function reset(obj)
         end
     end
 end
