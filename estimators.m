@@ -25,7 +25,7 @@ end
 function xest=positionestimatedonut(photonsi,patternpos,L,fwhm)
     pi=photonsi/sum(photonsi);
     % eq 2.63
-    xest=-1/(1-(L^2*log(2)/fwhm^2))*sum(pi'.*patternpos);
+    xest=-1/(1-(L^2*log(2)/fwhm^2))*sum(pi.*patternpos);
 end
 
 function xest=positionestimate1D(photonsi,coord,L)

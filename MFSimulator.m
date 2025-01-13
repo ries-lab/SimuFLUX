@@ -6,6 +6,7 @@ classdef MFSimulator<handle
         background=0; %kHz from AF, does not count towards photon budget
         dwelltime=10; % us
         pospattern=[0 0 0]; %nm, position of pattern center
+        time=0;
     end
     methods
         function obj=MFSimulator(fl)
@@ -62,37 +63,49 @@ classdef MFSimulator<handle
             obj.patterns(newname)=patternnew;
         end
 
-        function [phot,photbg]=patternscan(obj,patternname)
+        function out=patternscan(obj,patternname)
             pattern=obj.patterns(patternname);
             fl=obj.fluorophores;
             numpoints=length(pattern.zeropos);
-            intall=zeros(1,numpoints);
+            intall=zeros(numpoints,1);
+            flpos=zeros(1,3);
+            timep=0;
             for k=1:numpoints
                 inten=0;
+                timep=timep+obj.time;
                 for f=1:length(fl)
-                    ih=pattern.psf(k).intensity(pattern.psfpar(k),pattern.zeropos(k),fl(f).pos-pattern.pos(k,:)-obj.pospattern);
+                    flposh=fl(f).position(obj.time);
+                    ih=pattern.psf(k).intensity(pattern.psfpar(k),pattern.zeropos(k),flposh-pattern.pos(k,:)-obj.pospattern);
                     inten=inten+fl(f).intensity(ih,obj.dwelltime);
+                    obj.time=obj.time+obj.dwelltime;
+                    flpos(f,:)=flposh+flpos(f,:);
                 end
-                 intall(k)=inten+obj.background;
+                intall(k)=inten+obj.background;
             end
-            phot=poissrnd(intall); %later: fl.tophot(intenall): adds bg, multiplies with brightness, does 
-            photbg=obj.background*numpoints*obj.dwelltime;
+            out.phot=poissrnd(intall); %later: fl.tophot(intenall): adds bg, multiplies with brightness, does 
+            out.photbg=obj.background*numpoints*obj.dwelltime;
+            out.flpos=flpos/numpoints;
+            out.time=timep/numpoints;
         end
 
-        function [phot,photbg]=patternrepeat(obj,patternname,reps)
-            [phot,photbg]=obj.patternscan(patternname);
+        function out=patternrepeat(obj,patternname,reps)
+            out=obj.patternscan(patternname);
             for rep=2:reps
-                [phot2,photbg2]=obj.patternscan(patternname);
-                phot=phot+phot2;
-                photbg=photbg+photbg2;
+                out2=obj.patternscan(patternname);
+                out.phot=out.phot+out2.phot2;
+                out.photbg=out.photbg+out2.photbg2;
+                out.flpos=out.flpos+out2.flpos;
+                out.time=out.time+out2.time;
             end
+            out.flpos=out.flpos/reps;
+            out.time=out.time/reps;
         end
 
         function defineSequence(obj,key,sequencelist)
             obj.sequences(key)={sequencelist};
         end
 
-        function [xest,photch,photall]=runSequence(obj,key,repetitions)
+        function out=runSequence(obj,key,repetitions)
             % obj.fluorophores(1).reset;
             seq=obj.sequences(key);
             seq=seq{1};
@@ -102,22 +115,33 @@ classdef MFSimulator<handle
                 photch{s}=zeros(repetitions,ls);
             end
             xest=zeros(repetitions,3);
-            
+            flpos=zeros(repetitions,3);
             photall=zeros(repetitions,1);
-            
+            time=zeros(repetitions,1);
             for k=1:repetitions
                 obj.fluorophores(1).reset;
-                for s=1:size(seq,1)
-                    phot=obj.patternrepeat(seq{s,1},seq{s,2});
-                    xh=seq{s,3}(phot);
+                numseq=size(seq,1);
+                pospattern_beforecenter=obj.pospattern;
+                for s=1:numseq
+                    outh=obj.patternrepeat(seq{s,1},seq{s,2});
+                    xh=seq{s,3}(outh.phot);
                     xest(k,seq{s,4})=xh(seq{s,4});
+                    flpos(k,seq{s,4})=outh.flpos(seq{s,4});
                     if seq{s,6} %recenter
                         seq{s,5}(xest(k,:));
                     end
-                    photall(k)=photall(k)+sum(phot);
-                    photch{s}(k,:)=phot;
+                    photall(k)=photall(k)+sum(outh.phot);
+                    photch{s}(k,:)=outh.phot;
+                    time(k)=time(k)+outh.time;
                 end
+                time(k)=time(k)/numseq;
+                xest(k,:)=xest(k,:)+pospattern_beforecenter;
             end
+            out.photall=photall;
+            out.photch=photch;
+            out.xest=xest;
+            out.flpos=flpos;
+            out.time=time;
         end
         
 
@@ -143,9 +167,11 @@ classdef MFSimulator<handle
                 obj
                 patternnames
                 args.dim=3;
+                args.position=obj.fluorophores(1).position(0);
             end
             dim=args.dim;
-            flpos=obj.fluorophores(1).pos; %the main one
+            flpos=args.position;
+            % flpos=obj.fluorophores(1).pos; %the main one
             bg=obj.background/obj.fluorophores(1).brightness;
             
             ih=0;
@@ -181,15 +207,15 @@ classdef MFSimulator<handle
                     iho=ih/ihm;
             end
         end
-        function displayresults(obj,xest, photall, lp,L)
-            fl=obj.fluorophores(1);
+        function displayresults(obj,out, lp,L)
+            % fl=obj.fluorophores(1);
             ff='%1.2f,';
-            disp(['mean(phot): ', num2str(mean(photall),ff),...
-                ' std: ', num2str(std(xest,'omitnan'),ff),...
-                ' rmse: ', num2str(rmse(xest,fl.pos,'omitnan'),ff),...
-                ' pos: ', num2str(mean(xest,'omitnan'),ff),...
-                ' bias: ', num2str(mean(xest-fl.pos,'omitnan'),ff),...
-                ' locprec: ', num2str(obj.locprec(mean(photall),L),ff),...
+            disp(['mean(phot): ', num2str(mean(out.photall),ff),...
+                ' std: ', num2str(std(out.xest,'omitnan'),ff),...
+                ' rmse: ', num2str(rmse(out.xest,out.flpos,'omitnan'),ff),...
+                ' pos: ', num2str(mean(out.xest,'omitnan'),ff),...
+                ' bias: ', num2str(mean(out.xest-out.flpos,'omitnan'),ff),...
+                ' locprec: ', num2str(obj.locprec(mean(out.photall),L),ff),...
                 ' sqrtCRB: ', num2str(lp,ff)])
         end
     end

@@ -32,9 +32,17 @@ classdef MFfluorophore<handle
                 case 'position'
                     posh=pos;
                 case {'trace','diffusion'}
-                    posind=obj.posind
-                    while pos(posind,1)<=time
-                        if posind>size(pos,1) %reached end
+                    %XXXX add test if ind. already too high (e.g. 2x
+                    %position asked. If asked 2x same time: should work)
+                    posind=obj.posind;
+                    if pos(posind,1)>time
+                        posind=find(pos(:,1)<time,1,'last');
+                        if isempty(posind)
+                            posind=1;
+                        end
+                    end
+                    while pos(posind,1)<time
+                        if posind>=size(pos,1)-1 %reached end
                             obj.extendtrace;
                         end
                         posind=posind+1;
@@ -56,9 +64,9 @@ classdef MFfluorophore<handle
             obj.posparameters={D,dt,args};
             % Dstep=D/1e6*1e6*dt; %D in um^2/s is the same as D in nm^2/us
             Dstep=D*dt;
-            time=dt:dt:args.numpoints;
-            jumps=randn(args.numpoints,args.dim)*Dstep;
-            pos=horzcat(cumsum(jumps,2))+args.startpos(1:args.dim);
+            time=dt:dt:args.numpoints*dt;
+            jumps=(randn(args.numpoints,args.dim)*Dstep);
+            pos=horzcat(cumsum(jumps,1))+args.startpos(1:args.dim);
             obj.pos=horzcat(time',pos);
         end
         function extendtrace(obj)
