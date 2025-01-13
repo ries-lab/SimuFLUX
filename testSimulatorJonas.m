@@ -1,18 +1,18 @@
 % test simulator
 %PhaseFLUX
-clear all
-fl=staticfluorophore;
-psfphaseflux=PSFMF_PhaseFLUX;
-
-sim=MFSimulator(fl);
+% clear all
+% fl=staticfluorophore;
+% psfphaseflux=PSFMF_PhaseFLUX;
+% 
+% sim=MFSimulator(fl);
 %%
 
 psfphaseflux.zerooffset=0.0;
 numlocs=1000;
 
-L=50;Lz=150;
+L=100;Lz=300;
 
-fl.pos=[10 1 2];
+fl.pos=[3 3 3];
 fl.brightness=100;
 sim.dwelltime=100;
 
@@ -30,25 +30,30 @@ sim.pospattern=[0 0 0];
 xest=zeros(numlocs,3);
 phot=zeros(numlocs, 3,3);
 photall=zeros(numlocs,1);
+% 
+% for k=1:numlocs
+%     % photh=sim.patternrepeat(usepattern,1);
+%     % xest(k,:)=positionestimatedonut(photh,sim.patterns(usepattern).pos,L,psfdonut.fwhm);
+%     % xest(k,:)=positionestimate(photh,sim.patterns(usepattern).pos);
+%     photx=sim.patternrepeat("x",1);
+%     xest(k,:)=xest(k,:)+positionestimate1D(photx,L,1);
+%     photy=sim.patternrepeat("y",1);
+%     xest(k,:)=xest(k,:)+positionestimate1D(photy,L,2);
+%     photz=sim.patternrepeat("z",1);
+%     xest(k,:)=xest(k,:)+positionestimate1D(photz,Lz,3);
+%     photall(k)=sum(photx)+sum(photy)+sum(photz);
+%     phot(k,:,1)=photx;phot(k,:,2)=photy;phot(k,:,3)=photz;
+%     % phot(k)=sum(photh);
+% end
 
-for k=1:numlocs
-    % photh=sim.patternrepeat(usepattern,1);
-    % xest(k,:)=positionestimatedonut(photh,sim.patterns(usepattern).pos,L,psfdonut.fwhm);
-    % xest(k,:)=positionestimate(photh,sim.patterns(usepattern).pos);
-    photx=sim.patternrepeat("x",1);
-    xest(k,:)=xest(k,:)+positionestimate1D(photx,L,1);
-    photy=sim.patternrepeat("y",1);
-    xest(k,:)=xest(k,:)+positionestimate1D(photy,L,2);
-    photz=sim.patternrepeat("z",1);
-    xest(k,:)=xest(k,:)+positionestimate1D(photz,Lz,3);
-    photall(k)=sum(photx)+sum(photy)+sum(photz);
-    phot(k,:,1)=photx;phot(k,:,2)=photy;phot(k,:,3)=photz;
-    % phot(k)=sum(photh);
-end
+estimatorx=@(phot) estimators("phaseflux1D",phot,1,L);
+estimatory=@(phot) estimators("phaseflux1D",phot,2,L);
+estimatorz=@(phot) estimators("phaseflux1D",phot,3,Lz);
 
-estimatorx=@(phot) positionestimate1D(phot,L,1);
-estimatory=@(phot) positionestimate1D(phot,L,2);
-estimatorz=@(phot) positionestimate1D(phot,Lz,3);
+estimatorx=@(phot) estimators("donut1D",phot,[-1; 0 ;1]*L/2,1,380);
+estimatory=@(phot) estimators("donut1D",phot,[-1; 0 ;1]*L/2,2,380);
+estimatorz=@(phot) estimators("donut1D",phot,[-1; 0 ;1]*Lz/2,3,900);
+
 
 recenterh=@(x) recenter(sim,x);
 

@@ -6,6 +6,8 @@ switch estimatorname
         xest=positionestimatedonut(photons,patternpos,varargin{:});
     case 'phaseflux1D'
         xest=positionestimate1D(photons,patternpos,varargin{:});
+    case 'donut1D'
+        xest=positionestimatedonut1D(photons,patternpos,varargin{:});
     otherwise
         disp('estimator not found')
 end
@@ -31,4 +33,16 @@ xest=[0 0 0];
     % ph=photonsi/sum(photonsi);
     % eq 2.63
     xest(coord)=L/(1+sqrt(photonsi(end)/photonsi(1)))-L/2;
+end
+
+function xest=positionestimatedonut1D(photonsi,patternpos,coord,sigma)
+xest=[0 0 0];
+
+ph=photonsi([1 2 3]); pp=patternpos([1 2 3]);
+ pis=ph/sum(ph);
+ L=2*patternpos(end);
+    % ph=photonsi/sum(photonsi);
+    % eq 2.63
+    xest(coord)=-1/(1-(L^2/sigma^2))*sum(pis'.*pp)*2/4;
+    xest(coord)=-sum(pis'.*pp)/2;
 end

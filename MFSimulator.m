@@ -23,12 +23,13 @@ classdef MFSimulator<handle
                 args.makepattern=[];
                 args.orbitpoints=4;
                 args.orbitL=100;
-                args.probecenter=true;          
+                args.probecenter=true; 
+                args.orbitorder=[];
             end
             pos=args.pos;
             zeropos=args.zeropos;
             if strcmp(args.makepattern,'orbitscan')
-                pos=obj.makeorbitpattern(args.orbitpoints,args.probecenter)*args.orbitL/2;
+                pos=obj.makeorbitpattern(args.orbitpoints,args.probecenter,args.orbitorder)*args.orbitL/2;
             end
             if size(pos,1)==1 && length(zeropos)>1
                 pos=repmat(pos,length(zeropos),1);
@@ -65,9 +66,10 @@ classdef MFSimulator<handle
             pattern=obj.patterns(patternname);
             fl=obj.fluorophores;
             numpoints=length(pattern.zeropos);
-            for k=numpoints:-1:1
+            intall=zeros(1,numpoints);
+            for k=1:numpoints
                 inten=0;
-                for f=length(fl):-1:1
+                for f=1:length(fl)
                     ih=pattern.psf(k).intensity(pattern.psfpar(k),pattern.zeropos(k),fl(f).pos-pattern.pos(k,:)-obj.pospattern);
                     inten=inten+fl(f).intensity(ih,obj.dwelltime);
                 end
@@ -119,14 +121,17 @@ classdef MFSimulator<handle
         end
         
 
-        function xpattern=makeorbitpattern(obj,orbitpoints,usecenter)
+        function xpattern=makeorbitpattern(obj,orbitpoints,usecenter,orbitorder)
             dphi=2*pi/orbitpoints;
-            phi=(0:dphi:2*pi-dphi)';
+            phi=(0:dphi:2*pi-dphi)';%+pi/2;
             x=cos(phi);
             y=sin(phi);
             xpattern=horzcat(x,y,0*phi);
             if usecenter
                 xpattern(end+1,:)=[0,0,0];
+            end
+            if nargin>3 && ~isempty(orbitorder)
+                xpattern=xpattern(orbitorder,:);
             end
         end
         function lp=locprec(obj,photons,L)
