@@ -1,4 +1,4 @@
-classdef PSFMF_PhaseFLUX<PSFMF
+classdef PSFMF_realistic<PSFMF
     methods
         function [io,iaf]=intensity(obj,phasepattern, L, flposrel)
             key=phasepattern+L;

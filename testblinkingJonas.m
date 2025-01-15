@@ -8,7 +8,7 @@ numlocs=12;
 L=50;
 fl.pos=[0 0 0];
 % fl.toff=100;
-fl.brightness=100000;
+fl.brightness=10000;
 
 % fl.starton=false;
 % fl.photonbudget=inf; 
@@ -17,9 +17,11 @@ fl.brightness=100000;
 repetitions=1;
 sim.dwelltime=10/repetitions;
 sim.pospattern=[0 0 0];
+% 
+% fl.pos={@(t) -0.05*t+2,@(t) 0};
+% fl.posmode='function';
 
-fl.pos={@(t) -0.05*t+2,@(t) 0};
-fl.posmode='function';
+fl.makesteps(16,10,4,angle=45,numpoints=100);
 
 % fl.makediffusion(.02,sim.dwelltime,dim=2)
 
@@ -31,10 +33,11 @@ seq={"donut",repetitions, estimator, 1:2, recenterh, true};
 sim.defineSequence("donutseq",seq);
 out=sim.runSequence("donutseq",numlocs);
 
-for k=1:length(photons)
-    fprintf(num2str(mean(photons{k}),'%4.1f,'));
+for k=1:length(out.photch)
+    fprintf(num2str(mean(out.photch{k}),'%4.1f,'));
 end
-% lp=sim.calculateCRB("donut",dim=2)/sqrt(mean(photall));
+
+lp=sim.calculateCRB("donut",dim=2)/sqrt(mean(out.photall));
 
 sim.displayresults(out, lp,L)
 
