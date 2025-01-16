@@ -4,7 +4,7 @@ classdef MFSimulator<handle
         sequences=dictionary;
         fluorophores
         background=0; %kHz from AF, does not count towards photon budget
-        dwelltime=10; % us
+        % dwelltime=10; % us
         pospattern=[0 0 0]; %nm, position of pattern center
         time=0;
     end
@@ -19,13 +19,15 @@ classdef MFSimulator<handle
                 patternname
                 psf
                 args.psfpar="";
-                args.zeropos=0;
+                args.zeropos=0; %position of the zero when calculating PSFs (e.g., PhaseFLUX)
                 args.pos=[0, 0, 0];
                 args.makepattern=[];
                 args.orbitpoints=4;
                 args.orbitL=100;
                 args.probecenter=true; 
                 args.orbitorder=[];
+                args.pointdwelltime=10; %us
+                args.laserpower=1; %usually we use relative, but can also be absolute.
             end
             pos=args.pos;
             zeropos=args.zeropos;
@@ -40,12 +42,13 @@ classdef MFSimulator<handle
             end
             pattern.pos=pos;
             
-            for k=1:length(zeropos)
+            for k=1:size(pos,1)
                 pattern.psf(k)=psf;
                 pattern.psfpar(k)=string(args.psfpar);
                 pattern.zeropos(k)=string((zeropos(k)));
                 pattern.psf(k).calculatePSFs(args.psfpar,pattern.zeropos(k))
-
+                pattern.pointdwelltime(k)=args.pointdwelltime;
+                pattern.laserpower(k)=args.laserpower;
             end
             obj.patterns(patternname)=pattern;
         end
@@ -54,11 +57,13 @@ classdef MFSimulator<handle
             patternnew=obj.patterns(allpatterns(1));
             for k=2:length(allpatterns)
                 pattern2=obj.patterns(allpatterns(k));
-                ln=length(pattern2.zeropos);
-                patternnew.psf(end+1:end+ln)=pattern2.psf;
-                patternnew.psfpar(end+1:end+ln)=pattern2.psfpar;
-                patternnew.zeropos(end+1:end+ln)=pattern2.zeropos;
-                patternnew.pos(end+1:end+ln,:)=pattern2.pos;
+                patternnew=appendstruct(patternnew,pattern2);
+                % ln=length(pattern2.zeropos);
+                % patternnew.psf(end+1:end+ln)=pattern2.psf;
+                % patternnew.psfpar(end+1:end+ln)=pattern2.psfpar;
+                % patternnew.zeropos(end+1:end+ln)=pattern2.zeropos;
+                % patternnew.pos(end+1:end+ln,:)=pattern2.pos;
+                % patternnew.pointdwelltime(end+1:end+ln,:)=pattern2.pointdwelltime;
             end
             obj.patterns(newname)=patternnew;
         end
@@ -69,6 +74,7 @@ classdef MFSimulator<handle
             numpoints=length(pattern.zeropos);
             intall=zeros(numpoints,1);
             flpos=zeros(1,3);
+            timestart=obj.time;
             timep=0;
             for k=1:numpoints
                 inten=0;
@@ -76,26 +82,30 @@ classdef MFSimulator<handle
                 for f=1:length(fl)
                     flposh=fl(f).position(obj.time);
                     ih=pattern.psf(k).intensity(pattern.psfpar(k),pattern.zeropos(k),flposh-pattern.pos(k,:)-obj.pospattern);
-                    inten=inten+fl(f).intensity(ih,obj.dwelltime);
-                    obj.time=obj.time+obj.dwelltime;
+                    ih=ih*pattern.laserpower(k);
+                    inten=inten+fl(f).intensity(ih,pattern.pointdwelltime(k));
+                    obj.time=obj.time+pattern.pointdwelltime(k);
                     flpos(f,:)=flposh+flpos(f,:);
                 end
                 intall(k)=inten+obj.background;
             end
             out.phot=poissrnd(intall); %later: fl.tophot(intenall): adds bg, multiplies with brightness, does 
-            out.photbg=obj.background*numpoints*obj.dwelltime;
+            out.photbg=obj.background*sum(pattern.pointdwelltime);
             out.flpos=flpos/numpoints;
             out.time=timep/numpoints;
+            out.measuretime=obj.time-timestart;
         end
 
         function out=patternrepeat(obj,patternname,reps)
             out=obj.patternscan(patternname);
             for rep=2:reps
                 out2=obj.patternscan(patternname);
-                out.phot=out.phot+out2.phot2;
-                out.photbg=out.photbg+out2.photbg2;
+                % out=appendstruct(out,out2);
+                out.phot=out.phot+out2.phot;
+                out.photbg=out.photbg+out2.photbg;
                 out.flpos=out.flpos+out2.flpos;
                 out.time=out.time+out2.time;
+                out.measuretime=out.measuretime+out2.measuretime;
             end
             out.flpos=out.flpos/reps;
             out.time=out.time/reps;
@@ -219,4 +229,16 @@ classdef MFSimulator<handle
                 ' sqrtCRB: ', num2str(lp,ff)])
         end
     end
+end
+
+
+
+
+function sout=appendstruct(sin, sadd)
+sout=sin;
+fn=fieldnames(sin);
+ln=length(sadd.(fn{1}));
+for k=1:length(fn)
+    sout.(fn{k})(end+1:end+ln)=sadd.(fn{k});
+end
 end

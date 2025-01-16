@@ -1,7 +1,7 @@
 classdef MFfluorophore<handle
     properties
         pos=[0, 0, 0]; %nm
-        posmode='diffusion'; %trace, position, function, steps
+        posmode='static'; %trace, function, steps, diffusion, static
         brightness=1; %kHz;
         posind=1;
         posparameters=[];
@@ -29,7 +29,7 @@ classdef MFfluorophore<handle
                     for k=length(pos):-1:1
                         posh(k)=pos{k}(time);
                     end
-                case 'position'
+                case 'static'
                     posh=pos;
                 case {'trace','diffusion','steps'}
                     %XXXX add test if ind. already too high (e.g. 2x

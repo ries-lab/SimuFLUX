@@ -15,18 +15,19 @@ fl.brightness=10000;
 
 
 repetitions=1;
-sim.dwelltime=10/repetitions;
+pointdwelltime=10/repetitions;
 sim.pospattern=[0 0 0];
 % 
 % fl.pos={@(t) -0.05*t+2,@(t) 0};
 % fl.posmode='function';
 
-fl.makesteps(16,10,4,angle=45,numpoints=100);
+% fl.makesteps(16,10,4,angle=45,numpoints=100);
 
 % fl.makediffusion(.02,sim.dwelltime,dim=2)
 
 
-sim.definePattern('donut', psfdonut, makepattern='orbitscan', orbitpoints=4, probecenter=false,orbitL=L,orbitorder=[1 2 4 3])
+sim.definePattern('donut', psfdonut, makepattern='orbitscan', orbitpoints=4, probecenter=false,...
+    orbitL=L,orbitorder=[1 2 4 3],pointdwelltime=pointdwelltime)
 estimator=@(phot) estimators('donut2D',phot,sim.patterns("donut").pos,L,psfdonut.fwhm);
 recenterh=@(x) recenter(sim,x);
 seq={"donut",repetitions, estimator, 1:2, recenterh, true};
