@@ -1,9 +1,10 @@
 fl=blinkingfluorophore;
-fl.photonbudget=10000;
+fl.brightness=100;
+fl.photonbudget=100000;
 psfdonut=PSFMF_donut2D;
 sim=AbberiorSimulator(fl);
 numlocs=12;
 fname='/Users/ries/Downloads/2Dtracking_L75nm_phtLimit1000_.json';
 sim.loadsequence(fname)
 sim.makepatterns
-sim.runSequence
+out=sim.runSequence

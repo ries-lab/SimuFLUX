@@ -5,26 +5,29 @@ classdef MFfluorophore<handle
         brightness=1; %kHz;
         posind=1;
         posparameters=[];
+        remainingphotons=inf;
     end
     methods
         function Io=intensity(obj,I0,dwelltime, brightness)
+            %dwelltime: us, brightness kHz
             if nargin<4
                 brightness=obj.brightness;
             end      
-            Io=(brightness)*I0*dwelltime;
+            Io=(brightness/1000)*I0*dwelltime;
         end
         function ph=photons(obj,I0,varargin)
             ph=poissrnd(obj.intensity(I0,varargin{:}));
         end
         function io=tointensity(ii)
-            io=ii*obj.brightness+obj.background;
+            io=ii*(obj.brightness/10000)+obj.background;
         end
         function reset(obj)
         end
         function posout=position(obj,time)
             pos=obj.pos;
             posout=[0 0 0];
-            switch obj.posmode
+            posmode=obj.posmode;
+            switch posmode
                 case 'function'
                     for k=length(pos):-1:1
                         posh(k)=pos{k}(time);

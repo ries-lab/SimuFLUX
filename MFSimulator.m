@@ -75,6 +75,7 @@ classdef MFSimulator<handle
             intall=zeros(numpoints,1);
             flpos=zeros(1,3);
             timestart=obj.time;
+           
             timep=0;
             for k=1:numpoints
                 inten=0;
@@ -94,18 +95,14 @@ classdef MFSimulator<handle
             out.flpos=flpos/numpoints;
             out.time=timep/numpoints;
             out.measuretime=obj.time-timestart;
+            out.counter=1;
         end
 
         function out=patternrepeat(obj,patternname,reps)
             out=obj.patternscan(patternname);
             for rep=2:reps
                 out2=obj.patternscan(patternname);
-                % out=appendstruct(out,out2);
-                out.phot=out.phot+out2.phot;
-                out.photbg=out.photbg+out2.photbg;
-                out.flpos=out.flpos+out2.flpos;
-                out.time=out.time+out2.time;
-                out.measuretime=out.measuretime+out2.measuretime;
+                out=sumstruct(out,out2);
             end
             out.flpos=out.flpos/reps;
             out.time=out.time/reps;
@@ -115,43 +112,59 @@ classdef MFSimulator<handle
             obj.sequences(key)={sequencelist};
         end
 
-        function out=runSequence(obj,key,repetitions)
-            % obj.fluorophores(1).reset;
-            seq=obj.sequences(key);
-            seq=seq{1};
-            for s=size(seq,1):-1:1
+        function out=runSequence(obj,key,maxlocalizations)
+            obj.fluorophores(1).reset;
+            seq=obj.sequences(key);seq=seq{1};
+            numseq=size(seq,1);
+            for s=numseq:-1:1
                 pat=obj.patterns(seq{s,1});
-                ls=length(pat.zeropos);
-                photch{s}=zeros(repetitions,ls);
+                ls(s)=length(pat.zeropos);
             end
-            xest=zeros(repetitions,3);
-            flpos=zeros(repetitions,3);
-            photall=zeros(repetitions,1);
-            time=zeros(repetitions,1);
-            for k=1:repetitions
-                obj.fluorophores(1).reset;
-                numseq=size(seq,1);
+            photch=zeros(maxlocalizations,numseq,max(ls))-1;
+
+            xest=zeros(maxlocalizations,3);
+            flpos=zeros(maxlocalizations,3);
+            photall=zeros(maxlocalizations,1);
+            timep=zeros(maxlocalizations,1);
+            bleached=false;
+            for k=1:maxlocalizations
+                if obj.fluorophores.remainingphotons<1
+                    bleached=true;
+                    break
+                end
+                
                 pospattern_beforecenter=obj.pospattern;
+                
                 for s=1:numseq
-                    outh=obj.patternrepeat(seq{s,1},seq{s,2});
-                    xh=seq{s,3}(outh.phot);
+                    scanout=obj.patternrepeat(seq{s,1},seq{s,2});
+                    xh=seq{s,3}(scanout.phot);
                     xest(k,seq{s,4})=xh(seq{s,4});
-                    flpos(k,seq{s,4})=outh.flpos(seq{s,4});
+                    flpos(k,seq{s,4})=scanout.flpos(seq{s,4});
                     if seq{s,6} %recenter
                         seq{s,5}(xest(k,:));
                     end
-                    photall(k)=photall(k)+sum(outh.phot);
-                    photch{s}(k,:)=outh.phot;
-                    time(k)=time(k)+outh.time;
+                    photall(k)=photall(k)+sum(scanout.phot);
+                    photch(k,s,1:length(scanout.phot))=scanout.phot;
+                    timep(k)=timep(k)+scanout.time;
                 end
-                time(k)=time(k)/numseq;
+                flpos(k,:)=scanout.flpos;
+                timep(k)=timep(k)/numseq;
                 xest(k,:)=xest(k,:)+pospattern_beforecenter;
             end
-            out.photall=photall;
-            out.photch=photch;
-            out.xest=xest;
-            out.flpos=flpos;
-            out.time=time;
+            if bleached
+                k=k-1;
+            end
+            out.raw=photch;
+            out.loc.xnm=xest(1:k,1);out.loc.ynm=xest(1:k,2);out.loc.znm=xest(1:k,3);
+            out.loc.xfl(1:k,1)=scanout.flpos(1);out.loc.yfl(1:k,1)=scanout.flpos(2);out.loc.zfl(1:k,1)=scanout.flpos(3);
+            out.loc.time=timep(1:k,1);
+            out.loc.phot=photall(1:k,1);
+            out.loc.abortcondition=zeros(size(out.loc.phot));out.loc.abortcondition(end)=1;
+            % out.photall=photall;
+            % out.photch=photch;
+            % out.xest=xest;
+            % out.flpos=flpos;
+            % out.time=time;
         end
         
 
@@ -218,14 +231,21 @@ classdef MFSimulator<handle
             end
         end
         function displayresults(obj,out, lp,L)
-            % fl=obj.fluorophores(1);
-            ff='%1.2f,';
-            disp(['mean(phot): ', num2str(mean(out.photall),ff),...
-                ' std: ', num2str(std(out.xest,'omitnan'),ff),...
-                ' rmse: ', num2str(rmse(out.xest,out.flpos,'omitnan'),ff),...
-                ' pos: ', num2str(mean(out.xest,'omitnan'),ff),...
-                ' bias: ', num2str(mean(out.xest-out.flpos,'omitnan'),ff),...
-                ' locprec: ', num2str(obj.locprec(mean(out.photall),L),ff),...
+            photraw=out.raw;
+            photraw(photraw==-1)=NaN;
+            photch=squeeze(mean(photraw,1,'omitnan'));  
+            xest=horzcat(out.loc.xnm,out.loc.ynm,out.loc.znm);
+            flpos=horzcat(out.loc.xfl,out.loc.yfl,out.loc.zfl);
+            phot=out.loc.phot;
+             ff1='%1.1f,';
+            disp([ 'photch: ', num2str(photch(:)',ff1),...
+                ' mean(phot): ', num2str(mean(phot),ff1)])
+             ff='%1.2f,';
+            disp(['std: ', num2str(std(xest,'omitnan'),ff),...
+                ' rmse: ', num2str(rmse(xest,flpos,'omitnan'),ff),...
+                ' pos: ', num2str(mean(xest,'omitnan'),ff),...
+                ' bias: ', num2str(mean(xest-flpos,'omitnan'),ff),...
+                ' locprec: ', num2str(obj.locprec(mean(phot),L),ff),...
                 ' sqrtCRB: ', num2str(lp,ff)])
         end
     end
@@ -234,11 +254,3 @@ end
 
 
 
-function sout=appendstruct(sin, sadd)
-sout=sin;
-fn=fieldnames(sin);
-ln=length(sadd.(fn{1}));
-for k=1:length(fn)
-    sout.(fn{k})(end+1:end+ln)=sadd.(fn{k});
-end
-end

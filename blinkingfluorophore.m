@@ -9,23 +9,21 @@ classdef blinkingfluorophore<MFfluorophore
         time=0;
         blinkingtrace
         tind=1;
-        remainingphotons=inf;
+        
 
     end
     methods
-        % function obj=blinkingfluorophore(varargin)
-        %     obj=obj@handle;
-        %     obj.reset
-        % end
         function Io=intensity(obj,I0,dwelltime)
-            if obj.toff>0
+            toff=obj.toff;
+            if toff>0
                 fraction=obj.measure(dwelltime);
             else %only bleaching
                 fraction=1;
             end
-            intensity=obj.brightness*I0*dwelltime*fraction;
-            Io=min(intensity,obj.remainingphotons);
-            obj.remainingphotons=obj.remainingphotons-Io;
+            intensity=(obj.brightness/1000)*I0*dwelltime*fraction;
+            remainingphotons=obj.remainingphotons;
+            Io=min(intensity,remainingphotons);
+            obj.remainingphotons=remainingphotons-Io;
         end
         function makeblinkingtrace(obj)
             obj.blinkingtrace=calculatetrace(obj.ton,obj.toff);
