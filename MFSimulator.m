@@ -48,7 +48,7 @@ classdef MFSimulator<handle
                 pattern.psf(k)=psf;
                 pattern.psfpar(k)=string(args.psfpar);
                 pattern.zeropos(k)=string((zeropos(k)));
-                pattern.psf(k).calculatePSFs(args.psfpar,pattern.zeropos(k))
+                pattern.psf(k).calculatePSFs(args.psfpar,pattern.zeropos(k));
                 pattern.pointdwelltime(k)=args.pointdwelltime;
                 pattern.laserpower(k)=args.laserpower;
             end
@@ -165,13 +165,21 @@ classdef MFSimulator<handle
             out.loc.time=timep(1:k,1);
             out.loc.phot=photall(1:k,1);
             out.loc.abortcondition=zeros(size(out.loc.phot));out.loc.abortcondition(end)=1;
-            % out.photall=photall;
-            % out.photch=photch;
-            % out.xest=xest;
-            % out.flpos=flpos;
-            % out.time=time;
         end
-        
+        function out=repeatSequence(obj,key,maxloc,repetitions)
+            out1=obj.runSequence(key,maxloc);
+            raw(1,:,:,:)=out1.raw;
+            loc=out1.loc;
+            loc.rep=1+0*loc.xnm;
+            for k=2:repetitions
+                out2=obj.runSequence(key,maxloc);
+                raw(k,:,:,:)=out2.raw;
+                loc2=out2.loc;
+                loc2.rep=k+0*loc2.xnm;
+                loc=appendstruct(loc,loc2);
+            end
+            out.raw=raw; out.loc=loc;
+        end
 
         function xpattern=makeorbitpattern(obj,orbitpoints,usecenter,orbitorder)
             dphi=2*pi/orbitpoints;
@@ -238,7 +246,11 @@ classdef MFSimulator<handle
         function displayresults(obj,out, lp,L)
             photraw=out.raw;
             photraw(photraw==-1)=NaN;
-            photch=squeeze(mean(photraw,1,'omitnan'));  
+            if length(size(photraw))>3
+                photch=squeeze(mean(mean(photraw,1,'omitnan'),2,'omitnan'));
+            else
+                photch=squeeze(mean(photraw,1,'omitnan'));  
+            end
             xest=horzcat(out.loc.xnm,out.loc.ynm,out.loc.znm);
             flpos=horzcat(out.loc.xfl,out.loc.yfl,out.loc.zfl);
             phot=out.loc.phot;

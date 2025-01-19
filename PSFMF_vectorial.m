@@ -1,29 +1,45 @@
-classdef PSFMF_realistic<PSFMF
+classdef PSFMF_vectorial<PSFMF
     properties
         sigmaz=0; %don't do z sectioning.
+        PSFph=[];
     end
     methods
         function [io,iaf]=intensity(obj, flposrel ,phasepattern, L)
+            %XXX flpos, patternpos (with respect to galvo) separately, PH
+            %at patternpos=0;
             key=phasepattern+L;
             psfint=obj.PSFs(key);
-            sigmaz=obj.sigmaz;
-            if sigmaz>0
-                zfac=exp(-flposrel(:,3).^2/2/sigmaz^2);
-            else 
-                zfac=1;
+            phkey=obj.PSFph;
+            if isempty(phkey)
+                zfac=0;
+            else
+                psfph=obj.PSFs(phkey);
+                zfac=psfph(flposrel);
             end
+            % sigmaz=obj.sigmaz;
+            % if sigmaz>0
+            %     zfac=exp(-flposrel(:,3).^2/2/sigmaz^2);
+            % else 
+            %     zfac=1;
+            % end
             io=psfint(flposrel)*zfac+obj.zerooffset;          
         end
-        function calculatePSFs(obj,phasepattern,Lxs)
-            key=phasepattern+Lxs;
+        function key=calculatePSFs(obj,phasepattern,Lxs)
+            if isnumeric(Lxs)
+                Lx=Lxs;
+                Lxs=num2str(Lxs);
+            else
+                Lx=str2num(Lxs);
+            end
+            key=string(phasepattern)+Lxs;
             if obj.PSFs.isConfigured && obj.PSFs.isKey(key)
                 return
             end
             fprintf(key + ", ")
-            addpath('/PSF_simulation/library');
+            addpath('PSF_simulation/library');
             [sys,opt,out]=systemparameters;
             intmethod='cubic'; %linear,cubic?
-            Lx=str2double(Lxs);
+  
             %convert L into phase
             dxdphi=1.4; %nm/degree, from LSA paper Deguchi
             dzdphi=-3.6; %nm/degree
@@ -54,6 +70,32 @@ classdef PSFMF_realistic<PSFMF
                     PSFy = griddedInterpolant(X,Y,Z,PSF,intmethod);     
                     obj.PSFs("x"+Lxs)=PSFx; 
                     obj.PSFs("y"+Lxs)=PSFy; 
+                case 'pinhole' %here
+                    sys.Ei = {'circular'};
+                    phdiameter=Lx(1);
+                    if length(Lx)==3
+                        phpos=[Lx(2) Lx(3)];
+                    else
+                        phpos=[0 0];
+                    end
+                    out=effField(sys,out, opt);      
+                    out=effIntensity(sys,out);
+                    psfg=squeeze(out.I)/normfact;
+                    pixelsize=opt.pixSize*1e9;
+
+                    sim=floor((max(phpos)+phdiameter/2)/2)*2;
+                    % sim=floor(size(psfg,2)/2);
+                    % n=(-sim:sim)*pixelsize*1e9; %to nanometer
+                    n=-sim:pixelsize:sim;
+                    [Xk,Yk]=meshgrid(n);
+                    kernel=double((Xk-phpos(1)).^2+(Yk-phpos(2)).^2<(phdiameter/2)^2);
+                    kernel=kernel/sum(kernel(:));
+                    psfph=0*psfg;
+                    for k=1:size(psfph,3)
+                        psfph(:,:,k)=conv2(psfg(:,:,k),kernel,"same");
+                    end
+                    PSFdonut = griddedInterpolant(X,Y,Z,psfph,intmethod);
+                    obj.PSFs(key)=PSFdonut;   
                 case 'tophat'
                     sys.delshift = deg2rad(Lx/dzdphi);
                     sys.Ei = {'pishift', 'circular'};  
@@ -73,7 +115,21 @@ classdef PSFMF_realistic<PSFMF
                     xxx
             end
         end
-        function setpinhole(obj,args)
+        function setpinhole(obj, args)
+            arguments
+                obj 
+                args.lambda=600; %nm
+                args.AU =1; %in airy units
+                args.diameter=[] %nm
+                args.offset=[0,0];
+            end
+            if isempty(args.diameter)
+                [sys,opt,out]=systemparameters;
+                args.diameter=round(args.AU*1.22*sys.loem*1e9/sys.NA); %single nm accuracy should be sufficient
+            end
+            obj.PSFph=obj.calculatePSFs('pinhole',[args.diameter,args.offset]);
+        end
+        function setpinholesimple(obj,args)
             arguments
                 obj 
                 args.lambda=600; %nm
@@ -103,6 +159,18 @@ classdef PSFMF_realistic<PSFMF
             xaxv=(psf.GridVectors{1});
             figure(33)
             plot(xaxv, inten(:,round(end/2),round(end/2)))
+        end
+        function showpsf(obj,key)
+            psf=obj.PSFs(key);
+            inten=psf.Values;
+            if isempty(obj.PSFph)
+                psfph=1;
+            else
+                psfphx=obj.PSFs(obj.PSFph);
+                psfph=psfphx.Values;
+            end
+            psftot=inten.*psfph;
+            imx(psftot);
         end
     end
 end

@@ -1,25 +1,27 @@
-% % testblinking
+% % % testblinking
 % fl=blinkingfluorophore;
-% fl=staticfluorophore;
-% psfg=PSFMF_realistic;
-
+% % fl=staticfluorophore;
+% psfg=PSFMF_vectorial;
+% 
 % sim=MFSimulator(fl);
-numlocs=120;
+
 %%
+numlocs=12;
+sequencerepetitions=100;
 L=75;
-fl.pos=[10 0 500];
+fl.pos=[10 0 0];
 fl.reset
 % fl.toff=0;
 fl.brightness=10000;
 
-psfg.setpinhole("AU",1);
+psfg.setpinhole("AU",1,offset=[50 0]);
 
 % fl.starton=false;
 % fl.photonbudget=inf; 
 
 
-repetitions=1;
-pointdwelltime=1000/repetitions;
+patternrepetitions=1;
+pointdwelltime=1000/patternrepetitions;
 sim.pospattern=[0 0 0];
 % 
 % fl.pos={@(t) -0.05*t+2,@(t) 0};
@@ -35,9 +37,9 @@ sim.definePattern('vortex', psfg, psfpar="vortex", makepattern='orbitscan', orbi
     % orbitL=L,pointdwelltime=pointdwelltime)
 estimator=@(phot) estimators('donut2D',phot,sim.patterns("vortex").pos,L,360,probecenter);
 recenterh=@(x) recenter(sim,x);
-seq={"vortex",repetitions, estimator, 1:2, recenterh, false};
+seq={"vortex",patternrepetitions, estimator, 1:2, recenterh, false};
 sim.defineSequence("donutseq",seq);
-out=sim.runSequence("donutseq",numlocs);
+out=sim.repeatSequence("donutseq",numlocs,sequencerepetitions);
 
 % for k=1:length(out.photch)
 %     fprintf(num2str(mean(out.photch{k}),'%4.1f,'));
