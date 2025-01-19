@@ -8,6 +8,8 @@ switch estimatorname
         xest=positionestimate1D(photons,patternpos,varargin{:});
     case 'donut1D'
         xest=positionestimatedonut1D(photons,patternpos,varargin{:});
+    case 'gauss2D'
+        xest=positionestimategauss2D(photons,patternpos,varargin{:});
     otherwise
         disp('estimator not found')
 end
@@ -22,7 +24,7 @@ function xest=positionestimatequad(photonsi,patternpos)
     xest=-sum(pi'.*patternpos);
 end
 
-function xest=positionestimatedonut(photonsi,patternpos,L,fwhm)
+function xest=positionestimatedonut(photonsi,patternpos,L,fwhm,probecenter)
     pi=photonsi/sum(photonsi);
     % eq 2.63
     xest=-1/(1-(L^2*log(2)/fwhm^2))*sum(pi.*patternpos);
@@ -45,4 +47,14 @@ ph=photonsi([1 2 3]); pp=patternpos([1 2 3]);
     % eq 2.63
     xest(coord)=-1/(1-(L^2/sigma^2))*sum(pis'.*pp)*2/4;
     xest(coord)=-sum(pis'.*pp)/2;
+end
+
+
+
+function xest=positionestimategauss2D(photonsi,patternpos,L,sigma,iscenter)
+    numrim=size(patternpos,1)-iscenter;
+    pi=photonsi/sum(photonsi);
+    Ls2=L^2/8/sigma^2;
+    % eq 2.63
+    xest=(numrim+exp(Ls2))/Ls2/numrim*sum(pi.*patternpos);
 end

@@ -2,6 +2,7 @@ classdef AbberiorSimulator<MFSimulator
     properties
         sequence_json
         estimators
+        sigmapar
     end
     methods
         function loadsequence(obj,fname)
@@ -13,7 +14,7 @@ classdef AbberiorSimulator<MFSimulator
         end
         function makepatterns(obj,psfs)
             if nargin<2
-                psfscout=PSFMF_donut2D;
+                psfscout=PSFMF_gauss2D;
                 psfmf=PSFMF_donut2D;
             end
             itrs=obj.sequence_json.Itr;
@@ -21,10 +22,12 @@ classdef AbberiorSimulator<MFSimulator
                 switch itrs(k).Mode.id
                     case 'prbt'
                         psf=psfscout;
-                        est(k)="donut2D";
+                        est(k)="gauss2D";
+                        obj.sigmapar(k)=psf.sigma;
                     case 'mflx'
                         psf=psfmf;
                         est(k)="donut2D";
+                        obj.sigmapar(k)=psf.fwhm;
                     otherwise
                         disp([itrs(k).Mode.id]+ " not implemented");
                 end
@@ -91,8 +94,8 @@ classdef AbberiorSimulator<MFSimulator
                     %estimate position
                     patternpos=obj.patterns(itrname).pos;
                     L=itrs(itr).patGeoFactor*360; %nm
-                    fwhm=350; %nm arbitrary
-                    xest=estimators(obj.estimators(itr),scanout.phot,patternpos,L,fwhm);
+                    
+                    xest=estimators(obj.estimators(itr),scanout.phot,patternpos,L,obj.sigmapar(itr), itrs(itr).ccrLimit>-1);
                     
                     %recenter
                     dampf=2^(-obj.sequence_json.damping);

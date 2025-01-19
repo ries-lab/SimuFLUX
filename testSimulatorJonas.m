@@ -4,7 +4,7 @@
 % fl=staticfluorophore;
 % psfphaseflux=PSFMF_PhaseFLUX;
 % 
-% sim=MFSimulator(fl);
+sim=MFSimulator(fl);
 %%
 
 psfphaseflux.zerooffset=0.0;

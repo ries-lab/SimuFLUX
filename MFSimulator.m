@@ -10,8 +10,10 @@ classdef MFSimulator<handle
     end
     methods
         function obj=MFSimulator(fl)
+            if nargin>0
             
             obj.fluorophores=fl;
+            end
         end
         function definePattern(obj,patternname,psf,args)
             arguments 
@@ -77,12 +79,15 @@ classdef MFSimulator<handle
             timestart=obj.time;
            
             timep=0;
+            pospattern=obj.pospattern;
+            
             for k=1:numpoints
                 inten=0;
                 timep=timep+obj.time;
                 for f=1:length(fl)
                     flposh=fl(f).position(obj.time);
-                    ih=pattern.psf(k).intensity(pattern.psfpar(k),pattern.zeropos(k),flposh-pattern.pos(k,:)-obj.pospattern);
+                    flposrel=flposh-pattern.pos(k,:)-pospattern;
+                    ih=pattern.psf(k).intensity(flposrel,pattern.psfpar(k),pattern.zeropos(k));
                     ih=ih*pattern.laserpower(k);
                     inten=inten+fl(f).intensity(ih,pattern.pointdwelltime(k));
                     obj.time=obj.time+pattern.pointdwelltime(k);
@@ -221,11 +226,11 @@ classdef MFSimulator<handle
                 % locprec(3)=sqrt(crlb(3,3));
 
             function iho=pi(dpos)
-                    ih=pattern.psf(k).intensity(pattern.psfpar(k),pattern.zeropos(k),flpos-pattern.pos(k,:)-obj.pospattern+dpos)+bg;
+                    ih=pattern.psf(k).intensity(flpos-pattern.pos(k,:)-obj.pospattern+dpos,pattern.psfpar(k),pattern.zeropos(k))+bg;
                     
                     ihm=0;
                     for m=length(pattern.zeropos):-1:1
-                         ihm=ihm+pattern.psf(m).intensity(pattern.psfpar(m),pattern.zeropos(m),flpos-pattern.pos(m,:)-obj.pospattern+dpos)+bg;
+                         ihm=ihm+pattern.psf(m).intensity(flpos-pattern.pos(m,:)-obj.pospattern+dpos,pattern.psfpar(m),pattern.zeropos(m))+bg;
                     end
                     iho=ih/ihm;
             end

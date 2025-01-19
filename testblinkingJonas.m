@@ -1,21 +1,25 @@
-% testblinking
-fl=blinkingfluorophore;
+% % testblinking
+% fl=blinkingfluorophore;
 % fl=staticfluorophore;
-psfdonut=PSFMF_donut2D;
-sim=MFSimulator(fl);
-numlocs=12;
+% psfg=PSFMF_realistic;
+
+% sim=MFSimulator(fl);
+numlocs=120;
 %%
-L=150;
-fl.pos=[0 0 0];
-fl.toff=0;
-fl.brightness=1000;
+L=75;
+fl.pos=[10 0 500];
+fl.reset
+% fl.toff=0;
+fl.brightness=10000;
+
+psfg.setpinhole("AU",1);
 
 % fl.starton=false;
 % fl.photonbudget=inf; 
 
 
 repetitions=1;
-pointdwelltime=100/repetitions;
+pointdwelltime=1000/repetitions;
 sim.pospattern=[0 0 0];
 % 
 % fl.pos={@(t) -0.05*t+2,@(t) 0};
@@ -24,13 +28,14 @@ sim.pospattern=[0 0 0];
 % fl.makesteps(16,10,4,angle=45,numpoints=100);
 
 % fl.makediffusion(.02,sim.dwelltime,dim=2)
+probecenter=false;
+sim.definePattern('vortex', psfg, psfpar="vortex", makepattern='orbitscan', orbitpoints=6, probecenter=true,orbitL=L,pointdwelltime=pointdwelltime)
 
-
-sim.definePattern('donut', psfdonut, makepattern='orbitscan', orbitpoints=4, probecenter=false,...
-    orbitL=L,orbitorder=[1 2 4 3],pointdwelltime=pointdwelltime)
-estimator=@(phot) estimators('donut2D',phot,sim.patterns("donut").pos,L,psfdonut.fwhm);
+% sim.definePattern('donut', psfdonut, makepattern='orbitscan', orbitpoints=6, probecenter=probecenter,...
+    % orbitL=L,pointdwelltime=pointdwelltime)
+estimator=@(phot) estimators('donut2D',phot,sim.patterns("vortex").pos,L,360,probecenter);
 recenterh=@(x) recenter(sim,x);
-seq={"donut",repetitions, estimator, 1:2, recenterh, true};
+seq={"vortex",repetitions, estimator, 1:2, recenterh, false};
 sim.defineSequence("donutseq",seq);
 out=sim.runSequence("donutseq",numlocs);
 
@@ -38,7 +43,7 @@ out=sim.runSequence("donutseq",numlocs);
 %     fprintf(num2str(mean(out.photch{k}),'%4.1f,'));
 % end
 
-lp=sim.calculateCRB("donut",dim=2)/sqrt(mean(out.loc.phot));
+lp=sim.calculateCRB("vortex",dim=2)/sqrt(mean(out.loc.phot));
 
 sim.displayresults(out, lp,L)
 

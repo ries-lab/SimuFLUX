@@ -4,7 +4,7 @@ classdef PSFMF<handle
         zerooffset=0; % PSF+zerooffset
     end
     methods
-        function io=intensity(obj,phasepattern, L, flposrel)
+        function io=intensity(obj, flposrel,phasepattern, L)
        
         end
         function calculatePSFs(obj,phasepattern,Lxs)

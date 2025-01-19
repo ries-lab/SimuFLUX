@@ -1,9 +1,18 @@
 classdef PSFMF_realistic<PSFMF
+    properties
+        sigmaz=0; %don't do z sectioning.
+    end
     methods
-        function [io,iaf]=intensity(obj,phasepattern, L, flposrel)
+        function [io,iaf]=intensity(obj, flposrel ,phasepattern, L)
             key=phasepattern+L;
             psfint=obj.PSFs(key);
-            io=psfint(flposrel)+obj.zerooffset;          
+            sigmaz=obj.sigmaz;
+            if sigmaz>0
+                zfac=exp(-flposrel(:,3).^2/2/sigmaz^2);
+            else 
+                zfac=1;
+            end
+            io=psfint(flposrel)*zfac+obj.zerooffset;          
         end
         function calculatePSFs(obj,phasepattern,Lxs)
             key=phasepattern+Lxs;
@@ -11,7 +20,7 @@ classdef PSFMF_realistic<PSFMF
                 return
             end
             fprintf(key + ", ")
-            addpath('../MINFLUXexcitation/PSF_simulation/library');
+            addpath('/PSF_simulation/library');
             [sys,opt,out]=systemparameters;
             intmethod='cubic'; %linear,cubic?
             Lx=str2double(Lxs);
@@ -63,6 +72,22 @@ classdef PSFMF_realistic<PSFMF
                 otherwise
                     xxx
             end
+        end
+        function setpinhole(obj,args)
+            arguments
+                obj 
+                args.lambda=600; %nm
+                args.AU =1; %in airy units
+                args.diameter=[] %nm
+                args.NA=1.5;
+                args.refractiveIndex=1.5; %1.33 water, %1.5 oil
+            end
+            if isempty(args.diameter)
+                args.diameter=args.AU*1.22*args.lambda/args.NA;
+            end
+            n=args.refractiveIndex;
+            fwhm2=(0.88*args.lambda/(n-sqrt(n^2-args.NA^2)))^2+(sqrt(2)*n*args.diameter/args.NA)^2;
+            obj.sigmaz=sqrt(fwhm2)/2.35;
         end
         function savePSF(obj,name)
             PSFinterpolant=obj.PSFinterpolant;
