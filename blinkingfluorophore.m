@@ -13,7 +13,7 @@ classdef blinkingfluorophore<MFfluorophore
 
     end
     methods
-        function Io=intensity(obj,I0,dwelltime)
+        function Io=intensity(obj,I0,dwelltime,phfac)
             toff=obj.toff;
             if toff>0
                 fraction=obj.measure(dwelltime);
@@ -23,7 +23,7 @@ classdef blinkingfluorophore<MFfluorophore
             intensity=(obj.brightness/1000)*I0*dwelltime*fraction;
             remainingphotons=obj.remainingphotons;
             Io=min(intensity,remainingphotons);
-            obj.remainingphotons=remainingphotons-Io;
+            obj.remainingphotons=remainingphotons-Io/phfac;
         end
         function makeblinkingtrace(obj)
             obj.blinkingtrace=calculatetrace(obj.ton,obj.toff);

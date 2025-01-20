@@ -5,6 +5,11 @@
 
 function E = pishift(sys,E,r,t,p)
 
+[xx,yy] = pol2cart(p,r);
+xx=xx+sys.maskshift(1);
+yy=yy+sys.maskshift(2);
+[p,r]=cart2pol(xx,yy);
+
 radshift = 1/sqrt(2)+0.03;
 idx = r<=radshift;       % The area for pi shift.
 idx = 2*idx-1;

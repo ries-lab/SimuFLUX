@@ -5,7 +5,7 @@ classdef MFSimulator<handle
         fluorophores
         background=0; %kHz from AF, does not count towards photon budget
         % dwelltime=10; % us
-        pospattern=[0 0 0]; %nm, position of pattern center
+        posgalvo=[0 0 0]; %nm, position of pattern center
         time=0;
     end
     methods
@@ -60,12 +60,6 @@ classdef MFSimulator<handle
             for k=2:length(allpatterns)
                 pattern2=obj.patterns(allpatterns(k));
                 patternnew=appendstruct(patternnew,pattern2);
-                % ln=length(pattern2.zeropos);
-                % patternnew.psf(end+1:end+ln)=pattern2.psf;
-                % patternnew.psfpar(end+1:end+ln)=pattern2.psfpar;
-                % patternnew.zeropos(end+1:end+ln)=pattern2.zeropos;
-                % patternnew.pos(end+1:end+ln,:)=pattern2.pos;
-                % patternnew.pointdwelltime(end+1:end+ln,:)=pattern2.pointdwelltime;
             end
             obj.patterns(newname)=patternnew;
         end
@@ -79,17 +73,17 @@ classdef MFSimulator<handle
             timestart=obj.time;
            
             timep=0;
-            pospattern=obj.pospattern;
+            posgalvo=obj.posgalvo;
             
             for k=1:numpoints
                 inten=0;
                 timep=timep+obj.time;
                 for f=1:length(fl)
                     flposh=fl(f).position(obj.time);
-                    flposrel=flposh-pattern.pos(k,:)-pospattern;
-                    ih=pattern.psf(k).intensity(flposrel,pattern.psfpar(k),pattern.zeropos(k));
+                    flposrel=flposh-posgalvo; %with respect to optical axis
+                    [ih,phfac]=pattern.psf(k).intensity(flposrel,pattern.pos(k,:),pattern.psfpar(k),pattern.zeropos(k));
                     ih=ih*pattern.laserpower(k);
-                    inten=inten+fl(f).intensity(ih,pattern.pointdwelltime(k));
+                    inten=inten+fl(f).intensity(ih,pattern.pointdwelltime(k),phfac);
                     obj.time=obj.time+pattern.pointdwelltime(k);
                     flpos(f,:)=flposh+flpos(f,:);
                 end
@@ -138,7 +132,7 @@ classdef MFSimulator<handle
                     break
                 end
                 
-                pospattern_beforecenter=obj.pospattern;
+                pospattern_beforecenter=obj.posgalvo;
                 
                 for s=1:numseq
                     scanout=obj.patternrepeat(seq{s,1},seq{s,2});
@@ -227,18 +221,15 @@ classdef MFSimulator<handle
                         end
                     end
                 end
-                % crlb=(inv(IFisher(1:2,1:2)));
                 crlb=(inv(IFisher));
                 locprec=diag(sqrt(crlb))';
-                % locprec(1)=sqrt(crlb(1,1)); locprec(2)=sqrt(crlb(2,2));
-                % locprec(3)=sqrt(crlb(3,3));
 
             function iho=pi(dpos)
-                    ih=pattern.psf(k).intensity(flpos-pattern.pos(k,:)-obj.pospattern+dpos,pattern.psfpar(k),pattern.zeropos(k))+bg;
+                    ih=pattern.psf(k).intensity(flpos-pattern.pos(k,:)-obj.posgalvo,dpos,pattern.psfpar(k),pattern.zeropos(k))+bg;
                     
                     ihm=0;
                     for m=length(pattern.zeropos):-1:1
-                         ihm=ihm+pattern.psf(m).intensity(flpos-pattern.pos(m,:)-obj.pospattern+dpos,pattern.psfpar(m),pattern.zeropos(m))+bg;
+                         ihm=ihm+pattern.psf(m).intensity(flpos-pattern.pos(m,:)-obj.posgalvo,dpos,pattern.psfpar(m),pattern.zeropos(m))+bg;
                     end
                     iho=ih/ihm;
             end

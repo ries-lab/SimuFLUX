@@ -1,9 +1,9 @@
-% % % testblinking
-% fl=blinkingfluorophore;
-% % fl=staticfluorophore;
-% psfg=PSFMF_vectorial;
-% 
-% sim=MFSimulator(fl);
+% % testblinking
+fl=blinkingfluorophore;
+% fl=staticfluorophore;
+psfg=PSFMF_vectorial;
+
+sim=MFSimulator(fl);
 
 %%
 numlocs=12;
@@ -22,7 +22,7 @@ psfg.setpinhole("AU",1,offset=[50 0]);
 
 patternrepetitions=1;
 pointdwelltime=1000/patternrepetitions;
-sim.pospattern=[0 0 0];
+sim.posgalvo=[0 0 0];
 % 
 % fl.pos={@(t) -0.05*t+2,@(t) 0};
 % fl.posmode='function';
@@ -31,6 +31,7 @@ sim.pospattern=[0 0 0];
 
 % fl.makediffusion(.02,sim.dwelltime,dim=2)
 probecenter=false;
+psfg.parameters.sys.maskshift=[0.1,0.1];
 sim.definePattern('vortex', psfg, psfpar="vortex", makepattern='orbitscan', orbitpoints=6, probecenter=true,orbitL=L,pointdwelltime=pointdwelltime)
 
 % sim.definePattern('donut', psfdonut, makepattern='orbitscan', orbitpoints=6, probecenter=probecenter,...

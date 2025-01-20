@@ -5,7 +5,11 @@
 
 
 function E = halfmoon(sys,E,r,t,p)
- 
+[xx,yy] = pol2cart(p,r);
+xx=xx+sys.maskshift(1);
+yy=yy+sys.maskshift(2);
+[p,r]=cart2pol(xx,yy);
+
 idx = p>=0;       
 idx = 2*idx-1;
 phase = idx.*exp((pi)*i);   

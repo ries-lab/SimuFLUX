@@ -14,7 +14,10 @@ function E = phaseramp(sys,E,r,t,p)
 % % %Added with Giuseppe in order to introduce a shift of the doughnut hole at
 % % %the back aperture of the objective lens.
 % % 
-% [xx,yy] = pol2cart(p,r);
+[xx,yy] = pol2cart(p,r);
+xx=xx+sys.maskshift(1);
+yy=yy+sys.maskshift(2);
+[p,r]=cart2pol(xx,yy);
 % %xx = xx+0;
 % %yy = yy - 2/sys.Da*sys.OY; % Introducing a spatial offset to the phase in y direction. Use this when Ei is { 'gauss', 'offset','phaseramp',  'zernike', 'circular'};
 % %yy = yy - 2/sys.Da*sys.oy(1); % Use this when Ei is { 'gauss', 'phaseramp', 'offset', 'zernike', 'circular'};

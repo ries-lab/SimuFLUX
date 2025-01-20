@@ -42,6 +42,12 @@ function [out,err]=effField(sys,out,opt)
 if nargin < 3 | ~isstruct(opt)
    opt=struct([]);
 end
+
+if nargin<2 || isempty(out)
+    out.dr=opt.pixSize;
+    out.dz=opt.pixSize;
+end
+
 % opt.Et=option(m,'Et',0);    % Display Et?
 % opt.Ef=option(m,'Ef',0);    % Display Ef?
 % opt.mem=option(m,'mem',4096);

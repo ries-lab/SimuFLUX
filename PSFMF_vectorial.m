@@ -1,28 +1,32 @@
 classdef PSFMF_vectorial<PSFMF
     properties
-        sigmaz=0; %don't do z sectioning.
+        parameters
         PSFph=[];
     end
     methods
-        function [io,iaf]=intensity(obj, flposrel ,phasepattern, L)
-            %XXX flpos, patternpos (with respect to galvo) separately, PH
-            %at patternpos=0;
+        function obj=PSFMF_vectorial(varargin)
+            obj@PSFMF(varargin{:});
+            addpath('PSF_simulation/library');
+            obj.parameters=obj.loadparameters('defaultsystemparameters_vectorialPSF.m');
+        end
+        function [idet,phfac]=intensity(obj, flpos ,patternpos, phasepattern, L)
+            %flpos with respect to optical axis ([0,0] of PSF coordinate
+            %system)
+            % patternpos: position by EOD only of excitation pattern, no
+            % descanning. Pinhole is with respect to [0,0] (but can be
+            % shifted in pinhole definition).
             key=phasepattern+L;
             psfint=obj.PSFs(key);
             phkey=obj.PSFph;
+            flposrel=flpos-patternpos;
             if isempty(phkey)
-                zfac=0;
+                phfac=0;
             else
                 psfph=obj.PSFs(phkey);
-                zfac=psfph(flposrel);
+                phfac=psfph(flpos);
             end
-            % sigmaz=obj.sigmaz;
-            % if sigmaz>0
-            %     zfac=exp(-flposrel(:,3).^2/2/sigmaz^2);
-            % else 
-            %     zfac=1;
-            % end
-            io=psfint(flposrel)*zfac+obj.zerooffset;          
+            iexc=psfint(flposrel)+obj.zerooffset; 
+            idet=iexc*phfac;
         end
         function key=calculatePSFs(obj,phasepattern,Lxs)
             if isnumeric(Lxs)
@@ -36,25 +40,27 @@ classdef PSFMF_vectorial<PSFMF
                 return
             end
             fprintf(key + ", ")
-            addpath('PSF_simulation/library');
-            [sys,opt,out]=systemparameters;
+            
+            % [sys,opt,out]=systemparameters;
             intmethod='cubic'; %linear,cubic?
   
             %convert L into phase
             dxdphi=1.4; %nm/degree, from LSA paper Deguchi
             dzdphi=-3.6; %nm/degree
             
-
+            opt=obj.parameters.opt;
+            out=obj.parameters.addpar;
             % interpolant:
-            nx=(-opt.radiusCanvas:opt.pixSize:opt.radiusCanvas)*1e9; %to nm
+            nx=(-opt.radiusCanvas:out.dr:opt.radiusCanvas)*1e9; %to nm
             nz=(-opt.depthCanvas:out.dz:opt.depthCanvas)*1e9; %to nm
             [X,Y,Z] = ndgrid(nx,nx,nz);
 
             %Gaussian for normalization
+            sys=obj.parameters.sys;
             sys.Ei = {'circular'};
-            outc=out;
-            outc.dz=opt.depthCanvas; % Axial range. 
-            outc=effField(sys,outc, opt);      
+            % outc=out;
+            % outc.dz=opt.depthCanvas; % Axial range. 
+            outc=effField(sys,out, opt);      
             outc=effIntensity(sys,outc);
             zmid=ceil(size(outc.I,4)/2);
             % normfact=sum(sum(outc.I(1,:,:,zmid)));%normalized to integral =1
@@ -80,7 +86,10 @@ classdef PSFMF_vectorial<PSFMF
                     end
                     out=effField(sys,out, opt);      
                     out=effIntensity(sys,out);
-                    psfg=squeeze(out.I)/normfact;
+                    psfg=squeeze(out.I);
+                    % psfgmaxnorm=psfg/normfact;
+                    norm=sum(sum(psfg(:,:,round(end/2))));
+                    psfg=psfg/norm;
                     pixelsize=opt.pixSize*1e9;
 
                     sim=floor((max(phpos)+phdiameter/2)/2)*2;
@@ -89,7 +98,7 @@ classdef PSFMF_vectorial<PSFMF
                     n=-sim:pixelsize:sim;
                     [Xk,Yk]=meshgrid(n);
                     kernel=double((Xk-phpos(1)).^2+(Yk-phpos(2)).^2<(phdiameter/2)^2);
-                    kernel=kernel/sum(kernel(:));
+                    % kernel=kernel/sum(kernel(:));
                     psfph=0*psfg;
                     for k=1:size(psfph,3)
                         psfph(:,:,k)=conv2(psfg(:,:,k),kernel,"same");
@@ -124,27 +133,12 @@ classdef PSFMF_vectorial<PSFMF
                 args.offset=[0,0];
             end
             if isempty(args.diameter)
-                [sys,opt,out]=systemparameters;
-                args.diameter=round(args.AU*1.22*sys.loem*1e9/sys.NA); %single nm accuracy should be sufficient
+                % [sys,opt,out]=systemparameters;
+                args.diameter=round(args.AU*1.22*obj.parameters.sys.loem*1e9/obj.parameters.sys.NA); %single nm accuracy should be sufficient
             end
             obj.PSFph=obj.calculatePSFs('pinhole',[args.diameter,args.offset]);
         end
-        function setpinholesimple(obj,args)
-            arguments
-                obj 
-                args.lambda=600; %nm
-                args.AU =1; %in airy units
-                args.diameter=[] %nm
-                args.NA=1.5;
-                args.refractiveIndex=1.5; %1.33 water, %1.5 oil
-            end
-            if isempty(args.diameter)
-                args.diameter=args.AU*1.22*args.lambda/args.NA;
-            end
-            n=args.refractiveIndex;
-            fwhm2=(0.88*args.lambda/(n-sqrt(n^2-args.NA^2)))^2+(sqrt(2)*n*args.diameter/args.NA)^2;
-            obj.sigmaz=sqrt(fwhm2)/2.35;
-        end
+       
         function savePSF(obj,name)
             PSFinterpolant=obj.PSFinterpolant;
             save(name,'PSFinterpolant')
@@ -172,34 +166,18 @@ classdef PSFMF_vectorial<PSFMF
             psftot=inten.*psfph;
             imx(psftot);
         end
+        function par=loadparameters(obj,filen)
+            [~,fname,ext]=fileparts(filen);
+            switch ext
+                case '.m'
+                    [sys,opt,out]=eval(fname);
+                    [sys2,out]=effInit_oil_exc(sys,out,opt);
+                    sys=copyfields(sys,sys2);
+                    par.sys=sys;
+                    par.opt=opt;
+                    par.addpar=out;
+            end
+        end
     end
 end
 
-function [sys,opt,out]=systemparameters
-sys = [];
-out = [];    
-opt.Et = 0; % Display Et during the calculation.
-opt.Ef = 0;    % Display Ef during the calculation.
-opt.calbar = 0;    % Display calculation progress bar.
-opt.mem = 50000;
-opt.pixSize = 5e-9; % Although the data size will be huge, pixel size of 2e-9 is recommended for fine calculation.
-opt.radiusCanvas = 0.7e-6; % Lateral range.
-opt.depthCanvas = 0.8e-6; % Axial range. 
-opt.polAngle = 0.0*pi; % Linear polarization angle.
-opt.phaseImage = false; % Show the phase image at the back focal plane.
-opt.intImage = false;
-
-% Setting specific parameters
-[sys,out]=effInit_oil_exc(sys,out,opt);        % Assigning initial parameters. 
-sys.NA=1.35;
-sys.nm=1.406;
-sys.ns=1.406;
-sys.Mt=100;
-sys.wa=7e-3;
-sys.Na=200; 
-sys.phaseImage = opt.phaseImage;
-sys.intImage = opt.intImage;
-sys.wa=7e-3;
-sys.rz = 0.8e-6;% Axial range.
-sys.pl = 0; % Angle of the linear polarization.
-end
