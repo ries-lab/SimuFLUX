@@ -8,12 +8,12 @@ classdef MFfluorophore<handle
         remainingphotons=inf;
     end
     methods
-        function Io=intensity(obj,I0,dwelltime, brightness)
+        function Io=intensity(obj,I0,dwelltime, phfac)
             %dwelltime: us, brightness kHz
-            if nargin<4
-                brightness=obj.brightness;
-            end      
-            Io=(brightness/1000)*I0*dwelltime;
+            % if nargin<4
+            %     brightness=obj.brightness;
+            % end      
+            Io=(obj.brightness/1000)*I0*dwelltime*phfac;
         end
         function ph=photons(obj,I0,varargin)
             ph=poissrnd(obj.intensity(I0,varargin{:}));

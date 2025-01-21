@@ -35,12 +35,12 @@ classdef PSFMF<handle
             obj.sigmaz=sqrt(fwhm2)/2.35;
          end
 
-         function io=pinholezfac(iin,flposrel)
+         function phfac=pinholezfac(obj,flposrel)
              sigmaz=obj.sigmaz;
              if sigmaz>0
-                 io=exp(-flposrel(:,3).^2/2/sigmaz^2);
+                 phfac=exp(-flposrel(:,3).^2/2/sigmaz^2);
              else
-                 io=iin;
+                 phfac=1;
              end
          end
 

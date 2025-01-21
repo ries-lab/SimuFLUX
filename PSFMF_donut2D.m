@@ -3,14 +3,19 @@ classdef PSFMF_donut2D<PSFMF
         fwhm=310; %comaprison with calculated PSF
     end
     methods
-        function io=intensity(obj, flpos ,patternpos, phasepattern, L)
+        function [io,phfac]=intensity(obj, flpos ,patternpos, phasepattern, L)
             flposrel=flpos-patternpos;
             r2=flposrel(:,1:2).^2;
             fwhm=obj.fwhm;
             rs2=sum(r2,2)/fwhm^2;
             zerooffset=obj.zerooffset;
             io=0.3*4*exp(1)*log(2)*rs2.*exp(-4*log(2)*rs2)+zerooffset;    %0.3: comparison with calculated PSF 
-            io=obj.pinholezfac(io,flposrel);
+            if obj.sigmaz>0
+                phfac=obj.pinholezfac(flposrel);
+                io=io*phfac;
+            else
+                phfac=1;
+            end
         end
 
         function plotprofile(obj)

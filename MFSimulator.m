@@ -74,7 +74,6 @@ classdef MFSimulator<handle
            
             timep=0;
             posgalvo=obj.posgalvo;
-            
             for k=1:numpoints
                 inten=0;
                 timep=timep+obj.time;
@@ -95,6 +94,7 @@ classdef MFSimulator<handle
             out.time=timep/numpoints;
             out.measuretime=obj.time-timestart;
             out.counter=1;
+
         end
 
         function out=patternrepeat(obj,patternname,reps)
@@ -103,8 +103,9 @@ classdef MFSimulator<handle
                 out2=obj.patternscan(patternname);
                 out=sumstruct(out,out2);
             end
-            out.flpos=out.flpos/reps;
-            out.time=out.time/reps;
+            out.flpos=out.flpos/out.counter;
+            out.time=out.time/out.counter;
+            out.counter=1; %already normalized
         end
 
         function defineSequence(obj,key,sequencelist)

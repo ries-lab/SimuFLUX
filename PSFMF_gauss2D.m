@@ -4,7 +4,7 @@ classdef PSFMF_gauss2D<PSFMF
         sigma=310/2.35; %310 from donut
     end
     methods
-        function io=intensity(obj, flpos ,patternpos, phasepattern, L)
+        function [io,phfac]=intensity(obj, flpos ,patternpos, phasepattern, L)
             flposrel=flpos-patternpos;
             r2=flposrel(:,1:2).^2;
             sigma=obj.sigma;
@@ -12,7 +12,8 @@ classdef PSFMF_gauss2D<PSFMF
          
             zerooffset=obj.zerooffset;
             io=exp(-rs2/2/sigma^2)+zerooffset;
-            io=obj.pinholezfac(io,flposrel);
+            phfac=obj.pinholezfac(flposrel);
+            io=io*phfac;
             
         end
         
