@@ -2,7 +2,7 @@ classdef AbberiorSimulator<MFSimulator
     properties
         sequence_json
         estimators
-        % sigmapar
+        scoutingcoordinates
     end
     methods
         function loadsequence(obj,fname)
@@ -64,8 +64,8 @@ classdef AbberiorSimulator<MFSimulator
             end
             obj.estimators=est;
         end
-        function out=runSequence(obj,key)
-            obj.fluorophores(1).reset;
+        function out=runSequence(obj,key,~)
+            % obj.fluorophores(1).reset;
             itrs=obj.sequence_json.Itr;
             maxiter=length(itrs);
             
@@ -183,5 +183,63 @@ classdef AbberiorSimulator<MFSimulator
                 numitr=numitr+1;
             end
         end
+        function makescoutingpattern(obj,fov,args)
+            %fov=[x,y;x2,y2]
+            arguments
+                obj
+                fov
+                args.distance=0;
+            end
+            if args.distance==0       
+                geofactor=obj.sequence_json.field.fldGeoFactor;
+                args.distance=geofactor*360/640*obj.sequence_json.Itr(1).wavelength*1e9;
+            end
+            obj.scoutingcoordinates=makehexgrid(fov,args.distance);
+            figure(98);plot(obj.scoutingcoordinates(:,1),obj.scoutingcoordinates(:,2),'o')
+
+        end
+        function out=scoutingSequence(obj,args)
+            arguments
+                obj
+                args.maxrep=2;
+            end
+            obj.posgalvo(1:2)=obj.scoutingcoordinates(1,:);
+            obj.posEOD=[0 0 0];
+            out=[];
+            for reps=1:args.maxrep
+                for pind=2:size(obj.scoutingcoordinates,1)
+                    obj.posgalvo(1:2)=obj.scoutingcoordinates(pind,:);
+                    obj.posEOD=[0 0 0];
+                    out2=obj.runSequence;
+                    out=obj.addout(out,out2);
+                end
+            end
+
+
+        end
     end
+end
+
+
+function pos=makehexgrid(roi,d)
+h=d*cosd(30);
+numpx=(roi(2,1)-roi(1,1))/h;
+numpy=(roi(2,2)-roi(1,2))/d;
+
+pos=zeros(ceil(numpx*numpy),2);
+ind=1;
+
+for l=numpy:-1:-numpx
+    for k=0:numpx
+        x=k*h+roi(1,1);
+        y=l*d+k*d/2+roi(1,2);
+        if x<=roi(2,1) && y<=roi(2,2) && x>=roi(1,1) &&y>=roi(1,2)
+            pos(ind,:)=[x,y];
+            ind=ind+1;
+        end
+
+    end
+end
+
+pos(ind:end,:)=[];
 end

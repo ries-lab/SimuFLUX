@@ -70,7 +70,8 @@ classdef MFSimulator<handle
             fl=obj.fluorophores;
             numpoints=length(pattern.zeropos);
             intall=zeros(numpoints,1);
-            flpos=zeros(1,3);
+            flpos=zeros(length(fl),3);
+            flint=zeros(length(fl),1);
             timestart=obj.time;
            
             timep=0;
@@ -84,10 +85,11 @@ classdef MFSimulator<handle
                     flposrel=flposh-posgalvo; %with respect to optical axis
                     [ih,phfac]=pattern.psf(k).intensity(flposrel,pattern.pos(k,:)+poseod,pattern.psfpar(k),pattern.zeropos(k));
                     ih=ih*pattern.laserpower(k);
-                    inten=inten+fl(f).intensity(ih,pattern.pointdwelltime(k),phfac);
-                    obj.time=obj.time+pattern.pointdwelltime(k);
+                    flint(f)=fl(f).intensity(ih,pattern.pointdwelltime(k),phfac);
+                    inten=inten+flint(f);
                     flpos(f,:)=flposh+flpos(f,:);
                 end
+                obj.time=obj.time+pattern.pointdwelltime(k);
                 intall(k)=inten+obj.background;
             end
             out.phot=poissrnd(intall); %later: fl.tophot(intenall): adds bg, multiplies with brightness, does 
@@ -115,7 +117,7 @@ classdef MFSimulator<handle
         end
 
         function out=runSequence(obj,key,maxlocalizations)
-            obj.fluorophores(1).reset;
+            % obj.fluorophores(1).reset;
             seq=obj.sequences(key);seq=seq{1};
             numseq=size(seq,1);
             for s=numseq:-1:1
@@ -156,7 +158,7 @@ classdef MFSimulator<handle
             if bleached
                 k=k-1;
             end
-            out.raw=photch;
+            out.raw(1,:,:,:)=photch;
             out.loc.xnm=xest(1:k,1);out.loc.ynm=xest(1:k,2);out.loc.znm=xest(1:k,3);
             out.loc.xfl(1:k,1)=scanout.flpos(1);out.loc.yfl(1:k,1)=scanout.flpos(2);out.loc.zfl(1:k,1)=scanout.flpos(3);
             out.loc.time=timep(1:k,1);
@@ -164,18 +166,50 @@ classdef MFSimulator<handle
             out.loc.abortcondition=zeros(size(out.loc.phot));out.loc.abortcondition(end)=1;
         end
         function out=repeatSequence(obj,key,maxloc,repetitions)
-            out1=obj.runSequence(key,maxloc);
-            raw(1,:,:,:)=out1.raw;
-            loc=out1.loc;
-            loc.rep=1+0*loc.xnm;
-            for k=2:repetitions
+            % 
+            out=[];
+            for k=1:repetitions
+                obj.fluorophores(1).reset;
                 out2=obj.runSequence(key,maxloc);
-                raw(k,:,:,:)=out2.raw;
-                loc2=out2.loc;
-                loc2.rep=k+0*loc2.xnm;
-                loc=appendstruct(loc,loc2);
+                out=obj.addout(out,out2);
             end
-            out.raw=raw; out.loc=loc;
+            % 
+            % out1=obj.runSequence(key,maxloc);
+            % outx=obj.addout(outx,out1);
+            % raw(1,:,:,:)=out1.raw;
+            % loc=out1.loc;
+            % loc.rep=1+0*loc.xnm;
+            % for k=2:repetitions
+            %     obj.fluorophores(1).reset;
+            %     out2=obj.runSequence(key,maxloc);
+            %     outx=obj.addout(outx,out2);
+            %     raw(k,:,:,:)=out2.raw;
+            %     loc2=out2.loc;
+            %     loc2.rep=k+0*loc2.xnm;
+            %     loc=appendstruct(loc,loc2);
+            % end
+            % out.raw=raw; out.loc=loc;
+
+        end
+        function out=addout(obj,out1,out2)
+            if isempty(out1)
+                out=out2;
+                out.raw=out2.raw;
+                out.loc.rep=1+0*out.loc.xnm;
+            else %Abberior
+                raw=out1.raw;
+                sr=size(out2.raw);
+                if length(sr)==2
+                    raw(end+1:end+sr(1),1:sr(2))=out2.raw;
+                else
+                    raw(end+1,:,:,:)=out2.raw;
+                end
+                loc=out1.loc;
+                loc2=out2.loc;
+                loc2.rep=size(raw,1)+0*loc2.xnm;
+                loc=appendstruct(loc,loc2);
+                out.raw=raw;out.loc=loc;
+            end
         end
 
         function xpattern=makeorbitpattern(obj,orbitpoints,usecenter,orbitorder)

@@ -1,9 +1,9 @@
-% % testblinking
-fl=blinkingfluorophore;
-% fl=staticfluorophore;
-psfg=PSFMF_vectorial;
-
-sim=MFSimulator(fl);
+% % % testblinking
+% fl=blinkingfluorophore;
+% % fl=staticfluorophore;
+% psfg=PSFMF_vectorial;
+% 
+% sim=MFSimulator(fl);
 
 %%
 numlocs=12;
