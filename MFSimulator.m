@@ -6,6 +6,7 @@ classdef MFSimulator<handle
         background=0; %kHz from AF, does not count towards photon budget
         % dwelltime=10; % us
         posgalvo=[0 0 0]; %nm, position of pattern center
+        posEOD=[0 0 0]; %nm, not descanned, with respect to posgalvo.
         time=0;
     end
     methods
@@ -74,13 +75,14 @@ classdef MFSimulator<handle
            
             timep=0;
             posgalvo=obj.posgalvo;
+            poseod=obj.posEOD;
             for k=1:numpoints
                 inten=0;
                 timep=timep+obj.time;
                 for f=1:length(fl)
                     flposh=fl(f).position(obj.time);
                     flposrel=flposh-posgalvo; %with respect to optical axis
-                    [ih,phfac]=pattern.psf(k).intensity(flposrel,pattern.pos(k,:),pattern.psfpar(k),pattern.zeropos(k));
+                    [ih,phfac]=pattern.psf(k).intensity(flposrel,pattern.pos(k,:)+poseod,pattern.psfpar(k),pattern.zeropos(k));
                     ih=ih*pattern.laserpower(k);
                     inten=inten+fl(f).intensity(ih,pattern.pointdwelltime(k),phfac);
                     obj.time=obj.time+pattern.pointdwelltime(k);

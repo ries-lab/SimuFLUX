@@ -1,5 +1,5 @@
 fl=blinkingfluorophore;
-fl.pos=[350,0,0];
+fl.pos=[400,0,0];
 fl.brightness=1000;
 fl.photonbudget=20000;
 psfdonut=PSFMF_donut2D;
@@ -13,5 +13,6 @@ sim.loadsequence(fname)
 sim.makepatterns
 out=sim.runSequence;
 figure(88);hold off;plot(out.loc.loccounter, out.loc.xnm);hold on; plot(out.loc.loccounter,out.loc.xfl);hold on; plot(out.loc.loccounter,out.loc.xgalvo)
+plot(out.loc.loccounter,out.loc.xeod)
 xlabel('time (itr)')
-legend('xest', 'xfl','xgalvo')
+legend('xest', 'xfl','xgalvo','EOD')

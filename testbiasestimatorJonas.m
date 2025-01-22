@@ -8,18 +8,18 @@ sim=MFSimulator(fl);
 %%
 numlocs=25;
 sequencerepetitions=10;
-L=151;
+L=75;
 fl.pos=[0 0 0];
 % fl.reset
 fl.brightness=10000;
 
-xp=-300:30:300;
+xp=-150:10:150;
 
 patternrepetitions=1;
 pointdwelltime=1000/patternrepetitions;
 sim.posgalvo=[0 0 0];
 
-probecenter=true;
+probecenter=false;
 orbitpoints=6;
 sim.definePattern('vortex', psfg, psfpar="vortex", makepattern='orbitscan', orbitpoints=orbitpoints, probecenter=probecenter,orbitL=L,pointdwelltime=pointdwelltime)
 
@@ -36,7 +36,8 @@ clear biasx biasy
 for k=1:length(xp)
     % xp(k)
     fl.pos(1)=xp(k);
-    estimator=@(phot) estimators('donut2DcentermLMS',phot,sim.patterns("vortex").pos,L,310,betas);
+    % estimator=@(phot) estimators('donut2DcentermLMS',phot,sim.patterns("vortex").pos,L,310,betas);
+    estimator=@(phot) estimators('donut2D',phot,sim.patterns("vortex").pos,L,310);
     recenterh=@(x) recenter(sim,x);
     seq={"vortex",patternrepetitions, estimator, 1:2, recenterh, false};
     sim.defineSequence("donutseq",seq);
@@ -50,10 +51,14 @@ end
 figure(88)
 hold on
 plot(xp,biasx)
+xlabel('x pos (nm)')
+ylabel('bias x (nm)')
 
 figure(89)
 hold on
 plot(xp,xest,xp,xp)
+xlabel('x pos (nm)')
+ylabel('xest (nm)')
 
 % for k=1:length(out.photch)
 %     fprintf(num2str(mean(out.photch{k}),'%4.1f,'));

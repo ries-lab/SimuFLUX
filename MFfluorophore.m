@@ -63,6 +63,7 @@ classdef MFfluorophore<handle
                 args.startpos=[0 0 0]
                 args.dim=2;
                 args.numpoints=100;
+                args.boundarybox=[]; %nm, half length of box, periodic boundary conditions
             end
             obj.posparameters={D,dt,args};
             % Dstep=D/1e6*1e6*dt; %D in um^2/s is the same as D in nm^2/us
@@ -70,6 +71,15 @@ classdef MFfluorophore<handle
             time=dt:dt:args.numpoints*dt;
             jumps=(randn(args.numpoints,args.dim)*Dstep);
             pos=horzcat(cumsum(jumps,1))+args.startpos(1:args.dim);
+            if ~isempty(args.boundarybox) %periodic boundary conditions
+                if numel(args.boundarybox)==1
+                    args.boundarybox=args.boundarybox*ones(1,args.dim);
+                end
+                pos2=pos+args.boundarybox;
+                pos3=mod(pos2,2*args.boundarybox);
+                pos=pos3-args.boundarybox;
+            end
+
             obj.pos=horzcat(time',pos);
             obj.posmode='diffusion';
         end
