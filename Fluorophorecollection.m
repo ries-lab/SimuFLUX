@@ -3,7 +3,7 @@ classdef Fluorophorecollection<handle
         flall
         % isactive
         flprop %.moving, isactive, nexton, nextoff
-        switchpar=struct('starton',false,'tonsmlm',1e3,'toffsmlm',2e4,'photonbudget',1000) %starton, tonsmlm, toffsmlm, microseconds
+        switchpar=struct('starton',false,'tonsmlm',1e3,'toffsmlm',5e4,'photonbudget',1000) %starton, tonsmlm, toffsmlm, microseconds
         % tprevious=0;
     end
     methods

@@ -26,12 +26,16 @@ sim.loadsequence(fname)
 sim.makepatterns
 sim.makescoutingpattern([-200 -200; 1200 1200 ])
 % out=sim.runSequence;
-out=sim.scoutingSequence(maxrep=100);
+out=sim.scoutingSequence(maxrep=500);
 % out=sim.repeatSequence('',1,5000);
 % figure(88);hold off;plot(out.loc.loccounter, out.loc.xnm);hold on; plot(out.loc.loccounter,out.loc.xfl);hold on; plot(out.loc.loccounter,out.loc.xgalvo)
 % plot(out.loc.loccounter,out.loc.xeod)
 % xlabel('time (itr)')
 % legend('xest', 'xfl','xgalvo','EOD')
-vld=out.loc.vld==1 & out.loc.itr==max(out.loc.itr) & out.loc.cfr<0.2;
-figure(88); plot(out.loc.xnm(vld),out.loc.ynm(vld),'+')
+vld=out.loc.vld==1 & out.loc.itr==max(out.loc.itr) ;
+vldcfr=vld & out.loc.cfr<0.3;
+figure(88); hold off;
+plot(out.loc.xnm(vld),out.loc.ynm(vld),'r.')
+hold on
+plot(out.loc.xnm(vldcfr),out.loc.ynm(vldcfr),'b+')
 axis equal
