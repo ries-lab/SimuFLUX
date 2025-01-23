@@ -40,7 +40,7 @@ classdef PSFMF<handle
              if sigmaz>0
                  phfac=exp(-flposrel(:,3).^2/2/sigmaz^2);
              else
-                 phfac=1;
+                 phfac=ones(size(flposrel,1),1);
              end
          end
 

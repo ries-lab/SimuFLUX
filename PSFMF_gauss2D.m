@@ -10,10 +10,14 @@ classdef PSFMF_gauss2D<PSFMF
             sigma=obj.sigma;
             rs2=sum(r2,2);
          
-            zerooffset=obj.zerooffset;
-            io=exp(-rs2/2/sigma^2)+zerooffset;
-            phfac=obj.pinholezfac(flposrel);
-            io=io*phfac;
+            % zerooffset=obj.zerooffset;
+            io=exp(-rs2/2/sigma^2);%+zerooffset; zerooffset not important for Gauss
+            if obj.sigmaz>0
+                phfac=obj.pinholezfac(flposrel);
+                io=io.*phfac;
+            else
+                phfac=ones(size(io));
+            end
             
         end
         

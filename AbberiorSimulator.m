@@ -125,7 +125,7 @@ classdef AbberiorSimulator<MFSimulator
                 out.loc.xgalvo(loccounter,1)=obj.posgalvo(1);out.loc.ygalvo(loccounter,1)=obj.posgalvo(2);out.loc.zgalvo(loccounter,1)=obj.posgalvo(3);
                 out.loc.xeod(loccounter,1)=obj.posEOD(1);out.loc.yeod(loccounter,1)=obj.posEOD(2);out.loc.zeod(loccounter,1)=obj.posEOD(3);
 
-                if abortphot<4 && abortccr<4 %recenter only for valid
+                if ~abortphot && ~abortccr %recenter only for valid
                     %estimate position
                     patternpos=obj.patterns(itrname).pos;
                     L=itrs(itr).patGeoFactor*360; %nm
@@ -146,6 +146,8 @@ classdef AbberiorSimulator<MFSimulator
                     end
                     % obj.posgalvo=(1-dampf)*obj.posgalvo+dampf*(xestg); 
                     % obj.posgalvo=xestg;
+                else
+                    xesttot=[0,0,0];
                 end
                 if itrs(itr).ccrLimit>-1
                     out.loc.eco(loccounter,1)=sum(scanout.phot(1:end-1));
@@ -157,11 +159,13 @@ classdef AbberiorSimulator<MFSimulator
                 else
                     out.loc.eco(loccounter,1)=sum(scanout.phot);
                     out.loc.efo=out.loc.eco/(scanout.measuretime);
+                    out.loc.ecc(loccounter,1)=-1;
+                    out.loc.efc(loccounter,1)=-1;
                     cfr=-1;
                 end
 
                 out.loc.xnm(loccounter,1)=xesttot(1);out.loc.ynm(loccounter,1)=xesttot(2);out.loc.znm(loccounter,1)=xesttot(3);
-                out.loc.xfl(loccounter,1)=scanout.flpos(1)/scanout.counter;out.loc.yfl(loccounter,1)=scanout.flpos(2)/scanout.counter;out.loc.zfl(loccounter,1)=scanout.flpos(3)/scanout.counter;
+                % out.loc.xfl(loccounter,1)=scanout.flpos(1)/scanout.counter;out.loc.yfl(loccounter,1)=scanout.flpos(2)/scanout.counter;out.loc.zfl(loccounter,1)=scanout.flpos(3)/scanout.counter;
                 out.loc.time(loccounter,1)=scanout.time/scanout.counter;
                 out.loc.itr(loccounter,1)=itr;
                 out.loc.loccounter(loccounter,1)=loccounter;
@@ -203,6 +207,7 @@ classdef AbberiorSimulator<MFSimulator
                 obj
                 args.maxrep=2;
             end
+            %reset fluorophore?
             obj.posgalvo(1:2)=obj.scoutingcoordinates(1,:);
             obj.posEOD=[0 0 0];
             out=[];

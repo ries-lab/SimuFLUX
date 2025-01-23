@@ -70,8 +70,9 @@ classdef MFSimulator<handle
             fl=obj.fluorophores;
             numpoints=length(pattern.zeropos);
             intall=zeros(numpoints,1);
-            flpos=zeros(length(fl),3);
-            flint=zeros(length(fl),1);
+            % flpos=zeros(length(fl),3);
+            % flint=zeros(length(fl),1);
+            
             timestart=obj.time;
            
             timep=0;
@@ -80,24 +81,33 @@ classdef MFSimulator<handle
             for k=1:numpoints
                 inten=0;
                 timep=timep+obj.time;
-                for f=1:length(fl)
-                    flposh=fl(f).position(obj.time);
-                    flposrel=flposh-posgalvo; %with respect to optical axis
-                    [ih,phfac]=pattern.psf(k).intensity(flposrel,pattern.pos(k,:)+poseod,pattern.psfpar(k),pattern.zeropos(k));
-                    ih=ih*pattern.laserpower(k);
-                    flint(f)=fl(f).intensity(ih,pattern.pointdwelltime(k),phfac);
-                    inten=inten+flint(f);
-                    flpos(f,:)=flposh+flpos(f,:);
-                end
+                flposh=fl.position(obj.time);
+                flposrel=flposh-posgalvo;
+                [ih,phfac]=pattern.psf(k).intensity(flposrel,pattern.pos(k,:)+poseod,pattern.psfpar(k),pattern.zeropos(k));
+                ih=ih*pattern.laserpower(k);
+                flint=fl.intensity(ih,pattern.pointdwelltime(k),phfac);
+                inten=sum(flint);
+                %     
+
+                % for f=1:length(fl)
+                %     flposh=fl(f).position(obj.time);
+                %     flposrel=flposh-posgalvo; %with respect to optical axis
+                %     [ih,phfac]=pattern.psf(k).intensity(flposrel,pattern.pos(k,:)+poseod,pattern.psfpar(k),pattern.zeropos(k));
+                %     ih=ih*pattern.laserpower(k);
+                %     flint(f)=fl(f).intensity(ih,pattern.pointdwelltime(k),phfac);
+                %     inten=inten+flint(f);
+                % flpos=flposh+flpos;
+                % end
                 obj.time=obj.time+pattern.pointdwelltime(k);
                 intall(k)=inten+obj.background;
             end
             out.phot=poissrnd(intall); %later: fl.tophot(intenall): adds bg, multiplies with brightness, does 
             out.photbg=obj.background*sum(pattern.pointdwelltime);
-            out.flpos=flpos/numpoints;
+            % out.flpos=flpos/numpoints;
             out.time=timep/numpoints;
             out.measuretime=obj.time-timestart;
             out.counter=1;
+            fl.updateonoff(obj.time)
 
         end
 
@@ -107,7 +117,7 @@ classdef MFSimulator<handle
                 out2=obj.patternscan(patternname);
                 out=sumstruct(out,out2);
             end
-            out.flpos=out.flpos/out.counter;
+            % out.flpos=out.flpos/out.counter;
             out.time=out.time/out.counter;
             out.counter=1; %already normalized
         end
