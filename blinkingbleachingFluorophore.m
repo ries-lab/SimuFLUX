@@ -4,7 +4,6 @@ classdef blinkingbleachingFluorophore<MFfluorophore
         ton =100;
         toff =0;
         starton=false;
-        % bleaching = true;
         photonbudget=inf; %1000 photons
         time=0;
         blinkingtrace

@@ -3,6 +3,9 @@ classdef MFfluorophore<handle
         pos=[0, 0, 0]; %nm
         brightness=1000; %kHz;
         remainingphotons=inf;
+        %dummy properties for compatibility with collection
+        numberOfFluorophores=1;
+        allbleached=false;
     end
     methods
         function Io=intensity(obj,I0,dwelltime, phfac)
@@ -20,8 +23,13 @@ classdef MFfluorophore<handle
         end
         function reset(obj)
         end
-        function posout=position(obj,time)
+        function [posout,isactive]=position(obj,time)
             posout=obj.pos;
+            isactive=true;
+        end
+
+        %dummy functions for compatibility with collection
+        function updateonoff(obj,time)
         end
     end
 end

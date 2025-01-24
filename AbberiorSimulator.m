@@ -66,6 +66,7 @@ classdef AbberiorSimulator<MFSimulator
         end
         function out=runSequence(obj,key,~)
             % obj.fluorophores(1).reset;
+            out=[];
             itrs=obj.sequence_json.Itr;
             maxiter=length(itrs);
             
@@ -83,6 +84,7 @@ classdef AbberiorSimulator<MFSimulator
                 loclimit=10000;%instead of inf. safety to avoid running forever
             end
             loccounter=1;
+            
             numitr=0;itr=1;
             stickinesscounter=0;
 
@@ -122,64 +124,69 @@ classdef AbberiorSimulator<MFSimulator
                     end
                 end
 
-                out.loc.xgalvo(loccounter,1)=obj.posgalvo(1);out.loc.ygalvo(loccounter,1)=obj.posgalvo(2);out.loc.zgalvo(loccounter,1)=obj.posgalvo(3);
-                out.loc.xeod(loccounter,1)=obj.posEOD(1);out.loc.yeod(loccounter,1)=obj.posEOD(2);out.loc.zeod(loccounter,1)=obj.posEOD(3);
-
-                if ~abortphot && ~abortccr %recenter only for valid
-                    %estimate position
-                    patternpos=obj.patterns(itrname).pos;
-                    L=itrs(itr).patGeoFactor*360; %nm
-                    estimator=obj.estimators(itr);
-                    xest=estimators(estimator.estimator,scanout.phot,patternpos,L,estimator.parameters{:});
-                    xesttot=xest+obj.posgalvo+obj.posEOD;
+                if photsum>0 %no photon detected: we don't write localization
+                    out.loc.xgalvo(loccounter,1)=obj.posgalvo(1);out.loc.ygalvo(loccounter,1)=obj.posgalvo(2);out.loc.zgalvo(loccounter,1)=obj.posgalvo(3);
+                    out.loc.xeod(loccounter,1)=obj.posEOD(1);out.loc.yeod(loccounter,1)=obj.posEOD(2);out.loc.zeod(loccounter,1)=obj.posEOD(3);
                     
-                    %recenter
-                    if itr==maxiter
-                        dampf=2^(-obj.sequence_json.damping);
-                        xold=obj.posgalvo;
-                       
-                        obj.posgalvo=(1-dampf)*obj.posgalvo+dampf*(xesttot);
-                        obj.posEOD=obj.posEOD+xold-obj.posgalvo+xest;
+    
+                    if ~abortphot && ~abortccr %recenter only for valid
+                        %estimate position
+                        patternpos=obj.patterns(itrname).pos;
+                        L=itrs(itr).patGeoFactor*360; %nm
+                        estimator=obj.estimators(itr);
+                        xest=estimators(estimator.estimator,scanout.phot,patternpos,L,estimator.parameters{:});
+                        xesttot=xest+obj.posgalvo+obj.posEOD;
+                        
+                        %recenter
+                        if itr==maxiter
+                            dampf=2^(-obj.sequence_json.damping);
+                            xold=obj.posgalvo;
+                           
+                            obj.posgalvo=(1-dampf)*obj.posgalvo+dampf*(xesttot);
+                            obj.posEOD=obj.posEOD+xold-obj.posgalvo+xest;
+                        else
+                            obj.posEOD=obj.posEOD+xest;
+                        end
                     else
-                        obj.posEOD=obj.posEOD+xest;
-                        % dampf=1; %EOD update without damping
+                        xesttot=[0,0,0];
                     end
-                    % obj.posgalvo=(1-dampf)*obj.posgalvo+dampf*(xestg); 
-                    % obj.posgalvo=xestg;
-                else
-                    xesttot=[0,0,0];
-                end
-                if itrs(itr).ccrLimit>-1
-                    out.loc.eco(loccounter,1)=sum(scanout.phot(1:end-1));
-                    out.loc.ecc(loccounter,1)=sum(scanout.phot(end));
+    
                     
-                    orbittime=scanout.measuretime/(1+probecenter*obj.sequence_json.ctrDwellFactor);
-                    out.loc.efo=out.loc.eco/(orbittime)*1e6;
-                    out.loc.efc=out.loc.ecc/(scanout.measuretime-orbittime)*1e6;
-                else
-                    out.loc.eco(loccounter,1)=sum(scanout.phot);
-                    out.loc.efo=out.loc.eco/(scanout.measuretime);
-                    out.loc.ecc(loccounter,1)=-1;
-                    out.loc.efc(loccounter,1)=-1;
-                    cfr=-1;
+                    
+                    if itrs(itr).ccrLimit>-1
+                        out.loc.eco(loccounter,1)=sum(scanout.phot(1:end-1));
+                        out.loc.ecc(loccounter,1)=sum(scanout.phot(end));
+                        
+                        orbittime=scanout.measuretime/(1+probecenter*obj.sequence_json.ctrDwellFactor);
+                        out.loc.efo=out.loc.eco/(orbittime)*1e6;
+                        out.loc.efc=out.loc.ecc/(scanout.measuretime-orbittime)*1e6;
+                    else
+                        out.loc.eco(loccounter,1)=sum(scanout.phot);
+                        out.loc.efo=out.loc.eco/(scanout.measuretime);
+                        out.loc.ecc(loccounter,1)=-1;
+                        out.loc.efc(loccounter,1)=-1;
+                        cfr=-1;
+                    end
+    
+                    out.loc.xnm(loccounter,1)=xesttot(1);out.loc.ynm(loccounter,1)=xesttot(2);out.loc.znm(loccounter,1)=xesttot(3);
+                    % out.loc.xfl(loccounter,1)=scanout.flpos(1)/scanout.counter;out.loc.yfl(loccounter,1)=scanout.flpos(2)/scanout.counter;out.loc.zfl(loccounter,1)=scanout.flpos(3)/scanout.counter;
+                    out.loc.time(loccounter,1)=scanout.time/scanout.counter;
+                    out.loc.itr(loccounter,1)=itr;
+                    out.loc.numitr(loccounter,1)=numitr;
+                    out.loc.loccounter(loccounter,1)=loccounter;
+                    out.loc.cfr(loccounter,1)=cfr;
+                    out.loc.phot(loccounter,1)=photsum;
+                    out.loc.vld(loccounter,1)=stickinesscounter<stickiness;
+                    out.loc.abortcondition(loccounter,1)=1*(abortphot) + 2*(abortccr);
+                    out.loc.patternrepeat(loccounter,1)=scanout.counter;
+                    out.loc.measuretime(loccounter,1)=scanout.measuretime;           
+                    out.raw(loccounter,1:length(scanout.phot))=scanout.phot;
+                    out.fluorophores.pos(loccounter,1:size(scanout.flpos,1),:)=scanout.flpos;
+                    out.fluorophores.int(loccounter,1:size(scanout.flpos,1))=scanout.flint;
+                    
+                    loccounter=loccounter+1;
                 end
 
-                out.loc.xnm(loccounter,1)=xesttot(1);out.loc.ynm(loccounter,1)=xesttot(2);out.loc.znm(loccounter,1)=xesttot(3);
-                % out.loc.xfl(loccounter,1)=scanout.flpos(1)/scanout.counter;out.loc.yfl(loccounter,1)=scanout.flpos(2)/scanout.counter;out.loc.zfl(loccounter,1)=scanout.flpos(3)/scanout.counter;
-                out.loc.time(loccounter,1)=scanout.time/scanout.counter;
-                out.loc.itr(loccounter,1)=itr;
-                out.loc.loccounter(loccounter,1)=loccounter;
-                out.loc.cfr(loccounter,1)=cfr;
-                out.loc.phot(loccounter,1)=photsum;
-                out.loc.vld(loccounter,1)=stickinesscounter<stickiness;
-                out.loc.abortcondition(loccounter,1)=1*(abortphot) + 2*(abortccr);
-                out.loc.patternrepeat(loccounter,1)=scanout.counter;
-                out.loc.measuretime(loccounter,1)=scanout.measuretime;
-                % out.loc.efo(loccounter,1)
-                out.raw(loccounter,1:length(scanout.phot))=scanout.phot;
-                
-
-                loccounter=loccounter+1;
                 itr=itr+1;
                 if itr>length(itrs)
                     itr=itr+obj.sequence_json.headstart;
@@ -211,12 +218,20 @@ classdef AbberiorSimulator<MFSimulator
             obj.posgalvo(1:2)=obj.scoutingcoordinates(1,:);
             obj.posEOD=[0 0 0];
             out=[];
+            allbleached=false;
             for reps=1:args.maxrep
                 for pind=2:size(obj.scoutingcoordinates,1)
                     obj.posgalvo(1:2)=obj.scoutingcoordinates(pind,:);
                     obj.posEOD=[0 0 0];
                     out2=obj.runSequence;
                     out=obj.addout(out,out2);
+                    if obj.fluorophores.allbleached
+                        allbleached=true;
+                        break
+                    end
+                end
+                if allbleached
+                    break
                 end
             end
 

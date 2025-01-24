@@ -78,17 +78,20 @@ classdef MFSimulator<handle
             timep=0;
             posgalvo=obj.posgalvo;
             poseod=obj.posEOD;
+            flpos=zeros(fl.numberOfFluorophores,3);
+            flintall=zeros(fl.numberOfFluorophores,1);
             for k=1:numpoints
-                inten=0;
+
                 timep=timep+obj.time;
-                flposh=fl.position(obj.time);
+                [flposh,isactive]=fl.position(obj.time);
                 flposrel=flposh-posgalvo;
                 [ih,phfac]=pattern.psf(k).intensity(flposrel,pattern.pos(k,:)+poseod,pattern.psfpar(k),pattern.zeropos(k));
                 ih=ih*pattern.laserpower(k);
                 flint=fl.intensity(ih,pattern.pointdwelltime(k),phfac);
                 inten=sum(flint);
                 %     
-
+                flpos(isactive,:)=flpos(isactive,:)+flposh;
+                flintall(isactive,:)=flintall(isactive,:)+flint;
                 % for f=1:length(fl)
                 %     flposh=fl(f).position(obj.time);
                 %     flposrel=flposh-posgalvo; %with respect to optical axis
@@ -103,7 +106,8 @@ classdef MFSimulator<handle
             end
             out.phot=poissrnd(intall); %later: fl.tophot(intenall): adds bg, multiplies with brightness, does 
             out.photbg=obj.background*sum(pattern.pointdwelltime);
-            % out.flpos=flpos/numpoints;
+            out.flpos=flpos/numpoints;
+            out.flint=flintall;
             out.time=timep/numpoints;
             out.measuretime=obj.time-timestart;
             out.counter=1;
@@ -117,7 +121,7 @@ classdef MFSimulator<handle
                 out2=obj.patternscan(patternname);
                 out=sumstruct(out,out2);
             end
-            % out.flpos=out.flpos/out.counter;
+            out.flpos=out.flpos/out.counter;
             out.time=out.time/out.counter;
             out.counter=1; %already normalized
         end
@@ -176,49 +180,34 @@ classdef MFSimulator<handle
             out.loc.abortcondition=zeros(size(out.loc.phot));out.loc.abortcondition(end)=1;
         end
         function out=repeatSequence(obj,key,maxloc,repetitions)
-            % 
             out=[];
             for k=1:repetitions
                 obj.fluorophores(1).reset;
                 out2=obj.runSequence(key,maxloc);
                 out=obj.addout(out,out2);
             end
-            % 
-            % out1=obj.runSequence(key,maxloc);
-            % outx=obj.addout(outx,out1);
-            % raw(1,:,:,:)=out1.raw;
-            % loc=out1.loc;
-            % loc.rep=1+0*loc.xnm;
-            % for k=2:repetitions
-            %     obj.fluorophores(1).reset;
-            %     out2=obj.runSequence(key,maxloc);
-            %     outx=obj.addout(outx,out2);
-            %     raw(k,:,:,:)=out2.raw;
-            %     loc2=out2.loc;
-            %     loc2.rep=k+0*loc2.xnm;
-            %     loc=appendstruct(loc,loc2);
-            % end
-            % out.raw=raw; out.loc=loc;
-
         end
-        function out=addout(obj,out1,out2)
+        function out1=addout(obj,out1,out2)
+            if isempty(out2)
+                return
+            end
             if isempty(out1)
-                out=out2;
-                out.raw=out2.raw;
-                out.loc.rep=1+0*out.loc.xnm;
-            else %Abberior
-                raw=out1.raw;
+                out1=out2;
+                out1.raw=out2.raw;
+                out1.loc.rep=1+0*out1.loc.xnm;
+                out1.fluorophores.pos=out2.fluorophores.pos;
+                out1.fluorophores.int=out2.fluorophores.int;
+            else 
                 sr=size(out2.raw);
-                if length(sr)==2
-                    raw(end+1:end+sr(1),1:sr(2))=out2.raw;
+                if length(sr)==2 %Abberior
+                    out1.raw(end+1:end+sr(1),1:sr(2))=out2.raw;
                 else
-                    raw(end+1,:,:,:)=out2.raw;
+                    out1.raw(end+1,:,:,:)=out2.raw;
                 end
-                loc=out1.loc;
-                loc2=out2.loc;
-                loc2.rep=size(raw,1)+0*loc2.xnm;
-                loc=appendstruct(loc,loc2);
-                out.raw=raw;out.loc=loc;
+                out1.fluorophores.pos=cat(1,out1.fluorophores.pos,out2.fluorophores.pos);
+                out1.fluorophores.int=cat(1,out1.fluorophores.int,out2.fluorophores.int);
+                out2.loc.rep=size(out1.raw,1)+0*out2.loc.xnm;
+                out1.loc=appendstruct(out1.loc,out2.loc);
             end
         end
 

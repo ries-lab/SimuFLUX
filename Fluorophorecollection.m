@@ -1,98 +1,47 @@
 classdef Fluorophorecollection<handle
     properties
         flall
-        % isactive
-        flprop %.moving, isactive, nexton, nextoff
-        switchpar=struct('starton',false,'tonsmlm',1e3,'toffsmlm',5e4,'photonbudget',1000) %starton, tonsmlm, toffsmlm, microseconds
+        numberOfFluorophores
+        % flprop %.moving, isactive, nexton, nextoff, remaining_activations
+        % switchpar=struct('starton',-1,'tonsmlm',1e3,'toffsmlm',5e4,'photonbudget',1000,'activations',1e6) %starton, tonsmlm, toffsmlm, microseconds
+        %starton: 0 or 1 (off or on), -1: random (given by ton, toff)
         % tprevious=0;
     end
     methods
-        function addmovingfl(obj,fllist)
+        function add(obj,fllist)
+            obj.flall=fllist;
+            obj.numberOfFluorophores=length(fllist);
         end
-        function addstatic(obj,poslist)
-            %arguments timestart: if obj.time different
-            if size(poslist,2)==2 %2D data
-                poslist(1,3)=0; %make 3D
-            end
-            numfl=size(poslist,1);
-            switchpar=obj.switchpar;
-            for k=1:numfl
-                moving(k)=false;
-                if switchpar.starton
-                    isactive(k)=switchpar.starton;
-                else %random
-                    isactive(k)=rand<switchpar.tonsmlm/(switchpar.toffsmlm+switchpar.tonsmlm);
-                end
-                
-                addfl=bleachingFluorophore;
-                addfl.photonbudget=switchpar.photonbudget;
-                addfl.pos=poslist(k,:);
-                addfl.reset;
-                nexton(k)=exprnd(switchpar.toffsmlm);
-                nextoff(k)=exprnd(switchpar.tonsmlm);
-                flall(k)=addfl;
-            end
-            if isempty(obj.flall) %initialize
-                obj.flall=flall;
-                obj.flprop.moving=moving;
-                obj.flprop.isactive=isactive;
-                obj.flprop.nexton=nexton;
-                obj.flprop.nextoff=nextoff;
-            else
-                obj.flall(end+1:end+numfl)=flall;
-                obj.flprop.moving(end+1:end+numfl)=moving;
-                obj.flprop.isactive(end+1:end+numfl)=isactive;
-                obj.flprop.nexton(end+1:end+numfl)=nexton;
-                obj.flprop.nextoff(end+1:end+numfl)=nextoff;
-            end
-        end
-        function updateonoff(obj,time)
-            % dt=time-obj.tprevious;
+        
+       
+        function [pos,isactive]=position(obj,time)
             
-            flprop=obj.flprop;
-            switchpar=obj.switchpar;
-            isactive=flprop.isactive;
-
-            %switch off
-            switchoff=time>=flprop.nextoff & flprop.isactive & ~flprop.moving;
-            ssoff=sum(switchoff);
-            if ssoff>0            
-                isactive(switchoff)=false;
-                obj.flprop.nexton(switchoff)=exprnd(switchpar.toffsmlm,ssoff,1)+time;
+            flall=obj.flall;
+            % fact=find(isactive);
+            pos=zeros(length(flall),3);
+            for k=1:length(flall)
+                pos(k,:)=obj.flall(k).position(time);
             end
-
-            %switch on
-            switchon=find(time>=flprop.nexton & ~flprop.isactive & ~flprop.moving);
-            sson=length(switchon);
-            if sson>0
-                isactive(switchon)=true;
-                obj.flprop.nextoff(switchon)=exprnd(switchpar.tonsmlm,sson,1)+time;
-                for k=1:sson
-                    obj.flall(switchon(k)).reset;
-                end
-            end
-            if sson>0 || ssoff>0
-                obj.flprop.isactive=isactive;  
-            end
-            % sum(isactive)
-        end
-        function pos=position(obj,time)
-            fact=find(obj.flprop.isactive);
-            pos=zeros(length(fact),3);
-            for k=1:length(fact)
-                pos(k,:)=obj.flall(fact(k)).position(time);
-            end
+            isactive=true(length(flall),1);
         end
         function ih=intensity(obj,intin,dt,phfac)
-            fact=find(obj.flprop.isactive);
-            ih=zeros(length(fact),1);
-            for k=1:length(fact)
-                ih(k)=obj.flall(fact(k)).intensity(intin(k),dt,phfac(k));
+            flall=obj.flall;
+            ih=zeros(length(flall),1);
+            for k=1:length(flall)
+                ih(k)=obj.flall(k).intensity(intin(k),dt,phfac(k));
             end
 
         end
         function reset(obj)
             %XXX reset fluorophore dynamics if needed
         end
+        function updateonoff(obj,time) %dummy function not used here
+        end
+        function out=allbleached(obj)
+            out=false;
+        end
+        % function bl=allbleached(obj)
+        %     bl=sum(obj.flprop.remaining_activations)==0;
+        % end
     end
 end
