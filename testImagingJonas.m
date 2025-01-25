@@ -44,7 +44,9 @@ switchpar.activations=1;
 switchpar.starton=0;
 fc.setpar(switchpar)
 
-fc.addstatic(pos);
+% fc.setpar('brightness',100)
+
+fc.add(pos);
 
 dpos=[500 0 ];
 fc.addstatic(pos+dpos);

@@ -27,3 +27,5 @@ sys.intImage = opt.intImage;
 sys.wa=7e-3;
 sys.rz = 0.8e-6;% Axial range.
 sys.pl = 0; % Angle of the linear polarization.
+sys.beadradius = 0; %convolution with bead
+sys.maskshift = [0 0];

@@ -1,7 +1,7 @@
 classdef PSFMF_gauss2D<PSFMF
     properties
         % fwhm=310; %comaprison with calculated PSF
-        sigma=310/2.35; %310 from donut
+        % sigma=310/2.35; %310 from donut
     end
     methods
         function [io,phfac]=intensity(obj, flpos ,patternpos, phasepattern, L)

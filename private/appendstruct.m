@@ -1,4 +1,8 @@
 function sout=appendstruct(sin, sadd)
+if isempty(sin)
+    sout=sadd;
+    return
+end
 sout=sin;
 fn=fieldnames(sin);
 ln=length(sadd.(fn{1}));

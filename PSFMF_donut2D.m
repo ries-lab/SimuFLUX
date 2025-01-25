@@ -1,6 +1,6 @@
 classdef PSFMF_donut2D<PSFMF
     properties
-        fwhm=310; %comaprison with calculated PSF
+        % fwhm=310; %comaprison with calculated PSF
     end
     methods
         function [io,phfac]=intensity(obj, flpos ,patternpos, phasepattern, L)

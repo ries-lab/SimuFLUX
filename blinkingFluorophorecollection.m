@@ -1,14 +1,19 @@
 classdef blinkingFluorophorecollection<Fluorophorecollection
     properties
-        % flall
-        % numberOfFluorophores
         flprop %.moving, isactive, nexton, nextoff, remaining_activations
-        switchpar=struct('starton',-1,'tonsmlm',1e3,'toffsmlm',5e4,'photonbudget',1000,'activations',1e6,'brightness',1000) %starton, tonsmlm, toffsmlm, microseconds
-        %starton: 0 or 1 (off or on), -1: random (given by ton, toff)
-        % tprevious=0;
+        switchpar=struct('starton',-1,'tonsmlm',1e3,'toffsmlm',1e5,'photonbudget',1000,'activations',1e6,'brightness',1000) %starton, tonsmlm, toffsmlm, microseconds
     end
     methods
-        function addmovingfl(obj,fllist)
+        function add(obj,fllist)
+            if isa(fllist,"numeric") %call addstatic if poslist
+                obj.addstatic(fllist);
+                return
+            end
+             obj.flall=cat(2,obj.flall,fllist);
+             numfl=length(fllist);
+             flproph.isactive=true(1,numfl); flproph.nexton=zeros(1,numfl); flproph.nextoff=zeros(1,numfl);
+             flproph.moving=true(1,numfl); flproph.activations=zeros(1,numfl); flproph.remaining_activations=zeros(1,numfl);
+             obj.flprop=appendstruct(obj.flprop,flproph);
         end
         function addstatic(obj,poslist)
             %arguments timestart: if obj.time different
@@ -17,46 +22,32 @@ classdef blinkingFluorophorecollection<Fluorophorecollection
             end
             numfl=size(poslist,1);
             switchpar=obj.switchpar;
-            for k=1:numfl
-                moving(k)=false;
+            for k=numfl:-1:1
+                flproph.moving(k)=false;
                 if switchpar.starton>-1
-                    isactive(k)=(switchpar.starton==1);
+                    flproph.isactive(k)=(switchpar.starton==1);
                 else %random
-                    isactive(k)=rand<switchpar.tonsmlm/(switchpar.toffsmlm+switchpar.tonsmlm);
+                    flproph.isactive(k)=rand<switchpar.tonsmlm/(switchpar.toffsmlm+switchpar.tonsmlm);
                 end
                 
                 addfl=bleachingFluorophore;
                 addfl.brightness=switchpar.brightness;
                 addfl.photonbudget=switchpar.photonbudget;
-                % addfl.activations=switchpar.activations;
                 addfl.pos=poslist(k,:);
                 addfl.reset;
-                nexton(k)=exprnd(switchpar.toffsmlm);
-                nextoff(k)=exprnd(switchpar.tonsmlm);
-                flall(k)=addfl;
+
+                flproph.nexton(k)=exprnd(switchpar.toffsmlm);
+                flproph.nextoff(k)=exprnd(switchpar.tonsmlm);
+                fllist(k)=addfl;
             end
-            if isempty(obj.flall) %initialize
-                obj.flall=flall;
-                obj.flprop.moving=moving;
-                obj.flprop.isactive=isactive;
-                obj.flprop.nexton=nexton;
-                obj.flprop.nextoff=nextoff;
-                obj.flprop.activations=double(isactive);
-                obj.flprop.remaining_activations=max(1,poissrnd(switchpar.activations,1,numfl));
-            else
-                obj.flall(end+1:end+numfl)=flall;
-                obj.flprop.moving(end+1:end+numfl)=moving;
-                obj.flprop.isactive(end+1:end+numfl)=isactive;
-                obj.flprop.activations(end+1:end+numfl)=double(isactive);
-                obj.flprop.nexton(end+1:end+numfl)=nexton;
-                obj.flprop.nextoff(end+1:end+numfl)=nextoff;
-                obj.flprop.remaining_activations(end+1:end+numfl)=max(1,poissrnd(switchpar.activations,1,numfl));
-            end
-            obj.numberOfFluorophores=length(obj.flprop.isactive);
+            flproph.activations=double(flproph.isactive);
+            flproph.remaining_activations=max(1,poissrnd(switchpar.activations,1,numfl));
+            obj.flprop=appendstruct(obj.flprop,flproph);
+            obj.flall=cat(2,obj.flall,fllist);
+
+            obj.numberOfFluorophores=length(obj.flall);
         end
         function updateonoff(obj,time)
-            % dt=time-obj.tprevious;
-            
             flprop=obj.flprop;
             switchpar=obj.switchpar;
             isactive=flprop.isactive;
@@ -92,7 +83,6 @@ classdef blinkingFluorophorecollection<Fluorophorecollection
             if sson>0 || ssoff>0
                 obj.flprop.isactive=isactive;  
             end
-            % sum(isactive)
         end
         function [pos,isactive]=position(obj,time)
             isactive=obj.flprop.isactive;
@@ -110,8 +100,14 @@ classdef blinkingFluorophorecollection<Fluorophorecollection
             end
 
         end
-        function setpar(obj,switchpar)
-            obj.switchpar=copyfields(obj.switchpar,switchpar);
+        function setpar(obj,varargin)
+            if nargin >1 %structure passed on
+                spar=struct(varargin{:});
+            else
+                spar=varargin{1};
+            end
+            obj.switchpar=copyfields(obj.switchpar,spar);
+                
         end
         % function reset(obj)
         %     %XXX reset fluorophore dynamics if needed

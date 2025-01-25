@@ -2,12 +2,37 @@ classdef PSFMF_vectorial<PSFMF
     properties
         parameters
         PSFph=[];
+        normfact
     end
     methods
         function obj=PSFMF_vectorial(varargin)
             obj@PSFMF(varargin{:});
             addpath('PSF_simulation/library');
             obj.parameters=obj.loadparameters('defaultsystemparameters_vectorialPSF.m');
+        end
+        function setpar(obj,varargin)
+            if nargin >1 %structure passed on
+                spar=struct(varargin{:});
+            else
+                spar=varargin{1};
+            end
+            % overwrite any of the parameter fields if they exist,
+            % otherwise add to addpar
+            fn=fieldnames(spar);
+            fnpar=fieldnames(obj.parameters);
+            for k=1:length(fn)
+                assigned=false;
+                for l=1:length(fnpar)
+                    if isfield(obj.parameters.(fnpar{l}),fn{k})
+                        obj.parameters.(fnpar{l}).(fn{k})=spar.(fn{k});
+                        assigned=true;
+                    end
+                end
+                if ~assigned
+                    obj.parameters.addpar=spar.(fn(k));
+                end 
+            end
+            obj.PSFs=dictionary;%delete pre-calculated PSFs
         end
         function [idet,phfac]=intensity(obj, flpos ,patternpos, phasepattern, L)
             %flpos with respect to optical axis ([0,0] of PSF coordinate
@@ -19,14 +44,14 @@ classdef PSFMF_vectorial<PSFMF
             psfint=obj.PSFs(key);
             phkey=obj.PSFph;
             flposrel=flpos-patternpos;
+            iexc=psfint(flposrel)+obj.zerooffset; 
             if isempty(phkey)
-                phfac=0;
+                phfac=ones(size(iexc));
             else
                 psfph=obj.PSFs(phkey);
                 phfac=psfph(flpos);
             end
-            iexc=psfint(flposrel)+obj.zerooffset; 
-            idet=iexc*phfac;
+            idet=iexc.*phfac;
         end
         function key=calculatePSFs(obj,phasepattern,Lxs)
             if isnumeric(Lxs)
@@ -40,42 +65,62 @@ classdef PSFMF_vectorial<PSFMF
                 return
             end
             fprintf(key + ", ")
-            
-            % [sys,opt,out]=systemparameters;
             intmethod='cubic'; %linear,cubic?
-  
-            %convert L into phase
-            dxdphi=1.4; %nm/degree, from LSA paper Deguchi
-            dzdphi=-3.6; %nm/degree
-            
+
             opt=obj.parameters.opt;
             out=obj.parameters.addpar;
+             sys=obj.parameters.sys;
             % interpolant:
             nx=(-opt.radiusCanvas:out.dr:opt.radiusCanvas)*1e9; %to nm
             nz=(-opt.depthCanvas:out.dz:opt.depthCanvas)*1e9; %to nm
             [X,Y,Z] = ndgrid(nx,nx,nz);
+            
+           
+            % sigma from wavelength, NA
+            fwhm=0.51*sys.loem/sys.NA*1e9;
+            obj.sigma=fwhm/2.35;
+            
+            if isempty(obj.normfact)
+                sys.Ei = {'circular'};
+                outc=effField(sys,out, opt);      
+                outc=effIntensity(sys,outc);
+                zmid=ceil(size(outc.I,4)/2);
+                % normfact=sum(sum(outc.I(1,:,:,zmid)));%normalized to integral =1
+                normfact=max(max(outc.I(1,:,:,zmid)));%normalized to max =1
+                obj.normfact=normfact;
+            else
+                normfact=obj.normfact;
+            end
+                
+            % %fit Gaussian:
+            % vg=squeeze(outc.I(1,:,ceil(end/2),zmid))';
+            % x=1:length(vg); x=x'-mean(x); x=x*out.dr*1e9;
+            % fitp=fit(x,vg,'gauss1');
+            % obj.sigma=fitp.c1/sqrt(2);
 
-            %Gaussian for normalization
-            sys=obj.parameters.sys;
-            sys.Ei = {'circular'};
-            % outc=out;
-            % outc.dz=opt.depthCanvas; % Axial range. 
-            outc=effField(sys,out, opt);      
-            outc=effIntensity(sys,outc);
-            zmid=ceil(size(outc.I,4)/2);
-            % normfact=sum(sum(outc.I(1,:,:,zmid)));%normalized to integral =1
-            normfact=max(max(outc.I(1,:,:,zmid)));%normalized to max =1
             switch phasepattern
-                case {'x','y'}
+                case 'flat'
+                    sys.Ei = {'circular'};    
+                    out=effField(sys,out, opt);      
+                    out=effIntensity(sys,out);
+                    PSF=squeeze(out.I(:,:,:,:))/normfact;
+                    PSF = obj.beadsize(PSF, sys.beadradius);
+                    PSFdonut = griddedInterpolant(X,Y,Z,PSF,intmethod);              
+                    obj.PSFs(key)=PSFdonut;
+                case {'halfmoonx','halfmoony'}
+                    %convert L into phase
+                    dxdphi=1.4; %nm/degree, from LSA paper Deguchi
+                    dzdphi=-3.6; %nm/degree
                     sys.delshift = deg2rad(Lx/dxdphi);
                     sys.Ei = {'halfmoon', 'linear'};   
                     out=effField(sys,out, opt);      
                     out=effIntensity(sys,out);
                     PSF=squeeze(out.I(:,:,:,:))/normfact;
+                    PSF = obj.beadsize(PSF, sys.beadradius);
                     PSFx = griddedInterpolant(X,Y,Z,permute(PSF,[2,1,3]),intmethod);
                     PSFy = griddedInterpolant(X,Y,Z,PSF,intmethod);     
-                    obj.PSFs("x"+Lxs)=PSFx; 
-                    obj.PSFs("y"+Lxs)=PSFy; 
+                    obj.PSFs("halfmoonx"+Lxs)=PSFx; 
+                    obj.PSFs("halfmoony"+Lxs)=PSFy; 
                 case 'pinhole' %here
                     sys.Ei = {'circular'};
                     phdiameter=Lx(1);
@@ -111,6 +156,7 @@ classdef PSFMF_vectorial<PSFMF
                     out=effField(sys,out, opt);      
                     out=effIntensity(sys,out);
                     PSF=squeeze(out.I(:,:,:,:))/normfact;
+                    PSF = obj.beadsize(PSF, sys.beadradius);
                     PSFdonut = griddedInterpolant(X,Y,Z,PSF,intmethod);
                     obj.PSFs(key)=PSFdonut;   
                 case 'vortex'
@@ -118,11 +164,30 @@ classdef PSFMF_vectorial<PSFMF
                     out=effField(sys,out, opt);      
                     out=effIntensity(sys,out);
                     PSF=squeeze(out.I(:,:,:,:))/normfact;
-                    PSFdonut = griddedInterpolant(X,Y,Z,PSF,intmethod);
+                    PSF = obj.beadsize(PSF, sys.beadradius);
+                    PSFdonut = griddedInterpolant(X,Y,Z,PSF,intmethod);              
                     obj.PSFs(key)=PSFdonut;
                 otherwise
-                    xxx
+                    warning(phasepattern+" PSF name not defined")
             end
+        end
+        function psfo=beadsize(obj,psf,R)
+            if R==0
+                psfo=psf;
+                return
+            end
+            dr=obj.parameters.addpar.dr; dz=obj.parameters.addpar.dz;
+            nx=1:size(psf,1);
+            nx=(nx-mean(nx))*dr;
+            ny=1:size(psf,2);
+            ny=(ny-mean(ny))*dr;
+            nz=1:size(psf,3);
+            nz=(nz-mean(nz))*dz;
+            [X,Y,Z]=meshgrid(nx,ny,nz);
+            circpsf=double((X).^2+(Y).^2+(Z).^2<=R^2);
+            circpsf=circpsf/sum(circpsf(:));
+            psfo=convnfft(psf,circpsf);
+            psfo=ifftshift(ifftshift(ifftshift(psfo,1),2),3); %inconsitent use of fftshift, but ok because bead is symmetric
         end
         function setpinhole(obj, args)
             arguments

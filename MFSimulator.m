@@ -11,9 +11,8 @@ classdef MFSimulator<handle
     end
     methods
         function obj=MFSimulator(fl)
-            if nargin>0
-            
-            obj.fluorophores=fl;
+            if nargin>0    
+                obj.fluorophores=fl;
             end
         end
         function definePattern(obj,patternname,psf,args)
@@ -81,7 +80,6 @@ classdef MFSimulator<handle
             flpos=zeros(fl.numberOfFluorophores,3);
             flintall=zeros(fl.numberOfFluorophores,1);
             for k=1:numpoints
-
                 timep=timep+obj.time;
                 [flposh,isactive]=fl.position(obj.time);
                 flposrel=flposh-posgalvo;
@@ -89,18 +87,8 @@ classdef MFSimulator<handle
                 ih=ih*pattern.laserpower(k);
                 flint=fl.intensity(ih,pattern.pointdwelltime(k),phfac);
                 inten=sum(flint);
-                %     
                 flpos(isactive,:)=flpos(isactive,:)+flposh;
                 flintall(isactive,:)=flintall(isactive,:)+flint;
-                % for f=1:length(fl)
-                %     flposh=fl(f).position(obj.time);
-                %     flposrel=flposh-posgalvo; %with respect to optical axis
-                %     [ih,phfac]=pattern.psf(k).intensity(flposrel,pattern.pos(k,:)+poseod,pattern.psfpar(k),pattern.zeropos(k));
-                %     ih=ih*pattern.laserpower(k);
-                %     flint(f)=fl(f).intensity(ih,pattern.pointdwelltime(k),phfac);
-                %     inten=inten+flint(f);
-                % flpos=flposh+flpos;
-                % end
                 obj.time=obj.time+pattern.pointdwelltime(k);
                 intall(k)=inten+obj.background;
             end
@@ -112,7 +100,6 @@ classdef MFSimulator<handle
             out.measuretime=obj.time-timestart;
             out.counter=1;
             fl.updateonoff(obj.time)
-
         end
 
         function out=patternrepeat(obj,patternname,reps)
@@ -131,7 +118,6 @@ classdef MFSimulator<handle
         end
 
         function out=runSequence(obj,key,maxlocalizations)
-            % obj.fluorophores(1).reset;
             seq=obj.sequences(key);seq=seq{1};
             numseq=size(seq,1);
             for s=numseq:-1:1
@@ -150,7 +136,6 @@ classdef MFSimulator<handle
                     bleached=true;
                     break
                 end
-                
                 pospattern_beforecenter=obj.posgalvo;
                 
                 for s=1:numseq
@@ -213,7 +198,7 @@ classdef MFSimulator<handle
 
         function xpattern=makeorbitpattern(obj,orbitpoints,usecenter,orbitorder)
             dphi=2*pi/orbitpoints;
-            phi=(0:dphi:2*pi-dphi)';%+pi/2;
+            phi=(0:dphi:2*pi-dphi)';
             x=cos(phi);
             y=sin(phi);
             xpattern=horzcat(x,y,0*phi);
@@ -279,7 +264,7 @@ classdef MFSimulator<handle
                 photch=squeeze(mean(photraw,1,'omitnan'));  
             end
             xest=horzcat(out.loc.xnm,out.loc.ynm,out.loc.znm);
-            flpos=horzcat(out.loc.xfl,out.loc.yfl,out.loc.zfl);
+            flpos=horzcat(out.loc.xfl1,out.loc.yfl1,out.loc.zfl1);
             phot=out.loc.phot;
              ff1='%1.1f,';
             disp([ 'photch: ', num2str(photch(:)',ff1),...

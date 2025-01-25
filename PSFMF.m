@@ -3,6 +3,7 @@ classdef PSFMF<handle
         PSFs=dictionary;
         zerooffset=0; % PSF+zerooffset
         sigmaz=0; %don't do z sectioning.
+        sigma=132; %nm
     end
     methods
         function io=intensity(obj, flpos ,patternpos, phasepattern, L)
@@ -42,6 +43,9 @@ classdef PSFMF<handle
              else
                  phfac=ones(size(flposrel,1),1);
              end
+         end
+         function out=fwhm(obj)
+             out=obj.sigma*2.35;
          end
 
     end

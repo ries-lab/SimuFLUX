@@ -12,10 +12,16 @@ classdef AbberiorSimulator<MFSimulator
             fclose(fid);
             obj.sequence_json=jsondecode(str);
         end
-        function makepatterns(obj,psfs)
+        function makepatterns(obj,psf,psfpars)
             if nargin<2
+                %test if PSF defined in json file, then use that.
                 psfscout=PSFMF_gauss2D;
                 psfmf=PSFMF_donut2D;
+                psfpars(1).psfpar='gauss2D';
+                psfpars(2).psfpar='donut2D';
+            else
+                psfscout=psf;
+                psfmf=psf;
             end
             itrs=obj.sequence_json.Itr;
             for k=1:length(itrs)
@@ -34,18 +40,17 @@ classdef AbberiorSimulator<MFSimulator
                         psf=psfscout;
                         est(k).estimator="gauss2D";
                         est(k).parameters={psf.sigma, probecenter};
-                        % obj.sigmapar(k)=psf.sigma;
+                        psfpar=psfpars(1).psfpar;
                     case 'mflx'
                         psf=psfmf;
+                        psfpar=psfpars(min(k,length(psfpars))).psfpar;
                         if probecenter
                             est(k).estimator="donut2DcentermLMS";
-                            est(k).parameters={psf.fwhm,betas(k,:)};
+                            est(k).parameters={psf.fwhm*1.2,betas(k,:)}; %1.2: compared theoretical fwhm of Gauss vs fwhm of donut
                         else
                             est(k).estimator="donut2D";
-                            est(k).parameters={psf.fwhm};
+                            est(k).parameters={psf.fwhm*1.2};
                         end
-                        % est(k).parameters={psf.fwhm,[1 5]};
-                        % obj.sigmapar(k)=psf.fwhm;
                     otherwise
                         disp([itrs(k).Mode.id]+ " not implemented");
                 end
@@ -59,7 +64,7 @@ classdef AbberiorSimulator<MFSimulator
                 patterntime=(itrs(k).patDwellTime/itrs(k).patRepeat*(1+probecenter*obj.sequence_json.ctrDwellFactor))*1e6; %us
                 pointdwelltime=patterntime/(patternpoints+probecenter);
                 laserpower=itrs(k).pwrFactor;
-                obj.definePattern("itr"+k, psf, makepattern='orbitscan', orbitpoints=patternpoints, orbitL=L,...
+                obj.definePattern("itr"+k, psf, psfpar=psfpar, makepattern='orbitscan', orbitpoints=patternpoints, orbitL=L,...
                 probecenter=probecenter,pointdwelltime=pointdwelltime, laserpower=laserpower);
             end
             obj.estimators=est;
@@ -141,7 +146,6 @@ classdef AbberiorSimulator<MFSimulator
                         if itr==maxiter
                             dampf=2^(-obj.sequence_json.damping);
                             xold=obj.posgalvo;
-                           
                             obj.posgalvo=(1-dampf)*obj.posgalvo+dampf*(xesttot);
                             obj.posEOD=obj.posEOD+xold-obj.posgalvo+xest;
                         else
@@ -169,7 +173,7 @@ classdef AbberiorSimulator<MFSimulator
                     end
     
                     out.loc.xnm(loccounter,1)=xesttot(1);out.loc.ynm(loccounter,1)=xesttot(2);out.loc.znm(loccounter,1)=xesttot(3);
-                    % out.loc.xfl(loccounter,1)=scanout.flpos(1)/scanout.counter;out.loc.yfl(loccounter,1)=scanout.flpos(2)/scanout.counter;out.loc.zfl(loccounter,1)=scanout.flpos(3)/scanout.counter;
+                    out.loc.xfl1(loccounter,1)=scanout.flpos(1,1)/scanout.counter;out.loc.yfl1(loccounter,1)=scanout.flpos(1,2)/scanout.counter;out.loc.zfl1(loccounter,1)=scanout.flpos(1,3)/scanout.counter;
                     out.loc.time(loccounter,1)=scanout.time/scanout.counter;
                     out.loc.itr(loccounter,1)=itr;
                     out.loc.numitr(loccounter,1)=numitr;
@@ -200,14 +204,16 @@ classdef AbberiorSimulator<MFSimulator
                 obj
                 fov
                 args.distance=0;
+                args.show=false;
             end
             if args.distance==0       
                 geofactor=obj.sequence_json.field.fldGeoFactor;
                 args.distance=geofactor*360/640*obj.sequence_json.Itr(1).wavelength*1e9;
             end
             obj.scoutingcoordinates=makehexgrid(fov,args.distance);
-            figure(98);plot(obj.scoutingcoordinates(:,1),obj.scoutingcoordinates(:,2),'o')
-
+            if args.show
+                figure(98);plot(obj.scoutingcoordinates(:,1),obj.scoutingcoordinates(:,2),'o')
+            end
         end
         function out=scoutingSequence(obj,args)
             arguments
@@ -234,8 +240,6 @@ classdef AbberiorSimulator<MFSimulator
                     break
                 end
             end
-
-
         end
     end
 end
@@ -257,7 +261,6 @@ for l=numpy:-1:-numpx
             pos(ind,:)=[x,y];
             ind=ind+1;
         end
-
     end
 end
 

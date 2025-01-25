@@ -1,13 +1,13 @@
 % test simulator
 %PhaseFLUX
 % clear all
-% fl=staticfluorophore;
-% psfphaseflux=PSFMF_PhaseFLUX;
-% 
+fl=staticfluorophore;
+psfv=PSFMF_PhaseFLUX;
+
 sim=MFSimulator(fl);
 %%
 
-psfphaseflux.zerooffset=0.0;
+psfv.zerooffset=0.0;
 numlocs=1000;
 
 L=100;Lz=300;
@@ -18,9 +18,9 @@ sim.dwelltime=100;
 
 % sim.definePattern('donut', psfdonut, makepattern='orbitscan', orbitpoints=6, probecenter=true,orbitL=L)
 % sim.definePattern('vortex', psfphaseflux, psfpar="vortex", makepattern='orbitscan', orbitpoints=6, probecenter=true,orbitL=L)
-sim.definePattern('x',psfphaseflux,psfpar='x',zeropos=[-1 0 1]*L/2)
-sim.definePattern('y',psfphaseflux,psfpar='y',zeropos=[-1 0 1]*L/2)
-sim.definePattern('z',psfphaseflux,psfpar='tophat',zeropos=[-1 0 1]*Lz/2)
+sim.definePattern('x',psfv,psfpar='x',zeropos=[-1 0 1]*L/2)
+sim.definePattern('y',psfv,psfpar='y',zeropos=[-1 0 1]*L/2)
+sim.definePattern('z',psfv,psfpar='tophat',zeropos=[-1 0 1]*Lz/2)
 sim.combinepatterns("xyz",["x","y","z"])
 
 sim.pospattern=[0 0 0];
@@ -77,53 +77,48 @@ disp(['mean(phot): ', num2str(mean(photall),ff),...
 %% Donut
 %%PhaseFLUX
 fl=MFfluorophore;
-psfphaseflux=PSFMF_PhaseFLUX;
-psfdonut=PSFMF_donut2D;
+psfv=PSFMF_vectorial;
+% psfdonut=PSFMF_donut2D;
 sim=MFSimulator(fl);
+psfv.setpar('beadradius',00*1e-9); %sys: in m
 %%
-psfphaseflux.zerooffset=0.0;
+psfv.zerooffset=0.0;
+
 numlocs=1000;
 
-L=50;
-fl.pos=[10 1 2];
-fl.brightness=100;
-sim.dwelltime=100;
-sim.pospattern=[0 0 0];
+L=150;
+fl.pos=[50 0 0];
+fl.brightness=1000;
+laserpower=10;
+dwelltime=100;
 
-sim.definePattern('donut', psfdonut, makepattern='orbitscan', orbitpoints=4, probecenter=true,orbitL=L)
-% sim.definePattern('vortex', psfphaseflux, psfpar="vortex", makepattern='orbitscan', orbitpoints=6, probecenter=true,orbitL=L)
 
-xest=zeros(numlocs,3);
-phot=zeros(numlocs, 3,3);
-photall=zeros(numlocs,1);
+% sim.definePattern('donut', psfdonut, makepattern='orbitscan', orbitpoints=4, probecenter=true,orbitL=L)
+sim.definePattern('donut', psfv, psfpar="vortex", makepattern='orbitscan', orbitpoints=6, ...
+    probecenter=0,orbitL=L,pointdwelltime=dwelltime,laserpower=laserpower)
 
-usepattern="donut";
-for k=1:numlocs
-    photh=sim.patternrepeat(usepattern,1);
-    xest(k,:)=positionestimatedonut(photh,sim.patterns(usepattern).pos,L,psfdonut.fwhm);
-    photall(k)=sum(photh);
-    % xest(k,:)=positionestimate(photh,sim.patterns(usepattern).pos);
-end
 
-estimator=@(phot) positionestimatedonut(phot,sim.patterns(usepattern).pos,L,psfdonut.fwhm);
+fwhm=360;
+estimator=@(phot) estimators("donut2D",phot,sim.patterns(usepattern).pos,L,fwhm);
 recenterh=@(x) recenter(sim,x);
 
 seq={"donut",1, estimator, 1:2, recenterh, false};
 sim.defineSequence("donutseq",seq);
-[xests,photons]=sim.runSequence("donutseq",numlocs);
-xest=xests;
+out=sim.runSequence("donutseq",numlocs);
+
 
 % mean(phot,1)
-lp=sim.calculateCRB("donut",dim=2)/sqrt(mean(photall));
+lp=sim.calculateCRB("donut",dim=2)/sqrt(mean(out.loc.phot));
+sim.displayresults(out,lp,L)
 
-ff='%1.2f,';
-disp(['mean(phot): ', num2str(mean(photall),ff),...
-    ' std: ', num2str(std(xest,'omitnan'),ff),...
-    ' rmse: ', num2str(rmse(xest,fl.pos,'omitnan'),ff),...
-    ' pos: ', num2str(mean(xest,'omitnan'),ff),...
-    ' bias: ', num2str(mean(xest-fl.pos,'omitnan'),ff),...
-    ' locprec: ', num2str(sim.locprec(mean(photall),L),ff),...
-    ' sqrtCRB: ', num2str(lp,ff)])
+% ff='%1.2f,';
+% disp(['mean(phot): ', num2str(mean(photall),ff),...
+%     ' std: ', num2str(std(xest,'omitnan'),ff),...
+%     ' rmse: ', num2str(rmse(xest,fl.pos,'omitnan'),ff),...
+%     ' pos: ', num2str(mean(xest,'omitnan'),ff),...
+%     ' bias: ', num2str(mean(xest-fl.pos,'omitnan'),ff),...
+%     ' locprec: ', num2str(sim.locprec(mean(photall),L),ff),...
+%     ' sqrtCRB: ', num2str(lp,ff)])
 
 
 % 

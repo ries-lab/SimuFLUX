@@ -18,9 +18,9 @@ classdef MFfluorophore<handle
         function ph=photons(obj,I0,varargin)
             ph=poissrnd(obj.intensity(I0,varargin{:}));
         end
-        function io=tointensity(ii)
-            io=ii*(obj.brightness/10000)+obj.background;
-        end
+        % function io=tointensity(obj,ii)
+        %     io=ii*(obj.brightness/10000);
+        % end
         function reset(obj)
         end
         function [posout,isactive]=position(obj,time)
