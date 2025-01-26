@@ -16,15 +16,15 @@ classdef AbberiorSimulator<MFSimulator
             end
             % obj.sequence_json=jsondecode(str);
         end
-        function makepatterns(obj,psfs,psfpars)
+        function makepatterns(obj,psfs,phasemasks)
             if nargin<2
                 if isfield(obj.sequence,'PSF')
-                    [psfs,psfpars]=psf_sequence(obj.sequence.PSF,obj.psfvec);
+                    [psfs,phasemasks]=psf_sequence(obj.sequence.PSF,obj.psfvec);
                 else
                     psfs{1}=PSFMF_gauss2D;
                     psfs{2}=PSFMF_donut2D;
-                    psfpars{1}.psfpar='gauss2D';
-                    psfpars{2}.psfpar='donut2D';
+                    phasemasks{1}.phasemask='gauss2D';
+                    phasemasks{2}.phasemask='donut2D';
                     obj.loadsequence('defaultestimators.json')
                 end
             end
@@ -41,11 +41,11 @@ classdef AbberiorSimulator<MFSimulator
                 L=itrs(k).patGeoFactor*360; %nm
                 % betas=[0 0 0 0 0; 1. 4  150 600 -9000; 1 3 20 0 8000; 1 3 60 0 8000];
                 % betas=[0 0 0 0 0; 1. 4  0 0 0; 1. 4  0 0 0; 1 3 60 0 8000; ];
-                kmin=min(k,length(psfpars)); % stay for following iterations in last psf
+                kmin=min(k,length(phasemasks)); % stay for following iterations in last psf
                 psf=psfs{kmin};
-                psfpar=psfpars{kmin}.psfpar;
+                phasemask=phasemasks{kmin}.phasemask;
 
-                kmin=min(k,length(psfpars));
+                kmin=min(k,length(phasemasks));
                 estimatorh=obj.sequence.PSF.Itr(kmin).estimator;
                 % estimatorh.par=replaceinlist(estimatorh.par,"L",L,"probecenter",probecenter); %some default words in parameter to be replaced by values
                 obj.estimators(k)=estimatorh;
@@ -60,13 +60,13 @@ classdef AbberiorSimulator<MFSimulator
                 patterntime=(itrs(k).patDwellTime/itrs(k).patRepeat*(1+probecenter*obj.sequence.ctrDwellFactor))*1e6; %us
                 pointdwelltime=patterntime/(patternpoints+probecenter);
                 laserpower=itrs(k).pwrFactor;
-                obj.definePattern("itr"+k, psf, psfpar=psfpar, makepattern='orbitscan', orbitpoints=patternpoints, orbitL=L,...
-                probecenter=probecenter,pointdwelltime=pointdwelltime, laserpower=laserpower);
+                obj.definePattern("itr"+k, psf, phasemask=phasemask, makepattern='orbitscan', orbitpoints=patternpoints, orbitL=L,...
+                probecenter=probecenter,pointdwelltime=pointdwelltime, laserpower=laserpower,repetitions=itrs(k).patRepeat);
             end
             % obj.estimators=est;
         end
         function out=runSequence(obj,~,~)
-            % obj.fluorophores(1).reset;
+            %compatible with MFSimulator: repetitions.
             out=[];
             itrs=obj.sequence.Itr;
             maxiter=length(itrs);
@@ -97,7 +97,7 @@ classdef AbberiorSimulator<MFSimulator
                 photsum=0;abortccr=0;abortphot=0;
                 scanout=[];
                 while photsum<itrs(itr).phtLimit && stickinesscounter<stickiness 
-                    scanouth=obj.patternrepeat(itrname,itrs(itr).patRepeat);
+                    scanouth=obj.patternscan(itrname);
                     scanout=sumstruct(scanout,scanouth);
                     
                     photsum=sum(scanout.phot);
@@ -110,14 +110,14 @@ classdef AbberiorSimulator<MFSimulator
                         probecenter=false;
                         cfr=-1;
                     end
-                    minphot=itrs(itr).bgcThreshold*scanouth.measuretime*1e-6;
+                    minphot=itrs(itr).bgcThreshold*scanouth.patterntotaltime*1e-6;
                     if sum(scanouth.phot)<minphot 
-                        if scanouth.time>offtimestamp+maxOffTime
+                        if scanouth.averagetime>offtimestamp+maxOffTime
                             abortphot=true;
                         end
                     else
                         abortphot=false;
-                        offtimestamp=scanouth.time;
+                        offtimestamp=scanouth.averagetime;
                     end
                     if abortphot || abortccr
                         stickinesscounter=stickinesscounter+1;
@@ -164,12 +164,12 @@ classdef AbberiorSimulator<MFSimulator
                         out.loc.eco(loccounter,1)=sum(scanout.phot(1:end-1));
                         out.loc.ecc(loccounter,1)=sum(scanout.phot(end));
                         
-                        orbittime=scanout.measuretime/(1+probecenter*obj.sequence.ctrDwellFactor);
+                        orbittime=scanout.patterntotaltime/(1+probecenter*obj.sequence.ctrDwellFactor);
                         out.loc.efo=out.loc.eco/(orbittime)*1e6;
-                        out.loc.efc=out.loc.ecc/(scanout.measuretime-orbittime)*1e6;
+                        out.loc.efc=out.loc.ecc/(scanout.patterntotaltime-orbittime)*1e6;
                     else
                         out.loc.eco(loccounter,1)=sum(scanout.phot);
-                        out.loc.efo=out.loc.eco/(scanout.measuretime);
+                        out.loc.efo=out.loc.eco/(scanout.patterntotaltime);
                         out.loc.ecc(loccounter,1)=-1;
                         out.loc.efc(loccounter,1)=-1;
                         cfr=-1;
@@ -177,7 +177,7 @@ classdef AbberiorSimulator<MFSimulator
     
                     out.loc.xnm(loccounter,1)=xesttot(1);out.loc.ynm(loccounter,1)=xesttot(2);out.loc.znm(loccounter,1)=xesttot(3);
                     out.loc.xfl1(loccounter,1)=scanout.flpos(1,1)/scanout.counter;out.loc.yfl1(loccounter,1)=scanout.flpos(1,2)/scanout.counter;out.loc.zfl1(loccounter,1)=scanout.flpos(1,3)/scanout.counter;
-                    out.loc.time(loccounter,1)=scanout.time/scanout.counter;
+                    out.loc.time(loccounter,1)=scanout.averagetime/scanout.counter;
                     out.loc.itr(loccounter,1)=itr;
                     out.loc.numitr(loccounter,1)=numitr;
                     out.loc.loccounter(loccounter,1)=loccounter;
@@ -186,7 +186,7 @@ classdef AbberiorSimulator<MFSimulator
                     out.loc.vld(loccounter,1)=stickinesscounter<stickiness;
                     out.loc.abortcondition(loccounter,1)=1*(abortphot) + 2*(abortccr);
                     out.loc.patternrepeat(loccounter,1)=scanout.counter;
-                    out.loc.measuretime(loccounter,1)=scanout.measuretime;           
+                    out.loc.measuretime(loccounter,1)=scanout.patterntotaltime;           
                     out.raw(loccounter,1:length(scanout.phot))=scanout.phot;
                     out.fluorophores.pos(loccounter,1:size(scanout.flpos,1),:)=scanout.flpos;
                     out.fluorophores.int(loccounter,1:size(scanout.flpos,1))=scanout.flint;
@@ -252,10 +252,8 @@ function pos=makehexgrid(roi,d)
 h=d*cosd(30);
 numpx=(roi(2,1)-roi(1,1))/h;
 numpy=(roi(2,2)-roi(1,2))/d;
-
 pos=zeros(ceil(numpx*numpy),2);
 ind=1;
-
 for l=numpy:-1:-numpx
     for k=0:numpx
         x=k*h+roi(1,1);
@@ -266,19 +264,5 @@ for l=numpy:-1:-numpx
         end
     end
 end
-
 pos(ind:end,:)=[];
-end
-
-function sin=replaceinlist(sin,varargin)
-sstr=varargin(1:2:end);
-rstr=varargin(2:2:end);
-% fn=fieldnames(sin);
-for l=1:length(sin)
-    for k=1:length(sstr)
-        if strcmp(sin{l},sstr{k})
-            sin{l}=rstr{k};
-        end
-    end
-end
 end

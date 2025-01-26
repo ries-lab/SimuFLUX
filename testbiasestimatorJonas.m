@@ -21,7 +21,7 @@ sim.posgalvo=[0 0 0];
 
 probecenter=false;
 orbitpoints=6;
-sim.definePattern('vortex', psfg, psfpar="vortex", makepattern='orbitscan', orbitpoints=orbitpoints, probecenter=probecenter,orbitL=L,pointdwelltime=pointdwelltime)
+sim.definePattern('vortex', psfg, phasemask="vortex", makepattern='orbitscan', orbitpoints=orbitpoints, probecenter=probecenter,orbitL=L,pointdwelltime=pointdwelltime)
 
 
 % betas=[1/orbitpoints 1 10 0 1000/orbitpoints];

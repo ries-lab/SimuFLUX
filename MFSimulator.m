@@ -4,7 +4,6 @@ classdef MFSimulator<handle
         sequences=dictionary;
         fluorophores
         background=0; %kHz from AF, does not count towards photon budget
-        % dwelltime=10; % us
         posgalvo=[0 0 0]; %nm, position of pattern center
         posEOD=[0 0 0]; %nm, not descanned, with respect to posgalvo.
         time=0;
@@ -16,6 +15,8 @@ classdef MFSimulator<handle
             end
         end
         function defineComponent(obj,key,type,functionhandle,args)
+            %define estimators, recenterers or other functions to be called
+            %within a pattern repeat
             arguments 
                 obj
                 key
@@ -28,27 +29,31 @@ classdef MFSimulator<handle
             component.type=string(type);
             component.dim=args.dim;
             component.parameters=args.parameters;
-            obj.patterns(string(key))=component;
+            obj.patterns(key)=component;
         end
-        function definePattern(obj,patternname,psf,args)
+        function definePattern(obj,key,psf,args)
+            %defines a pattern based on a PSF that is passed on and other
+            %parameters
             arguments 
                 obj
-                patternname
+                key
                 psf
-                args.psfpar="";
+                args.phasemask=""; %parameter that defines the shape of the phase mask
                 args.zeropos=0; %position of the zero when calculating PSFs (e.g., PhaseFLUX)
-                args.pos=[0, 0, 0];
+                args.patternpos=[0, 0, 0];% list of 3D positions where the PSF is moved to. Use either zeropos or pos
                 args.makepattern=[];
                 args.orbitpoints=4;
                 args.orbitL=100;
                 args.probecenter=true; 
-                args.orbitorder=[];
+                args.orbitorder=[]; %change the order of measurement points
                 args.pointdwelltime=10; %us
                 args.laserpower=1; %usually we use relative, but can also be absolute.
                 args.repetitions=1;
             end
             pattern.repetitions=args.repetitions;
-            pos=args.pos;
+            %make a list of either positions of the PSF or of zeropositions
+            %to be calculated.
+            pos=args.patternpos;
             zeropos=args.zeropos;
             if strcmp(args.makepattern,'orbitscan')
                 pos=obj.makeorbitpattern(args.orbitpoints,args.probecenter,args.orbitorder)*args.orbitL/2;
@@ -61,58 +66,49 @@ classdef MFSimulator<handle
             end
             pattern.pos=pos;
             
+            %create values for all measurement points of the pattern.
             for k=1:size(pos,1)
                 pattern.psf(k)=psf;
-                pattern.psfpar(k)=string(args.psfpar);
+                pattern.phasemask(k)=string(args.phasemask);
                 pattern.zeropos(k)=string((zeropos(k)));
-                pattern.psf(k).calculatePSFs(args.psfpar,pattern.zeropos(k));
+                pattern.psf(k).calculatePSFs(args.phasemask,pattern.zeropos(k));
                 pattern.pointdwelltime(k)=args.pointdwelltime;
                 pattern.laserpower(k)=args.laserpower;
             end
             pattern.type="pattern";
-            obj.patterns(patternname)=pattern;
+            obj.patterns(key)=pattern;
         end
-        
-        % function combinepatterns(obj,newname, allpatterns)
-        %     patternnew=obj.patterns(allpatterns(1));
-        %     for k=2:length(allpatterns)
-        %         pattern2=obj.patterns(allpatterns(k));
-        %         patternnew=appendstruct(patternnew,pattern2);
-        %     end
-        %     obj.patterns(newname)=patternnew;
-        % end
+       
 
-        function out=patternscan(obj,patternname)
-            pattern=obj.patterns(patternname);
-            fl=obj.fluorophores;
+        function out=patternscan(obj,key)
+            % scans a defined pattern
+            pattern=obj.patterns(key);
+            fluorophores=obj.fluorophores;
             numpoints=length(pattern.zeropos);
             intall=zeros(numpoints,1);
             repetitions=pattern.repetitions;
-            % flpos=zeros(length(fl),3);
-            % flint=zeros(length(fl),1);
-            
             timestart=obj.time;
            
             timep=0;
             posgalvo=obj.posgalvo;
-            poseod=obj.posEOD;
-            flpos=zeros(fl.numberOfFluorophores,3);
-            flintall=zeros(fl.numberOfFluorophores,1);
+            posEOD=obj.posEOD;
+            flpos=zeros(fluorophores.numberOfFluorophores,3);
+            flintall=zeros(fluorophores.numberOfFluorophores,1);
             for r=1:repetitions
                 for k=1:numpoints
-                    timep=timep+obj.time;
-                    [flposh,isactive]=fl.position(obj.time);
+                    timep=timep+obj.time; %for calculating average time point
+                    [flposh,isactive]=fluorophores.position(obj.time);
                     flposrel=flposh-posgalvo;
-                    [ih,phfac]=pattern.psf(k).intensity(flposrel,pattern.pos(k,:)+poseod,pattern.psfpar(k),pattern.zeropos(k));
-                    ih=ih*pattern.laserpower(k);
-                    flint=fl.intensity(ih,pattern.pointdwelltime(k),phfac);
-                    inten=sum(flint);
+                    [intensityh,pinholehfac]=pattern.psf(k).intensity(flposrel,pattern.pos(k,:)+posEOD,pattern.phasemask(k),pattern.zeropos(k));
+                    intensityh=intensityh*pattern.laserpower(k);
+                    flint=fluorophores.intensity(intensityh,pattern.pointdwelltime(k),pinholehfac);
+                    intensity=sum(flint);
                     flpos(isactive,:)=flpos(isactive,:)+flposh;
                     flintall(isactive,:)=flintall(isactive,:)+flint;
                     obj.time=obj.time+pattern.pointdwelltime(k);
-                    intall(k)=inten+obj.background;
+                    intall(k)=intensity+obj.background;
                 end
-                fl.updateonoff(obj.time);
+                fluorophores.updateonoff(obj.time);
             end
             out.phot=poissrnd(intall); %later: fl.tophot(intenall): adds bg, multiplies with brightness, does 
             out.photbg=obj.background*sum(pattern.pointdwelltime);
@@ -125,24 +121,7 @@ classdef MFSimulator<handle
             
         end
 
-        % function out=patternrepeat(obj,patternname,reps)
-        %     out=obj.patternscan(patternname);
-        %     for rep=2:reps
-        %         out2=obj.patternscan(patternname);
-        %         out=sumstruct(out,out2);
-        %     end
-        %     out.flpos=out.flpos/out.counter;
-        %     out.time=out.time/out.counter;
-        %     out.counter=1; %already normalized
-        % end
-
-        function defineSequence(obj,key,sequencelist)
-            obj.sequences(key)={sequencelist};
-        end
-
-        function out=runSequence(obj,key,maxlocalizations)
-            % output as abberior sequence, same dimensions...
-            seq=obj.sequences(key);seq=seq{1};
+        function out=runSequenceintern(obj,seq,maxlocalizations)
             numseq=length(seq);
             numpat=0;
             for s=numseq:-1:1
@@ -153,8 +132,9 @@ classdef MFSimulator<handle
                 end
             end
             photch=zeros(maxlocalizations*numpat,max(ls))-1;
-            %init
-            loc=initlocs(maxlocalizations*numpat,{'xnm','ynm','znm','xfl1','yfl1','zfl1','phot','time','abortcondition'});
+            loc=initlocs(maxlocalizations*numpat,{'xnm','ynm','znm','xfl1',...
+                'yfl1','zfl1','phot','time','abortcondition', 'xgalvo', 'ygalvo', 'zgalvo',...
+                'xeod','yeod','zeod'});
    
             bleached=false;
             loccounter=0;
@@ -187,11 +167,13 @@ classdef MFSimulator<handle
                             end
                             xesttot=xest+posgalvo_beforecenter;
                             loc.xnm(loccounter)=xesttot(1);loc.ynm(loccounter)=xesttot(2);loc.znm(loccounter)=xesttot(3);
+                            loc.xgalvo(loccounter,1)=obj.posgalvo(1);loc.ygalvo(loccounter,1)=obj.posgalvo(2);loc.zgalvo(loccounter,1)=obj.posgalvo(3);
+                            loc.xeod(loccounter,1)=obj.posEOD(1);loc.yeod(loccounter,1)=obj.posEOD(2);loc.zeod(loccounter,1)=obj.posEOD(3);
+                        
                         case "positionupdater"
+                            [posgalvo,posEOD]=component.functionhandle(xest,obj.posgalvo,obj.posEOD,component.parameters{:});
+                            obj.posgalvo(component.dim)=posgalvo(component.dim);obj.posEOD(component.dim)=posEOD(component.dim);
                     end
-                    % flpos(loccounter,:)=scanout.flpos;
-
-
                 end
             end
             loc=removeempty(loc,loccounter);
@@ -199,30 +181,22 @@ classdef MFSimulator<handle
             out.loc=loc;
             out.raw=photch(1:loccounter,:);
             out.fluorophores=fluorophores;
-  
-
-                    % out.loc.itr(loccounter,1)=itr;
-                    % out.loc.numitr(loccounter,1)=numitr;
-                    % out.loc.loccounter(loccounter,1)=loccounter;
-                    % out.loc.cfr(loccounter,1)=cfr;
-                    % out.loc.phot(loccounter,1)=photsum;
-                    % out.loc.vld(loccounter,1)=stickinesscounter<stickiness;
-                    % out.loc.abortcondition(loccounter,1)=1*(abortphot) + 2*(abortccr);
-                    % out.loc.patternrepeat(loccounter,1)=scanout.counter;
-                    % out.loc.measuretime(loccounter,1)=scanout.measuretime;           
-                    % out.raw(loccounter,1:length(scanout.phot))=scanout.phot;
-
-    
         end
-        function out=repeatSequence(obj,key,maxloc,repetitions)
+        function out=runSequence(obj,seq,args)
+            arguments
+                obj
+                seq
+                args.maxlocs=1000;
+                args.repetitions=1;
+            end
             out=[];
-            for k=1:repetitions
+            for k=1:args.repetitions
                 obj.fluorophores(1).reset;
-                out2=obj.runSequence(key,maxloc);
+                out2=obj.runSequenceintern(seq,args.maxlocs);
                 out=obj.addout(out,out2);
             end
         end
-        function out1=addout(obj,out1,out2)
+        function out1=addout(obj,out1,out2) %helper function
             if isempty(out2)
                 return
             end
@@ -262,7 +236,6 @@ classdef MFSimulator<handle
         function lp=locprec(obj,photons,L)
             lp=L./sqrt(8*(photons));
         end
-
         function locprec=calculateCRB(obj,patternnames,args)
             arguments
                 obj
@@ -279,7 +252,6 @@ classdef MFSimulator<handle
             % make x,y, z fisher matrix
             eps=1;
             IFisher=zeros(dim);
-
                 pattern=obj.patterns(patternnames);
                 for k=length(pattern.zeropos):-1:1
                     for coord=1:dim
@@ -296,11 +268,11 @@ classdef MFSimulator<handle
                 locprec=diag(sqrt(crlb))';
 
             function iho=pi(dpos)
-                    ih=pattern.psf(k).intensity(flpos-pattern.pos(k,:)-obj.posgalvo,dpos,pattern.psfpar(k),pattern.zeropos(k))+bg;
+                    ih=pattern.psf(k).intensity(flpos-pattern.pos(k,:)-obj.posgalvo,dpos,pattern.phasemask(k),pattern.zeropos(k))+bg;
                     
                     ihm=0;
                     for m=length(pattern.zeropos):-1:1
-                         ihm=ihm+pattern.psf(m).intensity(flpos-pattern.pos(m,:)-obj.posgalvo,dpos,pattern.psfpar(m),pattern.zeropos(m))+bg;
+                         ihm=ihm+pattern.psf(m).intensity(flpos-pattern.pos(m,:)-obj.posgalvo,dpos,pattern.phasemask(m),pattern.zeropos(m))+bg;
                     end
                     iho=ih/ihm;
             end
@@ -329,8 +301,6 @@ classdef MFSimulator<handle
         end
     end
 end
-
-
 
 
 function locs=initlocs(maxlocalizations,fields)

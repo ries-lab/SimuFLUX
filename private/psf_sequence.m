@@ -1,4 +1,4 @@
-function [psfs, psfpars]=psf_sequence(sq,psfvec)
+function [psfs, phasemasks]=psf_sequence(sq,psfvec)
 % if vectorial in global: use only one PSF object, if also in Itr. other
 % parameters are ignored
 if isfield(sq.global,'Mode') && strcmp(sq.global.Mode,'PSFMF_vectorial')
@@ -22,10 +22,10 @@ end
 for k=1:length(sq.Itr)
     if strcmp(sq.Itr(k).Mode,'PSFMF_vectorial')
         psfs{k}=psfvec;
-        psfpars{k}=sq.Itr(k).par;
+        phasemasks{k}=sq.Itr(k).par;
     else
         psfs{k}=eval(sq.Itr(k).Mode);
-        psfpars{k}=sq.Itr(k).par;
+        phasemasks{k}=sq.Itr(k).par;
     end
 end
 end

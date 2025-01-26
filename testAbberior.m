@@ -6,27 +6,20 @@
 %     fl(k).pos=[xpos(k),0,0];
 % end
 % fc=Fluorophorecollection;
-% fl=MFfluorophore;
-% fl.pos=[50 0 0];
+fl=MFfluorophore;
+fl.pos=[50 0 0];
+fl.brightness=10000;
 % fc.add(fl);
-% fl.brightness=1000;
-% fl.photonbudget=20000;s
-% psfs=PSFMF_donut2D;
-sim=AbberiorSimulator(fl);
+
+if ~exist('sim','var') || ~isa(sim,"AbberiorSimulator")
+    sim=AbberiorSimulator(fl);
+end
+sim.posgalvo=[0 0 0];
 fname='/Users/ries/Downloads/2Dtracking_L75nm_phtLimit100__locLim50_.json';
-fname2='/Users/ries/Downloads/PSFvectorialJonas.json';
+fname2='PSFvectorialJonas.json';
 sim.loadsequence(fname,fname2)
 
-% psfs=PSFMF_vectorial;
-% psfpar(1)=struct('psfpar','flat');
-% psfpar(2)=struct('psfpar','vortex');
-
-
 numlocs=12;
-% fname='/Users/ries/Downloads/2Dtracking_L75nm_phtLimit1000_.json';
-
-% sim.sequence_json.damping=.1;
-% sim.makepatterns(psfs,psfpar);
 sim.makepatterns;
 % sim.makescoutingpattern([0 0; 1500 1500 ])
 out=sim.runSequence;
