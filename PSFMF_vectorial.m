@@ -250,10 +250,17 @@ classdef PSFMF_vectorial<PSFMF
                     par.sys=sys;
                     par.opt=opt;
                     par.addpar=out;
+                case '.json'
+                    disp('json not implemented yet')
             end
         end
         function out=fwhm(obj)
              out=obj.sigma*2.35*1.2; %comes from comparison with simple donut
+        end
+        function loadexperimental(obj,key,fname)
+            %3Dcal.mat
+            %uiPSF
+            %tiffstack
         end
     end
 end
