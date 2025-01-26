@@ -15,6 +15,21 @@ classdef MFSimulator<handle
                 obj.fluorophores=fl;
             end
         end
+        function defineComponent(obj,key,type,functionhandle,args)
+            arguments 
+                obj
+                key
+                type
+                functionhandle
+                args.parameters={};
+                args.dim=1:3;
+            end
+            component.functionhandle=functionhandle;
+            component.type=string(type);
+            component.dim=args.dim;
+            component.parameters=args.parameters;
+            obj.patterns(string(key))=component;
+        end
         function definePattern(obj,patternname,psf,args)
             arguments 
                 obj
@@ -30,7 +45,9 @@ classdef MFSimulator<handle
                 args.orbitorder=[];
                 args.pointdwelltime=10; %us
                 args.laserpower=1; %usually we use relative, but can also be absolute.
+                args.repetitions=1;
             end
+            pattern.repetitions=args.repetitions;
             pos=args.pos;
             zeropos=args.zeropos;
             if strcmp(args.makepattern,'orbitscan')
@@ -52,23 +69,25 @@ classdef MFSimulator<handle
                 pattern.pointdwelltime(k)=args.pointdwelltime;
                 pattern.laserpower(k)=args.laserpower;
             end
+            pattern.type="pattern";
             obj.patterns(patternname)=pattern;
         end
         
-        function combinepatterns(obj,newname, allpatterns)
-            patternnew=obj.patterns(allpatterns(1));
-            for k=2:length(allpatterns)
-                pattern2=obj.patterns(allpatterns(k));
-                patternnew=appendstruct(patternnew,pattern2);
-            end
-            obj.patterns(newname)=patternnew;
-        end
+        % function combinepatterns(obj,newname, allpatterns)
+        %     patternnew=obj.patterns(allpatterns(1));
+        %     for k=2:length(allpatterns)
+        %         pattern2=obj.patterns(allpatterns(k));
+        %         patternnew=appendstruct(patternnew,pattern2);
+        %     end
+        %     obj.patterns(newname)=patternnew;
+        % end
 
         function out=patternscan(obj,patternname)
             pattern=obj.patterns(patternname);
             fl=obj.fluorophores;
             numpoints=length(pattern.zeropos);
             intall=zeros(numpoints,1);
+            repetitions=pattern.repetitions;
             % flpos=zeros(length(fl),3);
             % flint=zeros(length(fl),1);
             
@@ -79,90 +98,121 @@ classdef MFSimulator<handle
             poseod=obj.posEOD;
             flpos=zeros(fl.numberOfFluorophores,3);
             flintall=zeros(fl.numberOfFluorophores,1);
-            for k=1:numpoints
-                timep=timep+obj.time;
-                [flposh,isactive]=fl.position(obj.time);
-                flposrel=flposh-posgalvo;
-                [ih,phfac]=pattern.psf(k).intensity(flposrel,pattern.pos(k,:)+poseod,pattern.psfpar(k),pattern.zeropos(k));
-                ih=ih*pattern.laserpower(k);
-                flint=fl.intensity(ih,pattern.pointdwelltime(k),phfac);
-                inten=sum(flint);
-                flpos(isactive,:)=flpos(isactive,:)+flposh;
-                flintall(isactive,:)=flintall(isactive,:)+flint;
-                obj.time=obj.time+pattern.pointdwelltime(k);
-                intall(k)=inten+obj.background;
+            for r=1:repetitions
+                for k=1:numpoints
+                    timep=timep+obj.time;
+                    [flposh,isactive]=fl.position(obj.time);
+                    flposrel=flposh-posgalvo;
+                    [ih,phfac]=pattern.psf(k).intensity(flposrel,pattern.pos(k,:)+poseod,pattern.psfpar(k),pattern.zeropos(k));
+                    ih=ih*pattern.laserpower(k);
+                    flint=fl.intensity(ih,pattern.pointdwelltime(k),phfac);
+                    inten=sum(flint);
+                    flpos(isactive,:)=flpos(isactive,:)+flposh;
+                    flintall(isactive,:)=flintall(isactive,:)+flint;
+                    obj.time=obj.time+pattern.pointdwelltime(k);
+                    intall(k)=inten+obj.background;
+                end
+                fl.updateonoff(obj.time);
             end
             out.phot=poissrnd(intall); %later: fl.tophot(intenall): adds bg, multiplies with brightness, does 
             out.photbg=obj.background*sum(pattern.pointdwelltime);
-            out.flpos=flpos/numpoints;
+            out.flpos=flpos/numpoints/repetitions;
             out.flint=flintall;
-            out.time=timep/numpoints;
-            out.measuretime=obj.time-timestart;
+            out.averagetime=timep/numpoints/repetitions;
+            out.patterntotaltime=obj.time-timestart;
             out.counter=1;
-            fl.updateonoff(obj.time)
+            out.repetitions=repetitions;
+            
         end
 
-        function out=patternrepeat(obj,patternname,reps)
-            out=obj.patternscan(patternname);
-            for rep=2:reps
-                out2=obj.patternscan(patternname);
-                out=sumstruct(out,out2);
-            end
-            out.flpos=out.flpos/out.counter;
-            out.time=out.time/out.counter;
-            out.counter=1; %already normalized
-        end
+        % function out=patternrepeat(obj,patternname,reps)
+        %     out=obj.patternscan(patternname);
+        %     for rep=2:reps
+        %         out2=obj.patternscan(patternname);
+        %         out=sumstruct(out,out2);
+        %     end
+        %     out.flpos=out.flpos/out.counter;
+        %     out.time=out.time/out.counter;
+        %     out.counter=1; %already normalized
+        % end
 
         function defineSequence(obj,key,sequencelist)
             obj.sequences(key)={sequencelist};
         end
 
         function out=runSequence(obj,key,maxlocalizations)
+            % output as abberior sequence, same dimensions...
             seq=obj.sequences(key);seq=seq{1};
-            numseq=size(seq,1);
+            numseq=length(seq);
+            numpat=0;
             for s=numseq:-1:1
-                pat=obj.patterns(seq{s,1});
-                ls(s)=length(pat.zeropos);
+                pat=obj.patterns(seq{s});
+                if strcmp(pat.type,"pattern")
+                    ls(s)=length(pat.zeropos);
+                    numpat=numpat+1;
+                end
             end
-            photch=zeros(maxlocalizations,numseq,max(ls))-1;
-
-            xest=zeros(maxlocalizations,3);
-            flpos=zeros(maxlocalizations,3);
-            photall=zeros(maxlocalizations,1);
-            timep=zeros(maxlocalizations,1);
+            photch=zeros(maxlocalizations*numpat,max(ls))-1;
+            %init
+            loc=initlocs(maxlocalizations*numpat,{'xnm','ynm','znm','xfl1','yfl1','zfl1','phot','time','abortcondition'});
+   
             bleached=false;
+            loccounter=0;
             for k=1:maxlocalizations
                 if obj.fluorophores.remainingphotons<1
                     bleached=true;
                     break
                 end
-                pospattern_beforecenter=obj.posgalvo;
-                
+                posgalvo_beforecenter=obj.posgalvo;
+                xest=[0,0,0];
                 for s=1:numseq
-                    scanout=obj.patternrepeat(seq{s,1},seq{s,2});
-                    xh=seq{s,3}(scanout.phot);
-                    xest(k,seq{s,4})=xh(seq{s,4});
-                    flpos(k,seq{s,4})=scanout.flpos(seq{s,4});
-                    if seq{s,6} %recenter
-                        seq{s,5}(xest(k,:));
+                    component=obj.patterns(seq{s});
+                    switch component.type
+                        case "pattern"
+                            scanout=obj.patternscan(seq{s});
+                            loccounter=loccounter+1; % every localization gets a new entry, as in abberior
+                            loc.phot(loccounter)=loc.phot(loccounter)+sum(scanout.phot);
+                            photch(loccounter,1:length(scanout.phot))=scanout.phot;
+                            loc.time(loccounter)=loc.time(loccounter)+scanout.averagetime;
+                            flpos=scanout.flpos(1,:);
+                            loc.xfl1(loccounter)=flpos(1);loc.yfl1(loccounter)=flpos(2);loc.zfl1(loccounter)=flpos(3);
+                            fluorophores.pos(loccounter,1:size(scanout.flpos,1),:)=scanout.flpos;
+                            fluorophores.int(loccounter,1:size(scanout.flpos,1))=scanout.flint;
+                        case "estimator"
+                            xesth=component.functionhandle(scanout.phot,component.parameters{:});
+                            if length(xesth)==3
+                                xest(component.dim)=xesth(component.dim);
+                            else
+                                xest(component.dim)=xesth;
+                            end
+                            xesttot=xest+posgalvo_beforecenter;
+                            loc.xnm(loccounter)=xesttot(1);loc.ynm(loccounter)=xesttot(2);loc.znm(loccounter)=xesttot(3);
+                        case "positionupdater"
                     end
-                    photall(k)=photall(k)+sum(scanout.phot);
-                    photch(k,s,1:length(scanout.phot))=scanout.phot;
-                    timep(k)=timep(k)+scanout.time;
+                    % flpos(loccounter,:)=scanout.flpos;
+
+
                 end
-                flpos(k,:)=scanout.flpos;
-                timep(k)=timep(k)/numseq;
-                xest(k,:)=xest(k,:)+pospattern_beforecenter;
             end
-            if bleached
-                k=k-1;
-            end
-            out.raw(1,:,:,:)=photch;
-            out.loc.xnm=xest(1:k,1);out.loc.ynm=xest(1:k,2);out.loc.znm=xest(1:k,3);
-            out.loc.xfl(1:k,1)=scanout.flpos(1);out.loc.yfl(1:k,1)=scanout.flpos(2);out.loc.zfl(1:k,1)=scanout.flpos(3);
-            out.loc.time=timep(1:k,1);
-            out.loc.phot=photall(1:k,1);
-            out.loc.abortcondition=zeros(size(out.loc.phot));out.loc.abortcondition(end)=1;
+            loc=removeempty(loc,loccounter);
+            loc.abortcondition=zeros(size(loc.phot));loc.abortcondition(end)=1+2*bleached;
+            out.loc=loc;
+            out.raw=photch(1:loccounter,:);
+            out.fluorophores=fluorophores;
+  
+
+                    % out.loc.itr(loccounter,1)=itr;
+                    % out.loc.numitr(loccounter,1)=numitr;
+                    % out.loc.loccounter(loccounter,1)=loccounter;
+                    % out.loc.cfr(loccounter,1)=cfr;
+                    % out.loc.phot(loccounter,1)=photsum;
+                    % out.loc.vld(loccounter,1)=stickinesscounter<stickiness;
+                    % out.loc.abortcondition(loccounter,1)=1*(abortphot) + 2*(abortccr);
+                    % out.loc.patternrepeat(loccounter,1)=scanout.counter;
+                    % out.loc.measuretime(loccounter,1)=scanout.measuretime;           
+                    % out.raw(loccounter,1:length(scanout.phot))=scanout.phot;
+
+    
         end
         function out=repeatSequence(obj,key,maxloc,repetitions)
             out=[];
@@ -283,3 +333,15 @@ end
 
 
 
+function locs=initlocs(maxlocalizations,fields)
+for k=1:length(fields)
+    locs.(fields{k})=zeros(maxlocalizations,1);
+end
+end
+
+function loco=removeempty(loc,loccounter)
+fields=fieldnames(loc);
+for k=1:length(fields)
+    loco.(fields{k})=loc.(fields{k})(1:loccounter);
+end
+end

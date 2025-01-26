@@ -1,0 +1,17 @@
+{"PSF":
+ {
+"Itr": [
+	{"function": "estimators",
+     "par": ["gauss2D","patternpos","L",120, false],
+     "dim": [1, 2]},
+	{"function": "estimators",
+     "par": ["donut2D","patternpos","L",310, false],
+     "dim": [1, 2]},
+	{"function": "estimators",
+     "par": ["donut2D","patternpos","L",310, false],
+     "dim": [1, 2]},    
+	{"function": "estimators",
+     "par": ["donut2DcentermLMS","patternpos","L",310,[1, 3, 60, 0, 8000]],
+     "dim": [1, 2]}    
+    ]}
+}

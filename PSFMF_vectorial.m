@@ -11,7 +11,7 @@ classdef PSFMF_vectorial<PSFMF
             obj.parameters=obj.loadparameters('defaultsystemparameters_vectorialPSF.m');
         end
         function setpar(obj,varargin)
-            if nargin >1 %structure passed on
+            if nargin >2 %structure passed on
                 spar=struct(varargin{:});
             else
                 spar=varargin{1};
@@ -20,19 +20,27 @@ classdef PSFMF_vectorial<PSFMF
             % otherwise add to addpar
             fn=fieldnames(spar);
             fnpar=fieldnames(obj.parameters);
+            recalculate=false;
             for k=1:length(fn)
                 assigned=false;
                 for l=1:length(fnpar)
                     if isfield(obj.parameters.(fnpar{l}),fn{k})
-                        obj.parameters.(fnpar{l}).(fn{k})=spar.(fn{k});
+                        if ~isequal(obj.parameters.(fnpar{l}).(fn{k}),spar.(fn{k}))
+                            obj.parameters.(fnpar{l}).(fn{k})=spar.(fn{k});
+                            recalculate=true;
+                        end
                         assigned=true;
                     end
                 end
                 if ~assigned
-                    obj.parameters.addpar=spar.(fn(k));
+                    obj.parameters.addpar.(fn{k})=spar.(fn{k});
+                    % recalculate=true;
                 end 
             end
-            obj.PSFs=dictionary;%delete pre-calculated PSFs
+            if recalculate 
+                obj.PSFs=dictionary;%delete pre-calculated PSFs
+                obj.normfact=[];
+            end
         end
         function [idet,phfac]=intensity(obj, flpos ,patternpos, phasepattern, L)
             %flpos with respect to optical axis ([0,0] of PSF coordinate
@@ -110,7 +118,7 @@ classdef PSFMF_vectorial<PSFMF
                 case {'halfmoonx','halfmoony'}
                     %convert L into phase
                     dxdphi=1.4; %nm/degree, from LSA paper Deguchi
-                    dzdphi=-3.6; %nm/degree
+                    % dzdphi=-3.6; %nm/degree
                     sys.delshift = deg2rad(Lx/dxdphi);
                     sys.Ei = {'halfmoon', 'linear'};   
                     out=effField(sys,out, opt);      
@@ -151,6 +159,7 @@ classdef PSFMF_vectorial<PSFMF
                     PSFdonut = griddedInterpolant(X,Y,Z,psfph,intmethod);
                     obj.PSFs(key)=PSFdonut;   
                 case 'tophat'
+                    dzdphi=-3.6; %nm/degree
                     sys.delshift = deg2rad(Lx/dzdphi);
                     sys.Ei = {'pishift', 'circular'};  
                     out=effField(sys,out, opt);      
@@ -242,6 +251,9 @@ classdef PSFMF_vectorial<PSFMF
                     par.opt=opt;
                     par.addpar=out;
             end
+        end
+        function out=fwhm(obj)
+             out=obj.sigma*2.35*1.2; %comes from comparison with simple donut
         end
     end
 end
