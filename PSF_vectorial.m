@@ -1,8 +1,10 @@
 classdef PSF_vectorial<PSF_Pointspreadfunction
     properties
         parameters
+        PSFs=dictionary;
         PSFph=[];
         normfact
+        pinholepar
     end
     methods
         function obj=PSF_vectorial(varargin)
@@ -43,6 +45,7 @@ classdef PSF_vectorial<PSF_Pointspreadfunction
             end
         end
         function [idet,phfac]=intensity(obj, flpos ,patternpos, phasepattern, L)
+           
             if nargin<5
                 key=phasepattern;
             else
@@ -155,18 +158,11 @@ classdef PSF_vectorial<PSF_Pointspreadfunction
                     norm=sum(sum(psfg(:,:,round(end/2))));
                     psfg=psfg/norm;
                     pixelsize=opt.pixSize*1e9;
-
-                    sim=floor((max(phpos)+phdiameter/2)/2)*2;
-                    % sim=floor(size(psfg,2)/2);
-                    % n=(-sim:sim)*pixelsize*1e9; %to nanometer
-                    n=-sim:pixelsize:sim;
-                    [Xk,Yk]=meshgrid(n);
+                    nx=1:size(psfg,1);
+                    nx=(nx-mean(nx))*pixelsize;
+                    [Xk,Yk]=meshgrid(nx);
                     kernel=double((Xk-phpos(1)).^2+(Yk-phpos(2)).^2<(phdiameter/2)^2);
-                    % kernel=kernel/sum(kernel(:));
-                    psfph=0*psfg;
-                    for k=1:size(psfph,3)
-                        psfph(:,:,k)=conv2(psfg(:,:,k),kernel,"same");
-                    end
+                    psfph=conv2fft(psfg,kernel);
                     PSFdonut = griddedInterpolant(X,Y,Z,psfph,intmethod);
                     obj.PSFs(key)=PSFdonut;   
                 case 'tophat'
@@ -209,7 +205,7 @@ classdef PSF_vectorial<PSF_Pointspreadfunction
             circpsf=double((X).^2+(Y).^2+(Z).^2<=R^2);
             circpsf=circpsf/sum(circpsf(:));
             psfo=convnfft(psf,circpsf);
-            psfo=ifftshift(ifftshift(ifftshift(psfo,1),2),3); %inconsitent use of fftshift, but ok because bead is symmetric
+            % psfo=ifftshift(ifftshift(ifftshift(psfo,1),2),3); %inconsitent use of fftshift, but ok because bead is symmetric
         end
         function setpinhole(obj, args)
             arguments
@@ -226,8 +222,11 @@ classdef PSF_vectorial<PSF_Pointspreadfunction
                 % [sys,opt,out]=systemparameters;
                 args.diameter=round(args.AU*1.22*obj.parameters.sys.loem*1e9/obj.parameters.sys.NA); %single nm accuracy should be sufficient
             end
-            
-            obj.PSFph=obj.calculatePSFs('pinhole',[args.diameter,args.offset],1);
+            if isempty(obj.PSFph)||(~isempty(obj.pinholepar) && (args.diameter ~= obj.pinholepar.diameter || any(args.offset ~= obj.pinholepar.offset)) )
+                obj.PSFph=obj.calculatePSFs('pinhole',[args.diameter,args.offset],1);
+            end
+            obj.pinholepar.offset=args.offset;
+            obj.pinholepar.diameter=args.diameter;
         end
        
         function savePSF(obj,name)

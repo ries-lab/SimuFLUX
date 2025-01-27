@@ -1,6 +1,6 @@
 classdef PSF_Pointspreadfunction<handle
     properties
-        PSFs=dictionary;
+        %PSFs=dictionary;
         zerooffset=0; % PSF+zerooffset
         sigmaz=0; %don't do z sectioning.
         sigma=132; %nm
