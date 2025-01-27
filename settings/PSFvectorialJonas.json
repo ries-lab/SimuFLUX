@@ -1,29 +1,29 @@
 {"PSF":
- {"global": {"Mode": "PSFMF_vectorial",
+ {"global": {"Mode": "PSF_vectorial",
             "sys": {"dummy": []},
             "opt": {"dummy": []},
-            "addpar": {"dummy": []}},
+            "addpar": {"pinhole": ["AU",1]}},
 "Itr": [
-	{"Mode": "PSFMF_vectorial",
+	{"Mode": "PSF_vectorial",
      "par": 
         {"phasemask": "flat"}, 
      "estimator": 
         {"function": "estimators",
         "par": ["gauss2D","patternpos","L",120, false],
         "dim": [1, 2]}},
-	{"Mode": "PSFMF_vectorial",
+	{"Mode": "PSF_vectorial",
      "par": 
         {"phasemask": "vortex"}, 
      "estimator": {"function": "estimators",
         "par": ["donut2D","patternpos","L",310, false],
         "dim": [1, 2]}},
-	{"Mode": "PSFMF_vectorial",
+	{"Mode": "PSF_vectorial",
      "par": 
         {"phasemask": "vortex"}, 
      "estimator": {"function": "estimators",
         "par": ["donut2D","patternpos","L",310, false],
          "dim": [1, 2]}},
-	{"Mode": "PSFMF_vectorial",
+	{"Mode": "PSF_vectorial",
      "par": 
         {"phasemask": "vortex"}, 
      "estimator": {"function": "estimators",

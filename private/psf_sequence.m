@@ -1,9 +1,9 @@
 function [psfs, phasemasks]=psf_sequence(sq,psfvec)
 % if vectorial in global: use only one PSF object, if also in Itr. other
 % parameters are ignored
-if isfield(sq.global,'Mode') && strcmp(sq.global.Mode,'PSFMF_vectorial')
+if isfield(sq.global,'Mode') && strcmp(sq.global.Mode,'PSF_vectorial')
     if nargin <2
-        psfvec=PSFMF_vectorial;
+        psfvec=PSF_vectorial;
     end
     fng=fieldnames(sq.global);
     % fng=intersect(fng,{'sys','opt','addpar'});
@@ -17,10 +17,13 @@ if isfield(sq.global,'Mode') && strcmp(sq.global.Mode,'PSFMF_vectorial')
         end
            
     end
+    if isfield(sq.global.addpar,"pinhole")
+        psfvec.setpinhole(sq.global.addpar.pinhole{:})
+    end
 end
 
 for k=1:length(sq.Itr)
-    if strcmp(sq.Itr(k).Mode,'PSFMF_vectorial')
+    if strcmp(sq.Itr(k).Mode,'PSF_vectorial')
         psfs{k}=psfvec;
         phasemasks{k}=sq.Itr(k).par;
     else

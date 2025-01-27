@@ -41,7 +41,7 @@ sigmaCRB=sim.calculateCRB("donut",dim=1:2)/sqrt(mean(out.loc.phot));
 
 sim.displayresults("donut",out); %display summary of simulation
 
-psf0=psf_vec.getimagestack("vortex");
+psf0=psf_vec.imagestack("vortex");
 
 %% Zero offset
 %now let's add an offset to the PSF to make the minium non-zero
@@ -68,7 +68,7 @@ seq={"donut_aber","estgauss"};
 out=sim.runSequence(seq);
 
 sim.displayresults("donut_aber",out);
-psfab=psf_vec2.getimagestack("vortex");
+psfab=psf_vec2.imagestack("vortex");
 imx(horzcat(psf0,psfab),'Parent',figure(122)); %compare the two PSFs
 
 %% Pinhole
@@ -95,5 +95,5 @@ seq={"donut_ph","estgauss"};
 out=sim.runSequence(seq);
 sim.displayresults("donut_ph",out);
 
-psfph=psf_vecph2.getimagestack("vortex");
+psfph=psf_vecph2.imagestack("vortex");
 imx(horzcat(psf0,psfph),'Parent',figure(122)); %compare the two PSFs

@@ -1,9 +1,9 @@
-classdef Sim_Abberior<Sim_Simulator
+classdef Sim_json<Sim_Simulator
     properties
         sequence
         estimators=struct('function',"","par",[],"dim",[]);
         scoutingcoordinates
-        psfvec=PSFMF_vectorial; %store only one copy in which different patterns are defined
+        psfvec=PSF_vectorial; %store only one copy in which different patterns are defined
     end
     methods
         function loadsequence(obj,varargin)
@@ -21,8 +21,8 @@ classdef Sim_Abberior<Sim_Simulator
                 if isfield(obj.sequence,'PSF')
                     [psfs,phasemasks]=psf_sequence(obj.sequence.PSF,obj.psfvec);
                 else
-                    psfs{1}=PSFMF_gauss2D;
-                    psfs{2}=PSFMF_donut2D;
+                    psfs{1}=PSF_gauss2D;
+                    psfs{2}=PSF_donut2D;
                     phasemasks{1}.phasemask='gauss2D';
                     phasemasks{2}.phasemask='donut2D';
                     obj.loadsequence('defaultestimators.json')
@@ -65,7 +65,7 @@ classdef Sim_Abberior<Sim_Simulator
             end
             % obj.estimators=est;
         end
-        function out=runSequence(obj,~,~)
+        function out=runSequenceintern(obj)
             %compatible with MFSimulator: repetitions.
             out=[];
             itrs=obj.sequence.Itr;
@@ -201,6 +201,19 @@ classdef Sim_Abberior<Sim_Simulator
                 numitr=numitr+1;
             end
         end
+        function out=runSequence(obj,args)
+            arguments
+                obj
+                % args.maxlocs=10;
+                args.repetitions=1;
+            end
+            out=[];
+            for k=1:args.repetitions
+                obj.fluorophores(1).reset;
+                out2=obj.runSequenceintern;
+                out=obj.addout(out,out2);
+            end
+        end
         function makescoutingpattern(obj,fov,args)
             %fov=[x,y;x2,y2]
             arguments
@@ -243,6 +256,10 @@ classdef Sim_Abberior<Sim_Simulator
                     break
                 end
             end
+        end
+        function displayresults(obj,out)
+            keys=obj.patterns.keys;
+            displayresults@Sim_Simulator(obj,keys(1),out)
         end
     end
 end

@@ -298,7 +298,12 @@ classdef PSF_vectorial<PSF_Pointspreadfunction
             %uiPSF
             %tiffstack
         end
-        function vout=getimagestack(obj,key)
+        function vout=imagestack(obj,key,args)
+            arguments
+                obj
+                key
+                args.show=false;
+            end
             if ~isKey(obj.PSFs,key)
                 key=key+"0";
             end
@@ -307,6 +312,10 @@ classdef PSF_vectorial<PSF_Pointspreadfunction
             if ~isempty(obj.PSFph)
                 phpsf=obj.PSFs(obj.PSFph);
                 vout=vout.*phpsf.Values  ; 
+            end
+
+            if args.show
+                imx(vout)
             end
         end
     end
