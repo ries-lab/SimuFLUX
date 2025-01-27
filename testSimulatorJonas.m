@@ -1,35 +1,40 @@
 % 
-% fl=staticfluorophore;
-% psfv=PSFMF_vectorial;
-% 
-% sim=MFSimulator(fl);
-%%
-% psfv.zerooffset=0.0;
-% 
-% numlocs=1000;
-% 
-% L=150;
-% fl.pos=[50 0 0];
-% fl.brightness=1000;
-% laserpower=10;
-% dwelltime=100;
-% 
-% 
+fl=staticfluorophore;
+psfv=PSFMF_vectorial;
+
+sim=MFSimulator(fl);
+%
+
+psfv.loadexperimental("cal3d",'/Users/ries/Downloads/Pos0_250115_MM_BeadCal_638i2_25ms_Z_1_MMStack_Default.ome_3dcal.mat')
+psfv.zerooffset=0.0;
+
+numlocs=100;
+
+L=150;
+fl.pos=[50 0 0];
+fl.brightness=1000;
+laserpower=10;
+dwelltime=100;
+
+sim.definePattern('astig', psfv, phasemask="cal3d", makepattern='orbitscan', orbitpoints=6, ...
+    probecenter=0,orbitL=L,pointdwelltime=dwelltime,laserpower=laserpower,repetitions=2)
+sim.defineComponent("estgauss","estimator",@estimators,parameters={"gauss2D",sim.patterns("astig").pos,L,120,0},dim=1:2);
 % sim.definePattern('donut', psfv, phasemask="vortex", makepattern='orbitscan', orbitpoints=6, ...
 %     probecenter=0,orbitL=L,pointdwelltime=dwelltime,laserpower=laserpower,repetitions=2)
 % sim.defineComponent("estdonut","estimator",@estimators,parameters={"donut2D",sim.patterns(usepattern).pos,L,fwhm},dim=1:2);
 % sim.defineComponent("recenter","centerer",@simplerecenter,dim=1:2);
 % 
-% fwhm=360;
+fwhm=360;
 % 
-% seq={"donut","estdonut"};
-% sim.defineSequence("donutseq",seq);
-% out=sim.runSequence("donutseq",numlocs);
+seq={"astig","estgauss"};
+
+out=sim.runSequence(seq);
 % 
 % 
 % % mean(phot,1)
 % lp=sim.calculateCRB("donut",dim=2)/sqrt(mean(out.loc.phot));
-% sim.displayresults(out,lp,L)
+sim.displayresults(out,0,L)
+asdf
 % 
 
 % adsfdf

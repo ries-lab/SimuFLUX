@@ -3,7 +3,7 @@ classdef AbberiorSimulator<MFSimulator
         sequence
         estimators=struct('function',"","par",[],"dim",[]);
         scoutingcoordinates
-        psfvec=PSFMF_vectorial;
+        psfvec=PSFMF_vectorial; %store only one copy in which different patterns are defined
     end
     methods
         function loadsequence(obj,varargin)

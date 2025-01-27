@@ -159,6 +159,7 @@ classdef MFSimulator<handle
                             fluorophores.pos(loccounter,1:size(scanout.flpos,1),:)=scanout.flpos;
                             fluorophores.int(loccounter,1:size(scanout.flpos,1))=scanout.flint;
                         case "estimator"
+                            % par=replaceinlist(component.parameters,'patternpos',patternpos,'L',L,'probecenter',probecenter);
                             xesth=component.functionhandle(scanout.phot,component.parameters{:});
                             if length(xesth)==3
                                 xest(component.dim)=xesth(component.dim);

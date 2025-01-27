@@ -43,12 +43,17 @@ classdef PSFMF_vectorial<PSFMF
             end
         end
         function [idet,phfac]=intensity(obj, flpos ,patternpos, phasepattern, L)
+            if nargin<5
+                key=phasepattern;
+            else
+                key=phasepattern+L;
+            end
             %flpos with respect to optical axis ([0,0] of PSF coordinate
             %system)
             % patternpos: position by EOD only of excitation pattern, no
             % descanning. Pinhole is with respect to [0,0] (but can be
             % shifted in pinhole definition).
-            key=phasepattern+L;
+            
             psfint=obj.PSFs(key);
             phkey=obj.PSFph;
             flposrel=flpos-patternpos;
@@ -258,7 +263,25 @@ classdef PSFMF_vectorial<PSFMF
              out=obj.sigma*2.35*1.2; %comes from comparison with simple donut
         end
         function loadexperimental(obj,key,fname)
-            %3Dcal.mat
+            [~,fnh,ext]=fileparts(fname);
+            if contains(fname,"_3dcal") && ext==".mat" %3Dcal.mat
+                l=load(fname);
+                PSFvol=l.SXY(1).PSF{1};
+                px=l.parameters.pixelsize{1}(1)*1000; %nm
+                pz=l.parameters.dz*1000;
+                spsf=size(PSFvol);
+                nx=1:spsf(1);nx=nx-mean(nx);nx=nx*px;
+                ny=1:spsf(2);ny=ny-mean(ny);ny=ny*px;
+                nz=1:spsf(3);nz=nz-mean(nz);nz=nz*pz;
+                [X,Y,Z] = ndgrid(nx,nx,nz);
+                intmethod='cubic'; %linear,cubic?
+                PSFexp = griddedInterpolant(X,Y,Z,PSFvol,intmethod);              
+                obj.PSFs(key+"0")=PSFexp;
+            
+
+            else
+                disp('not implemented')
+            end
             %uiPSF
             %tiffstack
         end
