@@ -1,14 +1,14 @@
-classdef PSFMF_vectorial<PSFMF
+classdef PSF_vectorial<PSF_Pointspreadfunction
     properties
         parameters
         PSFph=[];
         normfact
     end
     methods
-        function obj=PSFMF_vectorial(varargin)
-            obj@PSFMF(varargin{:});
+        function obj=PSF_vectorial(varargin)
+            obj@PSF_Pointspreadfunction(varargin{:});
             addpath('PSF_simulation/library');
-            obj.parameters=obj.loadparameters('defaultsystemparameters_vectorialPSF.m');
+            obj.parameters=obj.loadparameters('settings/defaultsystemparameters_vectorialPSF.m');
         end
         function setpar(obj,varargin)
             if nargin >2 %structure passed on
@@ -66,7 +66,10 @@ classdef PSFMF_vectorial<PSFMF
             end
             idet=iexc.*phfac;
         end
-        function key=calculatePSFs(obj,phasepattern,Lxs)
+        function key=calculatePSFs(obj,phasepattern,Lxs,forcecalculation)
+            if nargin<4
+                forcecalculation=false;
+            end
             if isnumeric(Lxs)
                 Lx=Lxs;
                 Lxs=num2str(Lxs);
@@ -74,7 +77,7 @@ classdef PSFMF_vectorial<PSFMF
                 Lx=str2num(Lxs);
             end
             key=string(phasepattern)+Lxs;
-            if obj.PSFs.isConfigured && obj.PSFs.isKey(key)
+            if obj.PSFs.isConfigured && obj.PSFs.isKey(key) && ~forcecalculation
                 return
             end
             fprintf(key + ", ")
@@ -114,6 +117,7 @@ classdef PSFMF_vectorial<PSFMF
             switch phasepattern
                 case 'flat'
                     sys.Ei = {'circular'};    
+                    sys=addzernikeaberrations(sys,out);
                     out=effField(sys,out, opt);      
                     out=effIntensity(sys,out);
                     PSF=squeeze(out.I(:,:,:,:))/normfact;
@@ -125,7 +129,8 @@ classdef PSFMF_vectorial<PSFMF
                     dxdphi=1.4; %nm/degree, from LSA paper Deguchi
                     % dzdphi=-3.6; %nm/degree
                     sys.delshift = deg2rad(Lx/dxdphi);
-                    sys.Ei = {'halfmoon', 'linear'};   
+                    sys.Ei = {'halfmoon', 'linear'};  
+                    sys=addzernikeaberrations(sys,out);
                     out=effField(sys,out, opt);      
                     out=effIntensity(sys,out);
                     PSF=squeeze(out.I(:,:,:,:))/normfact;
@@ -136,6 +141,7 @@ classdef PSFMF_vectorial<PSFMF
                     obj.PSFs("halfmoony"+Lxs)=PSFy; 
                 case 'pinhole' %here
                     sys.Ei = {'circular'};
+                    sys=addzernikeaberrations(sys,out);
                     phdiameter=Lx(1);
                     if length(Lx)==3
                         phpos=[Lx(2) Lx(3)];
@@ -167,6 +173,7 @@ classdef PSFMF_vectorial<PSFMF
                     dzdphi=-3.6; %nm/degree
                     sys.delshift = deg2rad(Lx/dzdphi);
                     sys.Ei = {'pishift', 'circular'};  
+                    sys=addzernikeaberrations(sys,out);
                     out=effField(sys,out, opt);      
                     out=effIntensity(sys,out);
                     PSF=squeeze(out.I(:,:,:,:))/normfact;
@@ -174,7 +181,8 @@ classdef PSFMF_vectorial<PSFMF
                     PSFdonut = griddedInterpolant(X,Y,Z,PSF,intmethod);
                     obj.PSFs(key)=PSFdonut;   
                 case 'vortex'
-                    sys.Ei = { 'phaseramp',  'circular'};    
+                    sys.Ei = { 'phaseramp',  'circular'};  
+                    sys=addzernikeaberrations(sys,out);
                     out=effField(sys,out, opt);      
                     out=effIntensity(sys,out);
                     PSF=squeeze(out.I(:,:,:,:))/normfact;
@@ -211,11 +219,15 @@ classdef PSFMF_vectorial<PSFMF
                 args.diameter=[] %nm
                 args.offset=[0,0];
             end
+            if length(args.offset)~=2
+                error('PSF_vectorial.setpinhole: args.offset needs to have two entries (x,y)')
+            end
             if isempty(args.diameter)
                 % [sys,opt,out]=systemparameters;
                 args.diameter=round(args.AU*1.22*obj.parameters.sys.loem*1e9/obj.parameters.sys.NA); %single nm accuracy should be sufficient
             end
-            obj.PSFph=obj.calculatePSFs('pinhole',[args.diameter,args.offset]);
+            
+            obj.PSFph=obj.calculatePSFs('pinhole',[args.diameter,args.offset],1);
         end
        
         function savePSF(obj,name)
@@ -246,9 +258,10 @@ classdef PSFMF_vectorial<PSFMF
             imx(psftot);
         end
         function par=loadparameters(obj,filen)
-            [~,fname,ext]=fileparts(filen);
+            [fpath,fname,ext]=fileparts(filen);
             switch ext
                 case '.m'
+                    addpath(fpath)
                     [sys,opt,out]=eval(fname);
                     [sys2,out]=effInit_oil_exc(sys,out,opt);
                     sys=copyfields(sys,sys2);
@@ -285,6 +298,25 @@ classdef PSFMF_vectorial<PSFMF
             %uiPSF
             %tiffstack
         end
+        function vout=getimagestack(obj,key)
+            if ~isKey(obj.PSFs,key)
+                key=key+"0";
+            end
+            psf=obj.PSFs(key);
+            vout=psf.Values;
+            if ~isempty(obj.PSFph)
+                phpsf=obj.PSFs(obj.PSFph);
+                vout=vout.*phpsf.Values  ; 
+            end
+        end
     end
 end
 
+function sys=addzernikeaberrations(sys,addpar)
+if isfield(sys,'Zr') && ~isempty(sys.Zr)
+    sys.Ei{end+1}='zernike';
+elseif isfield(addpar,'Zr') && ~isempty(addpar.Zr)
+    sys.Ei{end+1}='zernike';
+    sys.Zr=addpar.Zr;
+end
+end

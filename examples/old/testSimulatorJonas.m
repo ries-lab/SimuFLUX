@@ -1,8 +1,8 @@
 % 
-fl=staticfluorophore;
-psfv=PSFMF_vectorial;
+fl=Fl_static;
+psfv=PSF_vectorial;
 
-sim=MFSimulator(fl);
+sim=Sim_Simulator(fl);
 %
 
 psfv.loadexperimental("cal3d",'/Users/ries/Downloads/Pos0_250115_MM_BeadCal_638i2_25ms_Z_1_MMStack_Default.ome_3dcal.mat')
@@ -10,13 +10,13 @@ psfv.zerooffset=0.0;
 
 numlocs=100;
 
-L=150;
-fl.pos=[50 0 0];
+L=350;
+fl.pos=[0 0 0];
 fl.brightness=1000;
 laserpower=10;
 dwelltime=100;
 
-sim.definePattern('astig', psfv, phasemask="cal3d", makepattern='orbitscan', orbitpoints=6, ...
+sim.definePattern('astig', psfv, phasemask="cal3d", makepattern='orbitscan', orbitpoints=4, ...
     probecenter=0,orbitL=L,pointdwelltime=dwelltime,laserpower=laserpower,repetitions=2)
 sim.defineComponent("estgauss","estimator",@estimators,parameters={"gauss2D",sim.patterns("astig").pos,L,120,0},dim=1:2);
 % sim.definePattern('donut', psfv, phasemask="vortex", makepattern='orbitscan', orbitpoints=6, ...

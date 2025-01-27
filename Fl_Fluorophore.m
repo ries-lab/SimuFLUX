@@ -1,4 +1,4 @@
-classdef MFfluorophore<handle
+classdef Fl_Fluorophore<handle
     properties
         pos=[0, 0, 0]; %nm
         brightness=1000; %kHz;

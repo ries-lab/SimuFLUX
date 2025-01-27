@@ -1,4 +1,4 @@
-classdef movingFluorophore<MFfluorophore
+classdef Fl_moving<Fl_Fluorophore
     properties
         pos=[0, 0, 0]; %nm     
         posind=1;

@@ -1,4 +1,4 @@
-classdef staticfluorophore<MFfluorophore
+classdef Fl_static<Fl_Fluorophore
     properties
 
     end

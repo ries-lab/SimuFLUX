@@ -1,4 +1,4 @@
-classdef bleachingFluorophore<MFfluorophore
+classdef Fl_bleach<Fl_Fluorophore
     properties
         photonbudget=inf; %1000 photons
     end

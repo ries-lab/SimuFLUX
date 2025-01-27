@@ -1,4 +1,4 @@
-classdef PSFMF<handle
+classdef PSF_Pointspreadfunction<handle
     properties
         PSFs=dictionary;
         zerooffset=0; % PSF+zerooffset

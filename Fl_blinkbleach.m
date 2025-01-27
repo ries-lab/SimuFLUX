@@ -1,4 +1,4 @@
-classdef blinkingbleachingFluorophore<MFfluorophore
+classdef Fl_blinkbleach<Fl_Fluorophore
     properties
    
         ton =100;

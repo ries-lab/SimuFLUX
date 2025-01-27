@@ -1,4 +1,4 @@
-classdef blinkingFluorophorecollection<Fluorophorecollection
+classdef Flcollection_blinking<Flcollection
     properties
         flprop %.moving, isactive, nexton, nextoff, remaining_activations
         switchpar=struct('starton',-1,'tonsmlm',1e3,'toffsmlm',1e5,'photonbudget',1000,'activations',1e6,'brightness',1000) %starton, tonsmlm, toffsmlm, microseconds

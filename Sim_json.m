@@ -1,4 +1,4 @@
-classdef AbberiorSimulator<MFSimulator
+classdef Sim_Abberior<Sim_Simulator
     properties
         sequence
         estimators=struct('function',"","par",[],"dim",[]);

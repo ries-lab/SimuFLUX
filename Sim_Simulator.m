@@ -1,4 +1,4 @@
-classdef MFSimulator<handle
+classdef Sim_Simulator<handle
     properties
         patterns=dictionary;
         sequences=dictionary;
@@ -9,7 +9,7 @@ classdef MFSimulator<handle
         time=0;
     end
     methods
-        function obj=MFSimulator(fl)
+        function obj=Sim_Simulator(fl)
             if nargin>0    
                 obj.fluorophores=fl;
             end
@@ -49,6 +49,7 @@ classdef MFSimulator<handle
                 args.pointdwelltime=10; %us
                 args.laserpower=1; %usually we use relative, but can also be absolute.
                 args.repetitions=1;
+                args.dim=1:2;
             end
             pattern.repetitions=args.repetitions;
             %make a list of either positions of the PSF or of zeropositions
@@ -75,6 +76,8 @@ classdef MFSimulator<handle
                 pattern.pointdwelltime(k)=args.pointdwelltime;
                 pattern.laserpower(k)=args.laserpower;
             end
+            pattern.L=args.orbitL;
+            pattern.dim=1:2;
             pattern.type="pattern";
             obj.patterns(key)=pattern;
         end
@@ -241,7 +244,7 @@ classdef MFSimulator<handle
             arguments
                 obj
                 patternnames
-                args.dim=3;
+                args.dim=1:3;
                 args.position=obj.fluorophores(1).position(0);
             end
             dim=args.dim;
@@ -252,21 +255,22 @@ classdef MFSimulator<handle
             ih=0;
             % make x,y, z fisher matrix
             eps=1;
-            IFisher=zeros(dim);
+            IFisher=zeros(length(dim));
                 pattern=obj.patterns(patternnames);
                 for k=length(pattern.zeropos):-1:1
-                    for coord=1:dim
-                        dposa=[0 0 0]; dposa(coord)=eps/2; dposa2=dposa; dposa2(coord)=-eps/2;
-                        dpdc(coord)=(pi(dposa)-pi(dposa2))/eps;
+                    for coord=1:length(dim)
+                        dposa=[0 0 0]; dposa(dim(coord))=eps/2; dposa2=dposa; dposa2(dim(coord))=-eps/2;
+                        dpdc(dim(coord))=(pi(dposa)-pi(dposa2))/eps;
                     end
-                    for coord=1:dim
-                        for coord2=1:dim
-                            IFisher(coord,coord2)=IFisher(coord,coord2)+dpdc(coord)*dpdc(coord2)/(pi([0 0 0])+1e-5);
+                    for coord=1:length(dim)
+                        for coord2=1:length(dim)
+                            IFisher(dim(coord),dim(coord2))=IFisher(dim(coord),dim(coord2))+dpdc(dim(coord))*dpdc(dim(coord2))/(pi([0 0 0])+1e-5);
                         end
                     end
                 end
                 crlb=(inv(IFisher));
                 locprec=diag(sqrt(crlb))';
+                locprec=locprec(dim);
 
             function iho=pi(dpos)
                     ih=pattern.psf(k).intensity(flpos-pattern.pos(k,:)-obj.posgalvo,dpos,pattern.phasemask(k),pattern.zeropos(k))+bg;
@@ -278,7 +282,9 @@ classdef MFSimulator<handle
                     iho=ih/ihm;
             end
         end
-        function displayresults(obj,out, lp,L)
+        function displayresults(obj,patternkey,out)%, lpcrb,L)
+            pattern=obj.patterns(patternkey);
+            
             photraw=out.raw;
             photraw(photraw==-1)=NaN;
             if length(size(photraw))>3
@@ -289,6 +295,9 @@ classdef MFSimulator<handle
             xest=horzcat(out.loc.xnm,out.loc.ynm,out.loc.znm);
             flpos=horzcat(out.loc.xfl1,out.loc.yfl1,out.loc.zfl1);
             phot=out.loc.phot;
+            
+            sigmaCRB=obj.calculateCRB(patternkey,dim=pattern.dim);
+
              ff1='%1.1f,';
             disp([ 'photch: ', num2str(photch(:)',ff1),...
                 ' mean(phot): ', num2str(mean(phot),ff1)])
@@ -297,8 +306,9 @@ classdef MFSimulator<handle
                 ' rmse: ', num2str(rmse(xest,flpos,'omitnan'),ff),...
                 ' pos: ', num2str(mean(xest,'omitnan'),ff),...
                 ' bias: ', num2str(mean(xest-flpos,'omitnan'),ff),...
-                ' locprec: ', num2str(obj.locprec(mean(phot),L),ff),...
-                ' sqrtCRB: ', num2str(lp,ff)])
+                ' locprec: ', num2str(obj.locprec(mean(phot),pattern.L),ff),...
+                ' sqrtCRB: ', num2str(sigmaCRB/sqrt(mean(phot)),ff),...
+                ' sqrtCRB*sqrt(phot): ', num2str(sigmaCRB,ff1)])
         end
     end
 end
