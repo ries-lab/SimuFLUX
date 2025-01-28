@@ -111,7 +111,7 @@ classdef Sim_Simulator<handle
                     flpos(isactive,:)=flpos(isactive,:)+flposh;
                     flintall(isactive,:)=flintall(isactive,:)+flint;
                     obj.time=obj.time+pattern.pointdwelltime(k);
-                    intall(k)=intensity+obj.background;
+                    intall(k)=intall(k)+intensity+obj.background; %sum over repetitions, fluorophores
                 end
                 fluorophores.updateonoff(obj.time);
             end
@@ -197,7 +197,7 @@ classdef Sim_Simulator<handle
             end
             out=[];
             for k=1:args.repetitions
-                obj.fluorophores(1).reset;
+                obj.fluorophores.reset;
                 out2=obj.runSequenceintern(seq,args.maxlocs);
                 out=obj.addout(out,out2);
             end

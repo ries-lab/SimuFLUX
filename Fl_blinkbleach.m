@@ -1,18 +1,18 @@
 classdef Fl_blinkbleach<Fl_Fluorophore
     properties
    
-        ton =100;
-        toff =0;
+        fast_ton =100;
+        fast_toff =0;
         starton=false;
         photonbudget=inf; %1000 photons
         time=0;
-        blinkingtrace
+        blinkingtrace=[0 0 0];
         tind=1;
         
 
     end
     methods
-        function Io=intensity(obj,I0,dwelltime,phfac)
+        function Io=intensity(obj,I0,dwelltime,phfac,varargin)
 
                 fraction=obj.measure(dwelltime);
             intensity=(obj.brightness/1000)*I0*dwelltime*fraction;
@@ -21,7 +21,7 @@ classdef Fl_blinkbleach<Fl_Fluorophore
             obj.remainingphotons=remainingphotons-Io/phfac;
         end
         function makeblinkingtrace(obj)
-            obj.blinkingtrace=calculatetrace(obj.ton,obj.toff);
+            obj.blinkingtrace=calculatetrace(obj.fast_ton,obj.fast_toff);
             obj.tind=1;
             obj.time=0;
         end
@@ -64,7 +64,7 @@ classdef Fl_blinkbleach<Fl_Fluorophore
 
         end
         function extendblinkingtrace(obj)
-            blt2=calculatetrace(obj.ton,obj.toff);
+            blt2=calculatetrace(obj.fast_ton,obj.fast_toff);
             blt2(:,3)=blt2(:,3)+sum(obj.blinkingtrace(end,:));
             obj.blinkingtrace=vertcat(obj.blinkingtrace,blt2);
         end
