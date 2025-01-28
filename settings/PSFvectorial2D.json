@@ -27,7 +27,7 @@
      "par": 
         {"phasemask": "vortex"}, 
      "estimator": {"function": "estimators",
-         "par": ["donut2DcentermLMS","patternpos","L",310,[1, 3, 60, 0, 8000]],
+         "par": ["donut2D","patternpos","L",310],
         "dim": [1, 2]}}
     ]}
 }

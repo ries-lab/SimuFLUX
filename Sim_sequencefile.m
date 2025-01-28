@@ -199,8 +199,8 @@ classdef Sim_sequencefile<Sim_Simulator
                     itr=itr+obj.sequence.headstart;
                 end
                 numitr=numitr+1;
-                out.sequence="itr"+max(out.loc.itr);
             end
+            out.sequence="itr"+max(out.loc.itr);
         end
         function out=runSequence(obj,args)
             arguments
