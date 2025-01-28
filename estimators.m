@@ -39,15 +39,15 @@ xest=[0 0 0];
     xest(coord)=L/(1+sqrt(photonsi(end)/photonsi(1)))-L/2;
 end
 
-function xest=positionestimatedonut1D(photonsi,patternpos,sigma)
+function xest=positionestimatedonut1D(photonsi,patternpos,L,sigma,iscenter)
 % xest=[0 0 0];
 
-ph=photonsi([1 2 3]); pp=patternpos([1 2 3]);
+ph=photonsi;
  pis=ph/sum(ph);
- L=2*patternpos(end);
+ % L=2*patternpos(end);
     % ph=photonsi/sum(photonsi);
     % eq 2.63
-    xest=-1/(1-(L^2/sigma^2))*sum(pis.*pp)*2/4;
+    xest=-1/(1-(L^2/sigma^2))*sum(pis.*patternpos)*2/4;
     % xest=-sum(pis'.*pp)/2;
 end
 

@@ -10,7 +10,7 @@ psf_donut=PSF_donut2D; %here you define a PSF. In this case, an analytical 2D do
 
 sim=Sim_Simulator(fl); %make a simulator and attach fluorophore
 
-numberOfLocalizations=1000;
+numberOfLocalizations=10000;
 
 %define scan pattern
 L=75; %size of scan pattern
@@ -20,7 +20,7 @@ laserpower=5; %relative, increases brightness
 pointdwelltime=100; %measurement time in each point
 repetitions=2; %how often to repeat the pattern scan
 sim.definePattern("donut", psf_donut, makepattern="orbitscan", orbitpoints=orbitpoints, ...
-    probecenter=probecenter,orbitL=L,pointdwelltime=dwelltime,laserpower=laserpower,repetitions=repetitions)
+    probecenter=probecenter,orbitL=L,pointdwelltime=pointdwelltime,laserpower=laserpower,repetitions=repetitions)
 % sim.definePattern(key, PSF_object, arguments...)
 
 %we need an estimator. Define as component
@@ -35,5 +35,4 @@ out=sim.runSequence(seq);
 % out.fluorophores: position of fluorophores
 % out.raw: photon measurements
 
-sim.displayresults("donut", out) %display summary of simulation
-% sim.displayresults(patternkey, out)
+sim.displayresults(out) %display summary of simulation

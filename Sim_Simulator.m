@@ -56,8 +56,9 @@ classdef Sim_Simulator<handle
             %to be calculated.
             pos=args.patternpos;
             zeropos=args.zeropos;
-            if strcmp(args.makepattern,'orbitscan')
-                pos=obj.makeorbitpattern(args.orbitpoints,args.probecenter,args.orbitorder)*args.orbitL/2;
+            if ~isempty(args.makepattern)
+                posh=obj.makeorbitpattern(args.makepattern,args.orbitpoints,args.probecenter,args.orbitorder);
+                pos=posh.*args.orbitL/2;
             end
             if size(pos,1)==1 && length(zeropos)>1
                 pos=repmat(pos,length(zeropos),1);
@@ -77,7 +78,7 @@ classdef Sim_Simulator<handle
                 pattern.laserpower(k)=args.laserpower;
             end
             pattern.L=args.orbitL;
-            pattern.dim=1:2;
+            pattern.dim=args.dim;
             pattern.type="pattern";
             obj.patterns(key)=pattern;
         end
@@ -97,14 +98,15 @@ classdef Sim_Simulator<handle
             posEOD=obj.posEOD;
             flpos=zeros(fluorophores.numberOfFluorophores,3);
             flintall=zeros(fluorophores.numberOfFluorophores,1);
+            flproperties=fluorophores.getproperties; %for performance
             for r=1:repetitions
                 for k=1:numpoints
                     timep=timep+obj.time; %for calculating average time point
-                    [flposh,isactive]=fluorophores.position(obj.time);
+                    [flposh,isactive]=fluorophores.position(obj.time,flproperties);
                     flposrel=flposh-posgalvo;
                     [intensityh,pinholehfac]=pattern.psf(k).intensity(flposrel,pattern.pos(k,:)+posEOD,pattern.phasemask(k),pattern.zeropos(k));
                     intensityh=intensityh*pattern.laserpower(k);
-                    flint=fluorophores.intensity(intensityh,pattern.pointdwelltime(k),pinholehfac);
+                    flint=fluorophores.intensity(intensityh,pattern.pointdwelltime(k),pinholehfac,flproperties);
                     intensity=sum(flint);
                     flpos(isactive,:)=flpos(isactive,:)+flposh;
                     flintall(isactive,:)=flintall(isactive,:)+flint;
@@ -199,6 +201,7 @@ classdef Sim_Simulator<handle
                 out2=obj.runSequenceintern(seq,args.maxlocs);
                 out=obj.addout(out,out2);
             end
+            out.sequence=seq;
         end
         function out1=addout(obj,out1,out2) %helper function
             if isempty(out2)
@@ -224,17 +227,25 @@ classdef Sim_Simulator<handle
             end
         end
 
-        function xpattern=makeorbitpattern(obj,orbitpoints,usecenter,orbitorder)
-            dphi=2*pi/orbitpoints;
-            phi=(0:dphi:2*pi-dphi)';
-            x=cos(phi);
-            y=sin(phi);
-            xpattern=horzcat(x,y,0*phi);
-            if usecenter
-                xpattern(end+1,:)=[0,0,0];
-            end
-            if nargin>3 && ~isempty(orbitorder)
-                xpattern=xpattern(orbitorder,:);
+        function pospattern=makeorbitpattern(obj,patterntype, orbitpoints,usecenter,orbitorder,dim)
+            switch patterntype
+                case "orbitscan"
+                    dphi=2*pi/orbitpoints;
+                    phi=(0:dphi:2*pi-dphi)';
+                    x=cos(phi);
+                    y=sin(phi);
+                    pospattern=horzcat(x,y,0*phi);
+                    if usecenter
+                        pospattern(end+1,:)=[0,0,0];
+                    end
+                    if nargin>3 && ~isempty(orbitorder)
+                        pospattern=pospattern(orbitorder,:);
+                    end
+                case "zscan"
+                    pospattern(1,3)=-1;pospattern(2,3)=1;
+                    if usecenter
+                        pospattern(3,3)=0;
+                    end
             end
         end
         function lp=locprec(obj,photons,L)
@@ -264,13 +275,15 @@ classdef Sim_Simulator<handle
                     end
                     for coord=1:length(dim)
                         for coord2=1:length(dim)
-                            IFisher(dim(coord),dim(coord2))=IFisher(dim(coord),dim(coord2))+dpdc(dim(coord))*dpdc(dim(coord2))/(pi([0 0 0])+1e-5);
+                            % IFisher(dim(coord),dim(coord2))=IFisher(dim(coord),dim(coord2))+dpdc(dim(coord))*dpdc(dim(coord2))/(pi([0 0 0])+1e-5);
+                             IFisher((coord),(coord2))=IFisher((coord),(coord2))+dpdc(dim(coord))*dpdc(dim(coord2))/(pi([0 0 0])+1e-5);
                         end
                     end
                 end
                 crlb=(inv(IFisher));
-                locprec=diag(sqrt(crlb))';
-                locprec=locprec(dim);
+                locprech=diag(sqrt(crlb))';
+                locprec=[0 0 0];
+                locprec(dim)=locprech;%(dim);
 
             function iho=pi(dpos)
                     ih=pattern.psf(k).intensity(flpos-pattern.pos(k,:)-obj.posgalvo,dpos,pattern.phasemask(k),pattern.zeropos(k))+bg;
@@ -282,9 +295,8 @@ classdef Sim_Simulator<handle
                     iho=ih/ihm;
             end
         end
-        function displayresults(obj,patternkey,out)%, lpcrb,L)
-            pattern=obj.patterns(patternkey);
-            
+        function displayresults(obj,out)%, lpcrb,L)
+          
             photraw=out.raw;
             photraw(photraw==-1)=NaN;
             if length(size(photraw))>3
@@ -296,7 +308,19 @@ classdef Sim_Simulator<handle
             flpos=horzcat(out.loc.xfl1,out.loc.yfl1,out.loc.zfl1);
             phot=out.loc.phot;
             
-            sigmaCRB=obj.calculateCRB(patternkey,dim=pattern.dim);
+            % sigmaCRB=obj.calculateCRB(patternkey,dim=pattern.dim);
+
+            seq=out.sequence;
+            lp=[0,0,0]; sigmaCRB=[0,0,0];
+            for k=1:length(seq)
+                pattern=obj.patterns(seq{k});
+                if pattern.type=="pattern"
+                    sh=obj.calculateCRB(seq{k},dim=pattern.dim);
+                    sigmaCRB(pattern.dim)=sh(pattern.dim);
+                    Lh=obj.locprec(mean(phot),pattern.L);
+                    lp(pattern.dim)=Lh;
+                end
+            end
 
              ff1='%1.1f,';
             disp([ 'photch: ', num2str(photch(:)',ff1),...
@@ -305,8 +329,8 @@ classdef Sim_Simulator<handle
             disp(['std: ', num2str(std(xest,'omitnan'),ff),...
                 ' rmse: ', num2str(rmse(xest,flpos,'omitnan'),ff),...
                 ' pos: ', num2str(mean(xest,'omitnan'),ff),...
-                ' bias: ', num2str(mean(xest-flpos,'omitnan'),ff),...
-                ' locprec: ', num2str(obj.locprec(mean(phot),pattern.L),ff),...
+                ' bias: ', num2str(mean(xest-flpos,'omitnan'),ff)]);
+            disp([' locprec: ', num2str(lp,ff),...
                 ' sqrtCRB: ', num2str(sigmaCRB/sqrt(mean(phot)),ff),...
                 ' sqrtCRB*sqrt(phot): ', num2str(sigmaCRB,ff1)])
         end

@@ -1,4 +1,4 @@
-classdef Sim_json<Sim_Simulator
+classdef Sim_sequencefile<Sim_Simulator
     properties
         sequence
         estimators=struct('function',"","par",[],"dim",[]);
@@ -199,6 +199,7 @@ classdef Sim_json<Sim_Simulator
                     itr=itr+obj.sequence.headstart;
                 end
                 numitr=numitr+1;
+                out.sequence="itr"+max(out.loc.itr);
             end
         end
         function out=runSequence(obj,args)
@@ -257,10 +258,10 @@ classdef Sim_json<Sim_Simulator
                 end
             end
         end
-        function displayresults(obj,out)
-            keys=obj.patterns.keys;
-            displayresults@Sim_Simulator(obj,keys(1),out)
-        end
+        % function displayresults(obj)
+        %     keys=obj.patterns.keys;
+        %     displayresults@Sim_Simulator(obj,keys(1),out)
+        % end
     end
 end
 
