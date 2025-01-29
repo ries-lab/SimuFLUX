@@ -18,7 +18,7 @@ classdef Sim_sequencefile<Sim_Simulator
         end
         function makepatterns(obj,psfs,phasemasks)
             if nargin<2
-                if isfield(obj.sequence,'PSF')
+                if isfield(obj.sequence,'PSF') && isfield(obj.sequence.PSF,'global')
                     [psfs,phasemasks]=psf_sequence(obj.sequence.PSF,obj.psfvec);
                 else
                     psfs{1}=PSF_gauss2D;
@@ -73,11 +73,10 @@ classdef Sim_sequencefile<Sim_Simulator
             
             stickiness=obj.sequence.stickiness;
             loclimit=obj.sequence.locLimit;
-            maxOffTime=obj.sequence.maxOffTime;
-            if ~isnumeric(maxOffTime)&&strcmp(maxOffTime,'unspecified')
+            if ~isfield(obj.sequence,'maxOffTime') || ~isnumeric(obj.sequence.maxOffTime)&&strcmp(obj.sequence.maxOffTime,'unspecified')
                 maxOffTime=3000; %us
             else
-                maxOffTime=maxOffTime*1e6; % to us
+                maxOffTime=obj.sequence.maxOffTime*1e6; % to us
             end
             offtimestamp=0;
 
@@ -200,7 +199,9 @@ classdef Sim_sequencefile<Sim_Simulator
                 end
                 numitr=numitr+1;
             end
-            out.sequence="itr"+max(out.loc.itr);
+            if ~isempty(out)
+                out.sequence="itr"+max(out.loc.itr);
+            end
         end
         function out=runSequence(obj,args)
             arguments

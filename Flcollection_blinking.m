@@ -4,6 +4,22 @@ classdef Flcollection_blinking<Flcollection
         switchpar=struct('starton',-1,'tonsmlm',1e3,'toffsmlm',1e5,'photonbudget',1000,'activations',1e6,'brightness',1000) %starton, tonsmlm, toffsmlm, microseconds
     end
     methods
+        function [pos,isactive]=position(obj,time,props)
+            flall=obj.flall;
+            isactive=obj.flprop.isactive;
+            fact=find(isactive);
+            pos=zeros(length(fact),3);
+            for k=1:length(fact)
+                pos(k,:)=flall(fact(k)).position(time);
+            end
+        end
+        function ih=intensity(obj,intin,dt,time,phfac,props)
+            fact=find(obj.flprop.isactive);
+            ih=zeros(length(fact),1);
+            for k=1:length(fact)
+                ih(k)=obj.flall(fact(k)).intensity(intin(k),dt,time,phfac(k));
+            end
+        end        
         function add(obj,fllist)
             if isa(fllist,"numeric") %call addstatic if poslist
                 obj.addstatic(fllist);
@@ -30,7 +46,7 @@ classdef Flcollection_blinking<Flcollection
                     flproph.isactive(k)=rand<switchpar.tonsmlm/(switchpar.toffsmlm+switchpar.tonsmlm);
                 end
                 
-                addfl=bleachingFluorophore;
+                addfl=Fl_bleach;
                 addfl.brightness=switchpar.brightness;
                 addfl.photonbudget=switchpar.photonbudget;
                 addfl.pos=poslist(k,:);
@@ -83,22 +99,6 @@ classdef Flcollection_blinking<Flcollection
             if sson>0 || ssoff>0
                 obj.flprop.isactive=isactive;  
             end
-        end
-        function [pos,isactive]=position(obj,time)
-            isactive=obj.flprop.isactive;
-            fact=find(isactive);
-            pos=zeros(length(fact),3);
-            for k=1:length(fact)
-                pos(k,:)=obj.flall(fact(k)).position(time);
-            end
-        end
-        function ih=intensity(obj,intin,dt,time,phfac)
-            fact=find(obj.flprop.isactive);
-            ih=zeros(length(fact),1);
-            for k=1:length(fact)
-                ih(k)=obj.flall(fact(k)).intensity(intin(k),dt,time,phfac(k));
-            end
-
         end
         function setpar(obj,varargin)
             if nargin >1 %structure passed on

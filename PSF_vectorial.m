@@ -61,6 +61,7 @@ classdef PSF_vectorial<PSF_Pointspreadfunction
             phkey=obj.PSFph;
             flposrel=flpos-patternpos;
             iexc=psfint(flposrel)+obj.zerooffset; 
+            iexc=max(iexc,0);
             if isempty(phkey)
                 phfac=ones(size(iexc));
             else

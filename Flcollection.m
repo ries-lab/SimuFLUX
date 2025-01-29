@@ -1,4 +1,4 @@
-classdef Flcollection<handle
+ classdef Flcollection<handle
     properties
         flall
         numberOfFluorophores
@@ -9,7 +9,7 @@ classdef Flcollection<handle
             obj.numberOfFluorophores=length(fllist);
         end
 
-        function [pos,isactive]=position(obj,time)
+        function [pos,isactive]=position(obj,time,props)
             flall=obj.flall;
             % fact=find(isactive);
             pos=zeros(length(flall),3);
@@ -18,11 +18,11 @@ classdef Flcollection<handle
             end
             isactive=true(length(flall),1);
         end
-        function ih=intensity(obj,intin,dt,time,phfac)
+        function ih=intensity(obj,intin,dt,time,phfac,props)
             flall=obj.flall;
             ih=zeros(length(flall),1);
             for k=1:length(flall)
-                ih(k)=obj.flall(k).intensity(intin(k),dt,time,phfac(k));
+                ih(k)=flall(k).intensity(intin(k),dt,time,phfac(k));
             end
 
         end
@@ -33,6 +33,9 @@ classdef Flcollection<handle
         end
         function out=allbleached(obj)
             out=false;
+        end
+        function out=getproperties(obj)
+            out=[];
         end
     end
 end

@@ -1,7 +1,7 @@
 function [psfs, phasemasks]=psf_sequence(sq,psfvec)
 % if vectorial in global: use only one PSF object, if also in Itr. other
 % parameters are ignored
-if isfield(sq.global,'Mode') && strcmp(sq.global.Mode,'PSF_vectorial')
+if isfield(sq,'global') && isfield(sq.global,'Mode') && strcmp(sq.global.Mode,'PSF_vectorial')
     if nargin <2
         psfvec=PSF_vectorial;
     end
