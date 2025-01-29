@@ -8,8 +8,8 @@ classdef Fl_Fluorophore<handle
         allbleached=false;
     end
     methods
-        function Io=intensity(obj,I0,dwelltime, phfac,props)
-            if nargin>=5 && ~isempty(props) %for performance: avoid property access
+        function Io=intensity(obj,I0,dwelltime, time,phfac,props)
+            if nargin>=6 && ~isempty(props) %for performance: avoid property access
                 brightness=props.brightness;
             else
                 brightness=obj.brightness;
@@ -20,7 +20,7 @@ classdef Fl_Fluorophore<handle
         function ph=photons(obj,I0,varargin)
             ph=poissrnd(obj.intensity(I0,varargin{:}));
         end
-        function reset(obj)
+        function reset(obj,time)
         end
         function [posout,isactive]=position(obj,time,props)
             if nargin>=3 && ~isempty(props) %for performance: avoid property access

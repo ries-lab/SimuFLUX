@@ -92,11 +92,11 @@ classdef Flcollection_blinking<Flcollection
                 pos(k,:)=obj.flall(fact(k)).position(time);
             end
         end
-        function ih=intensity(obj,intin,dt,phfac)
+        function ih=intensity(obj,intin,dt,time,phfac)
             fact=find(obj.flprop.isactive);
             ih=zeros(length(fact),1);
             for k=1:length(fact)
-                ih(k)=obj.flall(fact(k)).intensity(intin(k),dt,phfac(k));
+                ih(k)=obj.flall(fact(k)).intensity(intin(k),dt,time,phfac(k));
             end
 
         end

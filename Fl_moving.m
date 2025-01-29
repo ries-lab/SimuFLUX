@@ -1,15 +1,17 @@
 classdef Fl_moving<Fl_Fluorophore
     properties
-        pos=[0, 0, 0]; %nm     
+        % pos=[0, 0, 0]; %nm     
         posind=1;
         posparameters=[];
+        posmode
     end
     methods
-        function reset(obj)
-            reset@MFfluorophore(obj);
-            %later: also reset trace / position if wanted
-        end
-        function posout=position(obj,time)
+        % function reset(obj)
+        %     reset@MFfluorophore(obj);
+        %     %later: also reset trace / position if wanted
+        % end
+        function [posout,isactive]=position(obj,time,props)
+            isactive=true;
             pos=obj.pos;
             posout=[0 0 0];
             posmode=obj.posmode;
@@ -33,6 +35,7 @@ classdef Fl_moving<Fl_Fluorophore
                     while pos(posind,1)<time
                         if posind>=size(pos,1)-1 %reached end
                             obj.extendtrace;
+                            pos=obj.pos;
                         end
                         posind=posind+1;
                     end
@@ -48,7 +51,7 @@ classdef Fl_moving<Fl_Fluorophore
                 dt %us
                 args.startpos=[0 0 0]
                 args.dim=2;
-                args.numpoints=100;
+                args.numpoints=1000;
                 args.boundarybox=[]; %nm, half length of box, periodic boundary conditions
             end
             obj.posparameters={D,dt,args};
@@ -77,7 +80,7 @@ classdef Fl_moving<Fl_Fluorophore
                 dt %us
                 args.startpos=[0 0 0]
                 args.dim=2;
-                args.numpoints=100;
+                args.numpoints=1000;
                 args.angle=0;
             end
             obj.posparameters={stepsize,dwelltime,dt,args};

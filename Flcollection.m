@@ -18,11 +18,11 @@ classdef Flcollection<handle
             end
             isactive=true(length(flall),1);
         end
-        function ih=intensity(obj,intin,dt,phfac)
+        function ih=intensity(obj,intin,dt,time,phfac)
             flall=obj.flall;
             ih=zeros(length(flall),1);
             for k=1:length(flall)
-                ih(k)=obj.flall(k).intensity(intin(k),dt,phfac(k));
+                ih(k)=obj.flall(k).intensity(intin(k),dt,time,phfac(k));
             end
 
         end

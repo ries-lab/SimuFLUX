@@ -73,7 +73,7 @@ classdef Sim_sequencefile<Sim_Simulator
             
             stickiness=obj.sequence.stickiness;
             loclimit=obj.sequence.locLimit;
-            maxOffTime=obj.sequence.maxOfftime;
+            maxOffTime=obj.sequence.maxOffTime;
             if ~isnumeric(maxOffTime)&&strcmp(maxOffTime,'unspecified')
                 maxOffTime=3000; %us
             else
@@ -262,6 +262,41 @@ classdef Sim_sequencefile<Sim_Simulator
         %     keys=obj.patterns.keys;
         %     displayresults@Sim_Simulator(obj,keys(1),out)
         % end
+        function plotpositions(obj, out, args)
+            arguments 
+                obj
+                out
+                args.figure=[];
+                args.coordinate=1;
+                args.axis=[];
+            end
+            xnmn={"xnm","ynm","znm"};
+            xfln={"xfl1","yfl1","zfl1"};
+            xgn={"xgalvo","ygalvo","zgalvo"};
+            xen={"xeod","yeod","zeod"};
+            
+            if isempty(args.axis)
+                if isempty(args.figure)
+                    f=figure;
+                else
+                    f=figure(args.figure);
+                end
+                ax=gca;
+            else
+                ax=args.axis;
+            end
+            c=args.coordinate;
+            hold(ax,'off')
+            plot(ax,out.loc.loccounter, out.loc.(xnmn{c}));
+            hold(ax,"on")
+            plot(ax,out.loc.loccounter,out.loc.(xfln{c}));
+            plot(ax,out.loc.loccounter,out.loc.(xgn{c}))
+            plot(ax,out.loc.loccounter,out.loc.(xen{c}))
+            xlabel(ax,'time (itr)')
+            ylabel(ax,'x position(nm)')
+            legend(ax,'estimated', 'fluorophore','xgalvo','EOD')
+
+        end
     end
 end
 

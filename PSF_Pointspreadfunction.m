@@ -4,6 +4,7 @@ classdef PSF_Pointspreadfunction<handle
         zerooffset=0; % PSF+zerooffset
         sigmaz=0; %don't do z sectioning.
         sigma=132; %nm
+        fwhm=132*2.35;%
     end
     methods
         function io=intensity(obj, flpos ,patternpos, phasepattern, L)
@@ -44,10 +45,17 @@ classdef PSF_Pointspreadfunction<handle
                  phfac=ones(size(flposrel,1),1);
              end
          end
-         function out=fwhm(obj)
-             out=obj.sigma*2.35;
+         % function out=fwhm(obj)
+         %     out=obj.sigma*2.35;
+         % end
+         function set.sigma(obj,val)
+             obj.sigma=val;
+             obj.fwhm=val*2.35;
          end
-
+         % function set.fwhm(obj,val)
+         %     obj.fwhm=val;
+         %     obj.sigma=val/2.35;
+         % end
     end
 end
 

@@ -99,30 +99,32 @@ classdef Sim_Simulator<handle
             flpos=zeros(fluorophores.numberOfFluorophores,3);
             flintall=zeros(fluorophores.numberOfFluorophores,1);
             flproperties=fluorophores.getproperties; %for performance
+            time=obj.time;
             for r=1:repetitions
                 for k=1:numpoints
-                    timep=timep+obj.time; %for calculating average time point
+                    timep=timep+time; %for calculating average time point
                     [flposh,isactive]=fluorophores.position(obj.time,flproperties);
                     flposrel=flposh-posgalvo;
                     [intensityh,pinholehfac]=pattern.psf(k).intensity(flposrel,pattern.pos(k,:)+posEOD,pattern.phasemask(k),pattern.zeropos(k));
                     intensityh=intensityh*pattern.laserpower(k);
-                    flint=fluorophores.intensity(intensityh,pattern.pointdwelltime(k),pinholehfac,flproperties);
+                    flint=fluorophores.intensity(intensityh,pattern.pointdwelltime(k),time,pinholehfac,flproperties);
                     intensity=sum(flint);
                     flpos(isactive,:)=flpos(isactive,:)+flposh;
                     flintall(isactive,:)=flintall(isactive,:)+flint;
-                    obj.time=obj.time+pattern.pointdwelltime(k);
+                    time=time+pattern.pointdwelltime(k);
                     intall(k)=intall(k)+intensity+obj.background; %sum over repetitions, fluorophores
                 end
-                fluorophores.updateonoff(obj.time);
+                fluorophores.updateonoff(time);
             end
             out.phot=poissrnd(intall); %later: fl.tophot(intenall): adds bg, multiplies with brightness, does 
             out.photbg=obj.background*sum(pattern.pointdwelltime);
             out.flpos=flpos/numpoints/repetitions;
             out.flint=flintall;
             out.averagetime=timep/numpoints/repetitions;
-            out.patterntotaltime=obj.time-timestart;
+            out.patterntotaltime=time-timestart;
             out.counter=1;
             out.repetitions=repetitions;
+            obj.time=time;
             
         end
 
@@ -197,7 +199,7 @@ classdef Sim_Simulator<handle
             end
             out=[];
             for k=1:args.repetitions
-                obj.fluorophores.reset;
+                obj.fluorophores.reset(obj.time);
                 out2=obj.runSequenceintern(seq,args.maxlocs);
                 out=obj.addout(out,out2);
             end
@@ -326,13 +328,13 @@ classdef Sim_Simulator<handle
             disp([ 'photch: ', num2str(photch(:)',ff1),...
                 ' mean(phot): ', num2str(mean(phot),ff1)])
              ff='%1.2f,';
-            disp(['std: ', num2str(std(xest,'omitnan'),ff),...
+            disp(['std:  ', num2str(std(xest,'omitnan'),ff),...
                 ' rmse: ', num2str(rmse(xest,flpos,'omitnan'),ff),...
                 ' pos: ', num2str(mean(xest,'omitnan'),ff),...
                 ' bias: ', num2str(mean(xest-flpos,'omitnan'),ff)]);
-            disp([' locprec: ', num2str(lp,ff),...
-                ' sqrtCRB: ', num2str(sigmaCRB/sqrt(mean(phot)),ff),...
-                ' sqrtCRB*sqrt(phot): ', num2str(sigmaCRB,ff1)])
+            disp(['locp: ', num2str(lp,ff),...
+                ' sCRB: ', num2str(sigmaCRB/sqrt(mean(phot)),ff),...
+                ' sCRB*sqrt(phot): ', num2str(sigmaCRB,ff1)])
         end
     end
 end
