@@ -261,7 +261,8 @@ classdef Sim_Simulator<handle
                 args.position=obj.fluorophores.position(0);
             end
             dim=args.dim;
-            flpos=args.position(1,:);
+            % flpos=args.position(1,:);
+            flpos=args.position;
             % flpos=obj.fluorophores(1).pos; %the main one
             brightness=obj.fluorophores.brightness;
             bg=obj.background/brightness(1);
@@ -289,11 +290,13 @@ classdef Sim_Simulator<handle
                 locprec(dim)=locprech;%(dim);
 
             function iho=pi(dpos)
-                    ih=pattern.psf(k).intensity(flpos-pattern.pos(k,:)-obj.posgalvo,dpos,pattern.phasemask(k),pattern.zeropos(k))+bg;
+                    flposh=flpos;
+                    flposh(1,:)=flposh(1,:)-dpos;
+                    ih=sum(pattern.psf(k).intensity(flposh-obj.posgalvo,pattern.pos(k,:),pattern.phasemask(k),pattern.zeropos(k))+bg);
                     
                     ihm=0;
                     for m=length(pattern.zeropos):-1:1
-                         ihm=ihm+pattern.psf(m).intensity(flpos-pattern.pos(m,:)-obj.posgalvo,dpos,pattern.phasemask(m),pattern.zeropos(m))+bg;
+                         ihm=ihm+sum(pattern.psf(m).intensity(flposh-obj.posgalvo,pattern.pos(m,:),pattern.phasemask(m),pattern.zeropos(m))+bg);
                     end
                     iho=ih/ihm;
             end

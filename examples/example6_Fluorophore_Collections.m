@@ -25,7 +25,7 @@ out=sim.runSequence(seq,"maxlocs",numberOfLocalizations);
 stats=sim.displayresults(out);
 
 x=0:20:750;
-biasx=zeros(length(x),3); stdx=biasx; rmsex=biasx;
+biasx=zeros(length(x),3); stdx=biasx; rmsex=biasx; crb=biasx;
 for k=1:length(x)
     fl2.pos(1)=x(k);
     out=sim.runSequence(seq,"maxlocs",numberOfLocalizations);
@@ -33,6 +33,7 @@ for k=1:length(x)
     biasx(k,:)=stats.bias;
     stdx(k,:)=stats.std;
     rmsex(k,:)=stats.rmse;
+    crb(k,:)=stats.sCRB;
 end
 
 figure(145)
@@ -40,9 +41,9 @@ yyaxis right
 plot(x,biasx(:,1))
 ylabel('bias (nm)')
 yyaxis left
-plot(x,rmsex(:,1),x,stdx(:,1))
-legend('rmse','std','bias')
-ylabel('rmse / std (nm)')
+plot(x,rmsex(:,1),x,stdx(:,1),x,crb(:,1))
+legend('rmse','std','sCRB','bias')
+ylabel('rmse / std / sCRB (nm)')
 xlabel('separation x (nm)')
 
 
