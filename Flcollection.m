@@ -26,7 +26,7 @@
             end
 
         end
-        function reset(obj)
+        function reset(obj,time)
             %XXX reset fluorophore dynamics if needed
         end
         function updateonoff(obj,time) %dummy function not used here
@@ -36,6 +36,12 @@
         end
         function out=getproperties(obj)
             out=[];
+        end
+        function out=remainingphotons(obj)
+            out=sum([obj.flall.remainingphotons]);
+        end
+        function out=brightness(obj)
+            out=[obj.flall.brightness];
         end
     end
 end

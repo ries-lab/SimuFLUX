@@ -31,7 +31,7 @@ sim.defineComponent("estdonut","estimator",@estimators,parameters={"donut2D",sim
 
 %sequence: 
 seq={"donut","estdonut"};
-out=sim.runSequence(seq);
+out=sim.runSequence(seq,"maxlocs",numberOfLocalizations);
 % out.loc: localizations
 % out.fluorophores: position of fluorophores
 % out.raw: photon measurements

@@ -258,12 +258,13 @@ classdef Sim_Simulator<handle
                 obj
                 patternnames
                 args.dim=1:3;
-                args.position=obj.fluorophores(1).position(0);
+                args.position=obj.fluorophores.position(0);
             end
             dim=args.dim;
-            flpos=args.position;
+            flpos=args.position(1,:);
             % flpos=obj.fluorophores(1).pos; %the main one
-            bg=obj.background/obj.fluorophores(1).brightness;
+            brightness=obj.fluorophores.brightness;
+            bg=obj.background/brightness(1);
             
             ih=0;
             % make x,y, z fisher matrix
@@ -297,7 +298,7 @@ classdef Sim_Simulator<handle
                     iho=ih/ihm;
             end
         end
-        function displayresults(obj,out)%, lpcrb,L)
+        function stats=displayresults(obj,out)%, lpcrb,L)
           
             photraw=out.raw;
             photraw(photraw==-1)=NaN;
@@ -335,6 +336,16 @@ classdef Sim_Simulator<handle
             disp(['locp: ', num2str(lp,ff),...
                 ' sCRB: ', num2str(sigmaCRB/sqrt(mean(phot)),ff),...
                 ' sCRB*sqrt(phot): ', num2str(sigmaCRB,ff1)])
+
+            stats.photch=photch(:);
+            stats.phot=mean(phot);
+            stats.std=std(xest,'omitnan');
+            stats.rmse=rmse(xest,flpos,'omitnan');
+            stats.bias=mean(xest-flpos,'omitnan');
+            stats.locp=lp;
+            stats.sCRB=sigmaCRB/sqrt(mean(phot));
+            stats.sCRB1=sigmaCRB;
+
         end
     end
 end

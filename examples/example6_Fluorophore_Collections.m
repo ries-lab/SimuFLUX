@@ -1,4 +1,51 @@
 % Simulate several fluorophores in a fluorophore collection
+%% two fluorophores
+fl1=Fl_static;
+fl2=Fl_static;
+if ~exist("psf_vec","var") %if PSF is already defined, we need not recalculate it if no parameters are changed
+    psf_vec=PSF_vectorial; %simple 2D donut PSF
+end
+psf_vec.setpinhole("AU",1);
+
+fc=Flcollection;
+fc.add([fl1, fl2])
+
+sim=Sim_Simulator(fc); %make a simulator and attach fluorophore
+
+numberOfLocalizations=1000;
+
+L=75;
+sim.definePattern("donut", psf_vec, phasemask="vortex", makepattern="orbitscan", orbitpoints=4, ...
+    probecenter=false,orbitL=L,laserpower=100)
+sim.defineComponent("estdonut","estimator",@estimators,parameters={"donut2D",sim.patterns("donut").pos,L,360},dim=1:2);
+
+
+seq={"donut","estdonut"};
+out=sim.runSequence(seq,"maxlocs",numberOfLocalizations);
+stats=sim.displayresults(out);
+
+x=0:20:750;
+biasx=zeros(length(x),3); stdx=biasx; rmsex=biasx;
+for k=1:length(x)
+    fl2.pos(1)=x(k);
+    out=sim.runSequence(seq,"maxlocs",numberOfLocalizations);
+    stats=sim.displayresults(out);
+    biasx(k,:)=stats.bias;
+    stdx(k,:)=stats.std;
+    rmsex(k,:)=stats.rmse;
+end
+
+figure(145)
+yyaxis right
+plot(x,biasx(:,1))
+ylabel('bias (nm)')
+yyaxis left
+plot(x,rmsex(:,1),x,stdx(:,1))
+legend('rmse','std','bias')
+ylabel('rmse / std (nm)')
+xlabel('separation x (nm)')
+
+
 %% Imaging of blinking fluorophores with Abberior sequence
 %make abberior simulator
 if ~exist('sim','var') || ~isa(sim,"Sim_sequencefile")
@@ -36,7 +83,7 @@ dpos=[250 50 ]; fc.addstatic(posnpc+dpos);
 dpos=[50 150 ]; fc.addstatic(posnpc+dpos);
 
 sim.fluorophores=fc;
-out=sim.scoutingSequence(maxrep=200);
+out=sim.scoutingSequence(maxrep=1000);
 
 %plot results
 vld=out.loc.vld==1 & out.loc.itr==max(out.loc.itr) ;
