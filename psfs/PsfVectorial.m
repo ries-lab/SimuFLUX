@@ -11,7 +11,7 @@ classdef PsfVectorial<Psf
     methods
         function obj=PsfVectorial(varargin)
             obj@Psf(varargin{:});
-            addpath('PSF_simulation/library');
+            addpath([fileparts(mfilename('fullpath')) '/PSF_simulation/library']);
             obj.parameters=obj.loadparameters('settings/defaultsystemparameters_vectorialPSF.m');
         end
         function setpar(obj,varargin)
@@ -142,8 +142,11 @@ classdef PsfVectorial<Psf
                     out=effIntensity(sys,out);
                     PSF=squeeze(out.I(:,:,:,:))/normfact;
                     PSF = obj.beadsize(PSF, sys.beadradius);
+                    [PSF,normalization]=normpsf(PSF);
                     PSFx.interp = griddedInterpolant(X,Y,Z,permute(PSF,[2,1,3]),intmethod);
                     PSFy.interp = griddedInterpolant(X,Y,Z,PSF,intmethod);     
+                    PSFx.normalization=normalization;
+                    PSFy.normalization=normalization;
                     obj.PSFs("halfmoonx"+Lxs) =PSFx; 
                     obj.PSFs("halfmoony"+Lxs)=PSFy; 
                 case 'pinhole' %here
@@ -167,6 +170,7 @@ classdef PsfVectorial<Psf
                     [Xk,Yk]=meshgrid(nx);
                     kernel=double((Xk-phpos(1)).^2+(Yk-phpos(2)).^2<(phdiameter/2)^2);
                     psfph=conv2fft(psfg,kernel);
+                    [psfph,PSFdonut.normalization]=normpsf(psfph);
                     PSFdonut.interp = griddedInterpolant(X,Y,Z,psfph,intmethod);
                     obj.PSFs(key)=PSFdonut;   
                 case 'tophat'
@@ -178,6 +182,7 @@ classdef PsfVectorial<Psf
                     out=effIntensity(sys,out);
                     PSF=squeeze(out.I(:,:,:,:))/normfact;
                     PSF = obj.beadsize(PSF, sys.beadradius);
+                    [PSF,PSFdonut.normalization]=normpsf(PSF);
                     PSFdonut.interp = griddedInterpolant(X,Y,Z,PSF,intmethod);
                     obj.PSFs(key)=PSFdonut;   
                 case 'vortex'
@@ -187,6 +192,7 @@ classdef PsfVectorial<Psf
                     out=effIntensity(sys,out);
                     PSF=squeeze(out.I(:,:,:,:))/normfact;
                     PSF = obj.beadsize(PSF, sys.beadradius);
+                    [PSF,PSFdonut.normalization]=normpsf(PSF);
                     PSFdonut.interp = griddedInterpolant(X,Y,Z,PSF,intmethod);              
                     obj.PSFs(key)=PSFdonut;
                 otherwise
@@ -320,6 +326,9 @@ classdef PsfVectorial<Psf
             if args.show
                 imx(double(vout))
             end
+        end
+        function nf=normfactor(obj,phasemask,number)
+            nf=obj.PSFs(string(phasemask)+number).normalization;
         end
     end
 end

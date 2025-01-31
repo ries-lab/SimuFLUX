@@ -45,6 +45,9 @@ classdef Psf<handle
                  phfac=ones(size(flposrel,1),1);
              end
          end
+         function nf=normfactor(obj,varargin)
+             nf=1;
+         end
          % function out=fwhm(obj)
          %     out=obj.sigma*2.35;
          % end

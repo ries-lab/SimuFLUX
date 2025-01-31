@@ -145,3 +145,38 @@ seq={"donut_xy","estdonut","tophat_z","esttophat_z"};
 out=sim.runSequence(seq);
 disp("3D with donut and tophat:")
 sim.displayresults(out);
+
+
+%% PhaseFlux 3D localization
+sim.fluorophores.pos=[20,0, 50];
+if ~exist("psf_vecphaseflux","var") %if PSF is already defined, we need not recalculate it if no parameters are changed
+    psf_vecphaseflux=PsfVectorial; %simple 2D donut PSF
+end
+psf_vecphaseflux.setpinhole("AU",1);
+
+
+L=75;
+Lz=150;
+fwhm=450;
+sigmaz=200;
+laserpower=30;
+zeroposx=[-1; 0 ;1]*L/2;
+zeroposz=[-1; 0 ;1]*Lz/2;
+
+sim.definePattern("pf_x", psf_vecphaseflux, phasemask="halfmoonx", zeropos=zeroposx,...
+    pointdwelltime=pointdwelltime,laserpower=laserpower,repetitions=repetitions,dim=1);
+sim.definePattern("pf_y", psf_vecphaseflux, phasemask="halfmoony", zeropos=zeroposx,...
+    pointdwelltime=pointdwelltime,laserpower=laserpower,repetitions=repetitions,dim=2);
+sim.definePattern("pf_z", psf_vecphaseflux, phasemask="tophat", zeropos=zeroposz,...
+    pointdwelltime=pointdwelltime,laserpower=laserpower,repetitions=repetitions,dim=3);
+
+sim.defineComponent("est_x","estimator",@est_phaseflux1d,parameters={L},dim=1);
+sim.defineComponent("est_y","estimator",@est_phaseflux1d,parameters={L},dim=2);
+sim.defineComponent("est_z","estimator",@est_phaseflux1d,parameters={Lz},dim=3);
+sim.defineComponent("esttophat_z","estimator",@est_donut1d,parameters={zeroposz,Lz,sigmaz},dim=3);
+
+
+seq={"pf_x","est_x","pf_y","est_y","pf_z","est_z"};
+out=sim.runSequence(seq);
+disp("PhaseFLUX:")
+sim.displayresults(out);

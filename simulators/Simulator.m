@@ -74,6 +74,7 @@ classdef Simulator<handle
                 pattern.phasemask(k)=string(args.phasemask);
                 pattern.zeropos(k)=string((zeropos(k)));
                 pattern.psf(k).calculatePSFs(args.phasemask,pattern.zeropos(k));
+                pattern.background(k)=obj.background/psf.normfactor(args.phasemask,pattern.zeropos(k));
                 pattern.pointdwelltime(k)=args.pointdwelltime;
                 pattern.laserpower(k)=args.laserpower;
             end
@@ -112,7 +113,7 @@ classdef Simulator<handle
                     flpos(isactive,:)=flpos(isactive,:)+flposh;
                     flintall(isactive,:)=flintall(isactive,:)+flint;
                     time=time+pattern.pointdwelltime(k);
-                    intall(k)=intall(k)+intensity+obj.background; %sum over repetitions, fluorophores
+                    intall(k)=intall(k)+intensity+pattern.background(k); %sum over repetitions, fluorophores
                 end
                 fluorophores.updateonoff(time);
             end
