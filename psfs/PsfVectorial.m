@@ -64,7 +64,7 @@ classdef PsfVectorial<Psf
             flposrel=flpos-patternpos;
             iexc=psfint.interp(flposrel)+obj.zerooffset; 
             iexc=max(iexc,0);
-            if isempty(phkey)
+            if isempty(phkey) 
                 phfac=ones(size(iexc));
             else
                 psfph=obj.PSFs(phkey);
@@ -232,7 +232,8 @@ classdef PsfVectorial<Psf
                 % [sys,opt,out]=systemparameters;
                 args.diameter=round(args.AU*1.22*obj.parameters.sys.loem*1e9/obj.parameters.sys.NA); %single nm accuracy should be sufficient
             end
-            if isempty(obj.PSFph)||(~isempty(obj.pinholepar) && (args.diameter ~= obj.pinholepar.diameter || any(args.offset ~= obj.pinholepar.offset)) )
+            if isempty(obj.PSFph)||(~isempty(obj.pinholepar) && (args.diameter ~= obj.pinholepar.diameter...
+                    || any(args.offset ~= obj.pinholepar.offset)) ) || ~isKey(obj.PSFs,"pinhole"+num2str([args.diameter,args.offset]))
                 obj.PSFph=obj.calculatePSFs('pinhole',[args.diameter,args.offset],1);
             end
             obj.pinholepar.offset=args.offset;

@@ -75,6 +75,27 @@ sim.displayresults(out);
 psfab=psf_vec2.imagestack("vortex");
 imx(horzcat(psf0,psfab),'Parent',figure(121)); %compare the two PSFs
 
+%% Misaligned phase plate
+if ~exist("psf_vec2","var") %if PSF is already defined, we need not recalculate it if no parameters are changed
+    psf_vec2=PsfVectorial; %simple 2D donut PSF
+end
+%Add Zernike:
+% Zr(k,1): n, Zr(k,2): m, Zr(k,3): amplitude as fraction of wavelength
+sys.Zr(1,1)=4;sys.Zr(1,2)=0;sys.Zr(1,3)=0.0; %spherical aberrations 
+sys.Zr(1,1)=2;sys.Zr(1,2)=2;sys.Zr(1,3)=0.0; %astigmatism 
+sys.maskshift=[0.2,0]; % radius of pupil function is 1
+psf_vec2.setpar(sys)
+sim.definePattern("donut_misaligned", psf_vec2, phasemask="vortex", makepattern="orbitscan", orbitpoints=orbitpoints, ...
+    probecenter=probecenter,orbitL=L,pointdwelltime=pointdwelltime,laserpower=laserpower,repetitions=repetitions)
+seq={"donut_misaligned","estdonut"};
+out=sim.runSequence(seq);
+
+disp("misaligned phase plate:")
+sim.displayresults(out);
+psfab=psf_vec2.imagestack("vortex");
+imx(horzcat(psf0,psfab),'Parent',figure(129)); %compare the two PSFs
+
+
 %% Pinhole
 % We simulate a pinhole in the detection channel
 if ~exist("psf_vecph","var") %if PSF is already defined, we need not recalculate it if no parameters are changed
@@ -134,6 +155,7 @@ sim.defineComponent("esttophat_z","estimator",@est_donut1d,parameters={sim.patte
 
 seq={"tophat_xy","esttophat_xy","tophat_z","esttophat_z"};
 out=sim.runSequence(seq);
+
 disp("3D with tophat:")
 sim.displayresults(out);
 
@@ -143,6 +165,7 @@ sim.definePattern("donut_xy", psf_vecth, phasemask="vortex", makepattern="orbits
 
 seq={"donut_xy","estdonut","tophat_z","esttophat_z"};
 out=sim.runSequence(seq);
+
 disp("3D with donut and tophat:")
 sim.displayresults(out);
 
