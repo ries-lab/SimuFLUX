@@ -1,4 +1,4 @@
-classdef Fl_Fluorophore<handle
+classdef Fluorophore<handle
     properties
         pos=[0, 0, 0]; %nm
         brightness=1000; %kHz;
@@ -15,7 +15,7 @@ classdef Fl_Fluorophore<handle
                 brightness=obj.brightness;
             end
             
-            Io=(brightness/1000)*I0*dwelltime.*phfac;
+            Io=(brightness)*I0*dwelltime.*phfac;
         end
         function ph=photons(obj,I0,varargin)
             ph=poissrnd(obj.intensity(I0,varargin{:}));

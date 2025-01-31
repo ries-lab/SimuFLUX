@@ -1,4 +1,4 @@
-classdef Fl_moving<Fl_Fluorophore
+classdef FlMoving<Fluorophore
     properties
         % pos=[0, 0, 0]; %nm     
         posind=1;
@@ -55,8 +55,9 @@ classdef Fl_moving<Fl_Fluorophore
                 args.boundarybox=[]; %nm, half length of box, periodic boundary conditions
             end
             obj.posparameters={D,dt,args};
-            % Dstep=D/1e6*1e6*dt; %D in um^2/s is the same as D in nm^2/us
-            Dstep=D*dt;
+            % Dstep=D/1e6*1e6*dt; %D in um^2/s is the same as D in nm^2/us.
+            % to obtain nm^2/ms multiply by 1000;
+            Dstep=D*dt*1000;
             time=dt:dt:args.numpoints*dt;
             jumps=(randn(args.numpoints,args.dim)*Dstep);
             pos=horzcat(cumsum(jumps,1))+args.startpos(1:args.dim);
@@ -76,8 +77,8 @@ classdef Fl_moving<Fl_Fluorophore
             arguments
                 obj
                 stepsize %nm
-                dwelltime %us;
-                dt %us
+                dwelltime %ms;
+                dt %ms
                 args.startpos=[0 0 0]
                 args.dim=2;
                 args.numpoints=1000;

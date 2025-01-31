@@ -1,18 +1,18 @@
 % Run an abberior sequence file and see how EOD an Galvo move
-if ~exist('sim','var') || ~isa(sim,"Sim_sequencefile")
-    sim=Sim_sequencefile;
+addpath(genpath(fileparts(fileparts(mfilename('fullpath'))))); %add all folders to serach path
+if ~exist('sim','var') || ~isa(sim,"SimSequencefile")
+    sim=SimSequencefile;
 else
     sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];
 end
 laserpower=50;
-fl=Fl_bleach; %define a bleaching fluorophore
+fl=FlBleach; %define a bleaching fluorophore
 fl.photonbudget=10000;
 fl.pos=[200 50 0];
-fl.brightness=100*laserpower; %kHz if excited at the center of a Gaussian beam
+fl.brightness=200*laserpower; %kHz 
 sim.fluorophores=fl;
 
 
-% fname='/Users/ries/Downloads/2Dtracking_L75nm_phtLimit100__locLim50_.json';
 fname='Tracking_2D.json';
 fname2='PSFvectorial2D.json'; %use a PSF that is defined via a json file
 sim.loadsequence(fname,fname2);
@@ -25,5 +25,4 @@ xlabel('time (itr)')
 ylabel('x position(nm)')
 legend('estimated', 'fluorophore','xgalvo','EOD')
 
-sim.displayresults(out) %display summary of simulation
-% sim.displayresults(patternkey, out)
+sim.displayresults(out); %display summary of simulation

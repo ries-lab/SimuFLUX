@@ -1,4 +1,4 @@
- classdef Flcollection<handle
+ classdef FlCollection<handle
     properties
         flall
         numberOfFluorophores

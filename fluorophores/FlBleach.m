@@ -1,4 +1,4 @@
-classdef Fl_bleach<Fl_Fluorophore
+classdef FlBleach<Fluorophore
     properties
         photonbudget=inf; %1000 photons
     end
@@ -9,7 +9,7 @@ classdef Fl_bleach<Fl_Fluorophore
                 Io=0;
                 return
             end
-            intensity=(obj.brightness/1000)*I0*dwelltime;
+            intensity=(obj.brightness)*I0*dwelltime;
             
             Io=min(intensity,remainingphotons);
             obj.remainingphotons=remainingphotons-Io/phfac;

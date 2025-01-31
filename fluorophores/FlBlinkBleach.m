@@ -1,7 +1,7 @@
-classdef Fl_blinkbleach<Fl_Fluorophore
+classdef FlBlinkBleach<Fluorophore
     properties
    
-        fast_ton =100;
+        fast_ton = 0.1; %ms
         fast_toff =0;
         starton=false;
         photonbudget=inf; %1000 photons
@@ -15,7 +15,8 @@ classdef Fl_blinkbleach<Fl_Fluorophore
         function Io=intensity(obj,I0,dwelltime,time,phfac,varargin)
 
             fraction=obj.measure(dwelltime,time);
-            intensity=(obj.brightness/1000)*I0*dwelltime*fraction;
+            intensity=(obj.brightness)*I0*dwelltime*fraction;
+            %intensity=(obj.brightness/1000)*I0*dwelltime*fraction;
             remainingphotons=obj.remainingphotons;
             Io=min(intensity,remainingphotons);
             obj.remainingphotons=remainingphotons-Io/phfac;

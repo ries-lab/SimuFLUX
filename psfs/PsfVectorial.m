@@ -1,14 +1,16 @@
-classdef PSF_vectorial<PSF_Pointspreadfunction
+classdef PsfVectorial<Psf
     properties
         parameters
         PSFs=dictionary;
         PSFph=[];
-        normfact
+        normfactgauss
         pinholepar
+        sigma
+        fwhm
     end
     methods
-        function obj=PSF_vectorial(varargin)
-            obj@PSF_Pointspreadfunction(varargin{:});
+        function obj=PsfVectorial(varargin)
+            obj@Psf(varargin{:});
             addpath('PSF_simulation/library');
             obj.parameters=obj.loadparameters('settings/defaultsystemparameters_vectorialPSF.m');
         end
@@ -41,7 +43,7 @@ classdef PSF_vectorial<PSF_Pointspreadfunction
             end
             if recalculate 
                 obj.PSFs=dictionary;%delete pre-calculated PSFs
-                obj.normfact=[];
+                obj.normfactgauss=[];
             end
         end
         function [idet,phfac]=intensity(obj, flpos ,patternpos, phasepattern, L)
@@ -60,13 +62,13 @@ classdef PSF_vectorial<PSF_Pointspreadfunction
             psfint=obj.PSFs(key);
             phkey=obj.PSFph;
             flposrel=flpos-patternpos;
-            iexc=psfint(flposrel)+obj.zerooffset; 
+            iexc=psfint.interp(flposrel)+obj.zerooffset; 
             iexc=max(iexc,0);
             if isempty(phkey)
                 phfac=ones(size(iexc));
             else
                 psfph=obj.PSFs(phkey);
-                phfac=psfph(flpos);
+                phfac=psfph.interp(flpos);
             end
             idet=iexc.*phfac;
         end
@@ -100,16 +102,16 @@ classdef PSF_vectorial<PSF_Pointspreadfunction
             fwhm=0.51*sys.loem/sys.NA*1e9;
             obj.sigma=fwhm/2.35;
             
-            if isempty(obj.normfact)
+            if isempty(obj.normfactgauss)
                 sys.Ei = {'circular'};
                 outc=effField(sys,out, opt);      
                 outc=effIntensity(sys,outc);
                 zmid=ceil(size(outc.I,4)/2);
                 % normfact=sum(sum(outc.I(1,:,:,zmid)));%normalized to integral =1
                 normfact=max(max(outc.I(1,:,:,zmid)));%normalized to max =1
-                obj.normfact=normfact;
+                obj.normfactgauss=normfact;
             else
-                normfact=obj.normfact;
+                normfact=obj.normfactgauss;
             end
                 
             % %fit Gaussian:
@@ -126,7 +128,8 @@ classdef PSF_vectorial<PSF_Pointspreadfunction
                     out=effIntensity(sys,out);
                     PSF=squeeze(out.I(:,:,:,:))/normfact;
                     PSF = obj.beadsize(PSF, sys.beadradius);
-                    PSFdonut = griddedInterpolant(X,Y,Z,PSF,intmethod);              
+                    [PSF,PSFdonut.normalization]=normpsf(PSF);
+                    PSFdonut.interp = griddedInterpolant(X,Y,Z,PSF,intmethod);              
                     obj.PSFs(key)=PSFdonut;
                 case {'halfmoonx','halfmoony'}
                     %convert L into phase
@@ -139,9 +142,9 @@ classdef PSF_vectorial<PSF_Pointspreadfunction
                     out=effIntensity(sys,out);
                     PSF=squeeze(out.I(:,:,:,:))/normfact;
                     PSF = obj.beadsize(PSF, sys.beadradius);
-                    PSFx = griddedInterpolant(X,Y,Z,permute(PSF,[2,1,3]),intmethod);
-                    PSFy = griddedInterpolant(X,Y,Z,PSF,intmethod);     
-                    obj.PSFs("halfmoonx"+Lxs)=PSFx; 
+                    PSFx.interp = griddedInterpolant(X,Y,Z,permute(PSF,[2,1,3]),intmethod);
+                    PSFy.interp = griddedInterpolant(X,Y,Z,PSF,intmethod);     
+                    obj.PSFs("halfmoonx"+Lxs) =PSFx; 
                     obj.PSFs("halfmoony"+Lxs)=PSFy; 
                 case 'pinhole' %here
                     sys.Ei = {'circular'};
@@ -164,7 +167,7 @@ classdef PSF_vectorial<PSF_Pointspreadfunction
                     [Xk,Yk]=meshgrid(nx);
                     kernel=double((Xk-phpos(1)).^2+(Yk-phpos(2)).^2<(phdiameter/2)^2);
                     psfph=conv2fft(psfg,kernel);
-                    PSFdonut = griddedInterpolant(X,Y,Z,psfph,intmethod);
+                    PSFdonut.interp = griddedInterpolant(X,Y,Z,psfph,intmethod);
                     obj.PSFs(key)=PSFdonut;   
                 case 'tophat'
                     dzdphi=-3.6; %nm/degree
@@ -175,7 +178,7 @@ classdef PSF_vectorial<PSF_Pointspreadfunction
                     out=effIntensity(sys,out);
                     PSF=squeeze(out.I(:,:,:,:))/normfact;
                     PSF = obj.beadsize(PSF, sys.beadradius);
-                    PSFdonut = griddedInterpolant(X,Y,Z,PSF,intmethod);
+                    PSFdonut.interp = griddedInterpolant(X,Y,Z,PSF,intmethod);
                     obj.PSFs(key)=PSFdonut;   
                 case 'vortex'
                     sys.Ei = { 'phaseramp',  'circular'};  
@@ -184,7 +187,7 @@ classdef PSF_vectorial<PSF_Pointspreadfunction
                     out=effIntensity(sys,out);
                     PSF=squeeze(out.I(:,:,:,:))/normfact;
                     PSF = obj.beadsize(PSF, sys.beadradius);
-                    PSFdonut = griddedInterpolant(X,Y,Z,PSF,intmethod);              
+                    PSFdonut.interp = griddedInterpolant(X,Y,Z,PSF,intmethod);              
                     obj.PSFs(key)=PSFdonut;
                 otherwise
                     warning(phasepattern+" PSF name not defined")
@@ -272,9 +275,9 @@ classdef PSF_vectorial<PSF_Pointspreadfunction
                     disp('json not implemented yet')
             end
         end
-        function out=fwhm(obj)
-             out=obj.sigma*2.35*1.2; %comes from comparison with simple donut
-        end
+        % function out=fwhm(obj)
+        %      out=obj.sigma*2.35*1.2; %comes from comparison with simple donut
+        % end
         function loadexperimental(obj,key,fname)
             [~,fnh,ext]=fileparts(fname);
             if contains(fname,"_3dcal") && ext==".mat" %3Dcal.mat
@@ -308,14 +311,14 @@ classdef PSF_vectorial<PSF_Pointspreadfunction
                 key=key+"0";
             end
             psf=obj.PSFs(key);
-            vout=psf.Values;
+            vout=psf.interp.Values;
             if ~isempty(obj.PSFph)
                 phpsf=obj.PSFs(obj.PSFph);
-                vout=vout.*phpsf.Values  ; 
+                vout=vout.*phpsf.interp.Values  ; 
             end
 
             if args.show
-                imx(vout)
+                imx(double(vout))
             end
         end
     end
@@ -328,4 +331,10 @@ elseif isfield(addpar,'Zr') && ~isempty(addpar.Zr)
     sys.Ei{end+1}='zernike';
     sys.Zr=addpar.Zr;
 end
+end
+
+
+function [PSF,normf]=normpsf(PSF)
+normf=max(PSF(:));
+PSF=PSF/normf;
 end

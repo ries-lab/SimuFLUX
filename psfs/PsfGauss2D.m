@@ -1,7 +1,7 @@
-classdef PSF_gauss2D<PSF_Pointspreadfunction
+classdef PsfGauss2D<Psf
     properties
         % fwhm=310; %comaprison with calculated PSF
-        % sigma=310/2.35; %310 from donut
+        sigma=310/2.35; %310 from donut
     end
     methods
         function [io,phfac]=intensity(obj, flpos ,patternpos, phasepattern, L)

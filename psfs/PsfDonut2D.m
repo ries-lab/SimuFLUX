@@ -1,6 +1,6 @@
-classdef PSF_donut2D<PSF_Pointspreadfunction
+classdef PsfDonut2D<Psf
     properties
-        % fwhm=310; %comaprison with calculated PSF
+        fwhm=310; %comaprison with calculated PSF
     end
     methods
         function [io,phfac]=intensity(obj, flpos ,patternpos, phasepattern, L)

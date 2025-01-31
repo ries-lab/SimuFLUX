@@ -1,4 +1,4 @@
-classdef Fl_static<Fl_Fluorophore
+classdef FlStatic<Fluorophore
     properties
 
     end

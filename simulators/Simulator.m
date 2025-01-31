@@ -1,15 +1,15 @@
-classdef Sim_Simulator<handle
+classdef Simulator<handle
     properties
         patterns=dictionary;
         sequences=dictionary;
         fluorophores
-        background=0; %kHz from AF, does not count towards photon budget
+        background=0; %kHz from AF, does not count towards photon budget. Should scale with PSF.normfact and laser intensity?
         posgalvo=[0 0 0]; %nm, position of pattern center
         posEOD=[0 0 0]; %nm, not descanned, with respect to posgalvo.
         time=0;
     end
     methods
-        function obj=Sim_Simulator(fl)
+        function obj=Simulator(fl)
             if nargin>0    
                 obj.fluorophores=fl;
             end
@@ -46,7 +46,7 @@ classdef Sim_Simulator<handle
                 args.orbitL=100;
                 args.probecenter=true; 
                 args.orbitorder=[]; %change the order of measurement points
-                args.pointdwelltime=10; %us
+                args.pointdwelltime=.01; %us
                 args.laserpower=1; %usually we use relative, but can also be absolute.
                 args.repetitions=1;
                 args.dim=1:2;

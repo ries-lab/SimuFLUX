@@ -1,23 +1,24 @@
 % Simulate several fluorophores in a fluorophore collection
+addpath(genpath(fileparts(fileparts(mfilename('fullpath'))))); %add all folders to serach path
 %% two fluorophores
-fl1=Fl_static;
-fl2=Fl_static;
+fl1=FlStatic;
+fl2=FlStatic;
 if ~exist("psf_vec","var") %if PSF is already defined, we need not recalculate it if no parameters are changed
-    psf_vec=PSF_vectorial; %simple 2D donut PSF
+    psf_vec=PsfVectorial; %simple 2D donut PSF
 end
 psf_vec.setpinhole("AU",1);
 
-fc=Flcollection;
+fc=FlCollection;
 fc.add([fl1, fl2])
 
-sim=Sim_Simulator(fc); %make a simulator and attach fluorophore
+sim=Simulator(fc); %make a simulator and attach fluorophore
 
 numberOfLocalizations=1000;
 
 L=75;
 sim.definePattern("donut", psf_vec, phasemask="vortex", makepattern="orbitscan", orbitpoints=4, ...
     probecenter=false,orbitL=L,laserpower=100)
-sim.defineComponent("estdonut","estimator",@estimators,parameters={"donut2D",sim.patterns("donut").pos,L,360},dim=1:2);
+sim.defineComponent("estdonut","estimator",@est_donut2d,parameters={sim.patterns("donut").pos,L,360},dim=1:2);
 
 
 seq={"donut","estdonut"};
@@ -49,8 +50,8 @@ xlabel('separation x (nm)')
 
 %% Imaging of blinking fluorophores with Abberior sequence
 %make abberior simulator
-if ~exist('sim','var') || ~isa(sim,"Sim_sequencefile")
-    sim=Sim_sequencefile;
+if ~exist('sim','var') || ~isa(sim,"SimSequencefile")
+    sim=SimSequencefile;
 else
     sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;
 end
@@ -65,14 +66,14 @@ R=50;dphi=pi/4;
 phi=0:dphi:2*pi-dphi; posnpc(:,1)=R*cos(phi); posnpc(:,2)= R*sin(phi);
 
 % make a fluorophore collection with blinking fluorophores
-fc=Flcollection_blinking;
+fc=FlCollectionBlinking;
 
 %set parameterst for caged fluorophore, PAFP or similar
 laserpower=5;
 switchpar.brightness=100*laserpower;
-switchpar.toffsmlm=3*1e6; %on-switching time in ns
+switchpar.toffsmlm=3*1e3; %on-switching time in ms
 switchpar.photonbudget=5000;
-switchpar.tonsmlm=1e8; % ns stays on, only bleached
+switchpar.tonsmlm=1e5; % ms stays on, only bleached
 switchpar.activations=5; %re activations
 switchpar.starton=0; %fluorophores start in random on / off state, determined by tonsmlm, toffsmlm
 fc.setpar(switchpar)

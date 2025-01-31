@@ -1,15 +1,16 @@
 %% Vectorial PSF
+addpath(genpath(fileparts(fileparts(mfilename('fullpath'))))); %add all folders to serach path
 
-fl=Fl_static; %define a static fluorophore
+fl=FlStatic; %define a static fluorophore
 fl.pos=[10 0 0];
 fl.brightness=1000; %kHz if excited at the center of a Gaussian beam
 
 if ~exist("psf_vec","var") %if PSF is already defined, we need not recalculate it if no parameters are changed
-    psf_vec=PSF_vectorial; %simple 2D donut PSF
+    psf_vec=PsfVectorial; %simple 2D donut PSF
 end
 psf_vec.zerooffset=0.000; %true zero
 
-sim=Sim_Simulator(fl); %make a simulator and attach fluorophore
+sim=Simulator(fl); %make a simulator and attach fluorophore
 
 numberOfLocalizations=1000;
 
@@ -18,7 +19,7 @@ L=75; %size of scan pattern
 orbitpoints=6; %number of probing points in orbit
 probecenter=true; %should we also probe the center?
 laserpower=5; %relative, increases brightness
-pointdwelltime=100; %measurement time in each point
+pointdwelltime=.100; % ms, measurement time in each point
 repetitions=2; %how often to repeat the pattern scan
 sim.definePattern("donut", psf_vec, phasemask="vortex", makepattern="orbitscan", orbitpoints=orbitpoints, ...
     probecenter=probecenter,orbitL=L,pointdwelltime=pointdwelltime,laserpower=laserpower,repetitions=repetitions)
@@ -26,7 +27,7 @@ sim.definePattern("donut", psf_vec, phasemask="vortex", makepattern="orbitscan",
 
 %we need an estimator. Define as component
 fwhm=360;% size of the donut, needed for proper estimation. 
-sim.defineComponent("estdonut","estimator",@estimators,parameters={"donut2D",sim.patterns("donut").pos,L,fwhm},dim=1:2);
+sim.defineComponent("estdonut","estimator",@est_donut2d,parameters={sim.patterns("donut").pos,L,fwhm},dim=1:2);
 % sim.defineComponent(key,type (estimator),function handle of estimator function,parameters);
 
 %sequence: 
@@ -57,7 +58,7 @@ sim.displayresults(out);
 % create a second PSF object.
 
 if ~exist("psf_vec2","var") %if PSF is already defined, we need not recalculate it if no parameters are changed
-    psf_vec2=PSF_vectorial; %simple 2D donut PSF
+    psf_vec2=PsfVectorial; %simple 2D donut PSF
 end
 %Add Zernike:
 % Zr(k,1): n, Zr(k,2): m, Zr(k,3): amplitude as fraction of wavelength
@@ -77,7 +78,7 @@ imx(horzcat(psf0,psfab),'Parent',figure(121)); %compare the two PSFs
 %% Pinhole
 % We simulate a pinhole in the detection channel
 if ~exist("psf_vecph","var") %if PSF is already defined, we need not recalculate it if no parameters are changed
-    psf_vecph=PSF_vectorial; %simple 2D donut PSF
+    psf_vecph=PsfVectorial; %simple 2D donut PSF
 end
 psf_vecph.setpinhole("AU",1);
 sim.definePattern("donut_ph", psf_vecph, phasemask="vortex", makepattern="orbitscan", orbitpoints=orbitpoints, ...
@@ -90,7 +91,7 @@ sim.displayresults(out);
 %% Misaligned pinhole
 % now lets move the pinhole (misalignment)
 if ~exist("psf_vecph2","var") %if PSF is already defined, we need not recalculate it if no parameters are changed
-    psf_vecph2=PSF_vectorial; %simple 2D donut PSF
+    psf_vecph2=PsfVectorial; %simple 2D donut PSF
 end
 psf_vecph2.setpinhole("AU",1,"offset",[150,0]);
 sim.definePattern("donut_ph", psf_vecph2, phasemask="vortex", makepattern="orbitscan", orbitpoints=orbitpoints, ...
@@ -107,7 +108,7 @@ imx(horzcat(psf0,psfph),'Parent',figure(123)); %compare the two PSFs
 %% 3D with tophat
 sim.fluorophores.pos=[0,0, 50];
 if ~exist("psf_vecth","var") %if PSF is already defined, we need not recalculate it if no parameters are changed
-    psf_vecth=PSF_vectorial; %simple 2D donut PSF
+    psf_vecth=PsfVectorial; %simple 2D donut PSF
 end
 psf_vecth.setpinhole("AU",1);
 sys.Zr(1,1)=4;sys.Zr(1,2)=0;sys.Zr(1,3)=0.0; %spherical aberrations 
@@ -128,8 +129,8 @@ sim.definePattern("tophat_xy", psf_vecth, phasemask="tophat", makepattern="orbit
 sim.definePattern("tophat_z", psf_vecth, phasemask="tophat", makepattern="zscan", orbitpoints=2, ...
     probecenter=probecenterz,orbitL=Lz,pointdwelltime=pointdwelltime,laserpower=laserpower,repetitions=repetitions,dim=3);
 
-sim.defineComponent("esttophat_xy","estimator",@estimators,parameters={"donut2D",sim.patterns("tophat_xy").pos,L,fwhm},dim=1:2);
-sim.defineComponent("esttophat_z","estimator",@estimators,parameters={"donut1D",sim.patterns("tophat_z").pos,Lz,sigmaz},dim=3);
+sim.defineComponent("esttophat_xy","estimator",@est_donut2d,parameters={sim.patterns("tophat_xy").pos,L,fwhm},dim=1:2);
+sim.defineComponent("esttophat_z","estimator",@est_donut1d,parameters={sim.patterns("tophat_z").pos,Lz,sigmaz},dim=3);
 
 seq={"tophat_xy","esttophat_xy","tophat_z","esttophat_z"};
 out=sim.runSequence(seq);

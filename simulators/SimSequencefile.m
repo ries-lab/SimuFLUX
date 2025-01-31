@@ -1,9 +1,9 @@
-classdef Sim_sequencefile<Sim_Simulator
+classdef SimSequencefile<Simulator
     properties
         sequence
         estimators=struct('function',"","par",[],"dim",[]);
         scoutingcoordinates
-        psfvec=PSF_vectorial; %store only one copy in which different patterns are defined
+        psfvec=PsfVectorial; %store only one copy in which different patterns are defined
     end
     methods
         function loadsequence(obj,varargin)
@@ -21,8 +21,8 @@ classdef Sim_sequencefile<Sim_Simulator
                 if isfield(obj.sequence,'PSF') && isfield(obj.sequence.PSF,'global')
                     [psfs,phasemasks]=psf_sequence(obj.sequence.PSF,obj.psfvec);
                 else
-                    psfs{1}=PSF_gauss2D;
-                    psfs{2}=PSF_donut2D;
+                    psfs{1}=PsfGauss2D;
+                    psfs{2}=PsfDonut2D;
                     phasemasks{1}.phasemask='gauss2D';
                     phasemasks{2}.phasemask='donut2D';
                     obj.loadsequence('defaultestimators.json')
@@ -57,7 +57,7 @@ classdef Sim_sequencefile<Sim_Simulator
                         disp([itrs(k).Mode.id]+ " not implemented");                        
                 end
                 
-                patterntime=(itrs(k).patDwellTime/itrs(k).patRepeat*(1+probecenter*obj.sequence.ctrDwellFactor))*1e6; %us
+                patterntime=(itrs(k).patDwellTime/itrs(k).patRepeat*(1+probecenter*obj.sequence.ctrDwellFactor))*1e3; %ms
                 pointdwelltime=patterntime/(patternpoints+probecenter);
                 laserpower=itrs(k).pwrFactor;
                 obj.definePattern("itr"+k, psf, phasemask=phasemask, makepattern='orbitscan', orbitpoints=patternpoints, orbitL=L,...
@@ -74,7 +74,7 @@ classdef Sim_sequencefile<Sim_Simulator
             stickiness=obj.sequence.stickiness;
             loclimit=obj.sequence.locLimit;
             if ~isfield(obj.sequence,'maxOffTime') || ~isnumeric(obj.sequence.maxOffTime)&&strcmp(obj.sequence.maxOffTime,'unspecified')
-                maxOffTime=3000; %us
+                maxOffTime=3; %ms
             else
                 maxOffTime=obj.sequence.maxOffTime*1e6; % to us
             end
@@ -270,6 +270,10 @@ classdef Sim_sequencefile<Sim_Simulator
                 args.figure=[];
                 args.coordinate=1;
                 args.axis=[];
+                args.xvalues="itr";
+            end
+            if isempty(out)
+                disp('no localizations found')
             end
             xnmn={"xnm","ynm","znm"};
             xfln={"xfl1","yfl1","zfl1"};
@@ -286,14 +290,22 @@ classdef Sim_sequencefile<Sim_Simulator
             else
                 ax=args.axis;
             end
+            switch args.xvalues
+                case "itr"
+                    xv=out.loc.loccounter;
+                    xtxt="time (itr)";
+                case "time"
+                    xv=out.loc.time;
+                    xtxt="time (ms)";
+            end
             c=args.coordinate;
             hold(ax,'off')
-            plot(ax,out.loc.loccounter, out.loc.(xnmn{c}));
+            plot(ax,xv, out.loc.(xnmn{c}));
             hold(ax,"on")
-            plot(ax,out.loc.loccounter,out.loc.(xfln{c}));
-            plot(ax,out.loc.loccounter,out.loc.(xgn{c}))
-            plot(ax,out.loc.loccounter,out.loc.(xen{c}))
-            xlabel(ax,'time (itr)')
+            plot(ax,xv,out.loc.(xfln{c}));
+            plot(ax,xv,out.loc.(xgn{c}))
+            plot(ax,xv,out.loc.(xen{c}))
+            xlabel(ax,xtxt)
             ylabel(ax,'x position(nm)')
             legend(ax,'estimated', 'fluorophore','xgalvo','EOD')
 

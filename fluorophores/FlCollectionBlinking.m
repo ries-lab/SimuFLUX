@@ -1,4 +1,4 @@
-classdef Flcollection_blinking<Flcollection
+classdef FlCollectionBlinking<FlCollection
     properties
         flprop %.moving, isactive, nexton, nextoff, remaining_activations
         switchpar=struct('starton',-1,'tonsmlm',1e3,'toffsmlm',1e5,'photonbudget',1000,'activations',1e6,'brightness',1000) %starton, tonsmlm, toffsmlm, microseconds
@@ -46,7 +46,7 @@ classdef Flcollection_blinking<Flcollection
                     flproph.isactive(k)=rand<switchpar.tonsmlm/(switchpar.toffsmlm+switchpar.tonsmlm);
                 end
                 
-                addfl=Fl_bleach;
+                addfl=FlBleach;
                 addfl.brightness=switchpar.brightness;
                 addfl.photonbudget=switchpar.photonbudget;
                 addfl.pos=poslist(k,:);

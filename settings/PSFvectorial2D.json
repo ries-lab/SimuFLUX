@@ -8,26 +8,26 @@
      "par": 
         {"phasemask": "flat"}, 
      "estimator": 
-        {"function": "estimators",
-        "par": ["gauss2D","patternpos","L",120, false],
+        {"function": "est_gauss2d",
+        "par": ["patternpos","L",120, false],
         "dim": [1, 2]}},
 	{"Mode": "PSF_vectorial",
      "par": 
         {"phasemask": "vortex"}, 
-     "estimator": {"function": "estimators",
-        "par": ["donut2D","patternpos","L",310, false],
+     "estimator": {"function": "est_donut2d",
+        "par": ["patternpos","L",310, false],
         "dim": [1, 2]}},
 	{"Mode": "PSF_vectorial",
      "par": 
         {"phasemask": "vortex"}, 
-     "estimator": {"function": "estimators",
-        "par": ["donut2D","patternpos","L",310, false],
+     "estimator": {"function": "est_donut2d",
+        "par": ["patternpos","L",310, false],
          "dim": [1, 2]}},
 	{"Mode": "PSF_vectorial",
      "par": 
         {"phasemask": "vortex"}, 
-     "estimator": {"function": "estimators",
-         "par": ["donut2D","patternpos","L",310],
+     "estimator": {"function": "est_donut2d",
+         "par": ["patternpos","L",310],
         "dim": [1, 2]}}
     ]}
 }
