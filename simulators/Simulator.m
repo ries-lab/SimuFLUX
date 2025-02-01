@@ -123,6 +123,7 @@ classdef Simulator<handle
             end
             out.phot=poissrnd(intall); %later: fl.tophot(intenall): adds bg, multiplies with brightness, does 
             out.photbg=bgphot;
+            out.intensity=intall;
             out.flpos=flpos/numpoints/repetitions;
             out.flint=flintall;
             out.averagetime=timep/numpoints/repetitions;
@@ -261,6 +262,59 @@ classdef Simulator<handle
         function lp=locprec(obj,photons,L)
             lp=L./sqrt(8*(photons));
         end
+        % function locprec=calculateCRB(obj,patternnames,args)
+        %     arguments
+        %         obj
+        %         patternnames
+        %         args.dim=1:3;
+        %         args.position=obj.fluorophores.position(0);
+        %     end
+        %     dim=args.dim;
+        %     % flpos=args.position(1,:);
+        %     flpos=args.position;
+        %     % flpos=obj.fluorophores(1).pos; %the main one
+        %     brightness=obj.fluorophores.brightness;
+        %     bg=obj.background/brightness(1); %hack, to not have to calculate with all fluorophores
+        % 
+        %     ih=0;
+        %     % make x,y, z fisher matrix
+        %     eps=1;
+        %     IFisher=zeros(length(dim));
+        %         pattern=obj.patterns(patternnames);
+        %         for k=length(pattern.zeropos):-1:1
+        %             for coord=1:length(dim)
+        %                 dposa=[0 0 0]; dposa(dim(coord))=eps/2; dposa2=dposa; dposa2(dim(coord))=-eps/2;
+        %                 dpdc(dim(coord))=(pi(dposa)-pi(dposa2))/eps;
+        %             end
+        %             for coord=1:length(dim)
+        %                 for coord2=1:length(dim)
+        %                     % IFisher(dim(coord),dim(coord2))=IFisher(dim(coord),dim(coord2))+dpdc(dim(coord))*dpdc(dim(coord2))/(pi([0 0 0])+1e-5);
+        %                      IFisher((coord),(coord2))=IFisher((coord),(coord2))+dpdc(dim(coord))*dpdc(dim(coord2))/(pi([0 0 0])+1e-5);
+        %                      % pi([0 0 0])
+        %                 end
+        %             end
+        %         end
+        %         crlb=(inv(IFisher));
+        %         locprech=diag(sqrt(crlb))';
+        %         locprec=[0 0 0];
+        %         locprec(dim)=locprech;%(dim);
+        % 
+        %     function iho=pi(dpos)
+        %             flposh=flpos;
+        %             flposh(1,:)=flposh(1,:)-dpos;
+        %             bgh=bg*pattern.backgroundfac(k);
+        %             ih=sum(pattern.psf(k).intensity(flposh-obj.posgalvo,pattern.pos(k,:),pattern.phasemask(k),pattern.zeropos(k))+bgh);
+        % 
+        %             ihm=0;
+        %             for m=length(pattern.zeropos):-1:1
+        %                 bgh=bg*pattern.backgroundfac(m);
+        %                  ihm=ihm+sum(pattern.psf(m).intensity(flposh-obj.posgalvo,pattern.pos(m,:),pattern.phasemask(m),pattern.zeropos(m))+bgh);
+        %             end
+        %             iho=ih/ihm;
+        %     end
+        % end
+
+
         function locprec=calculateCRB(obj,patternnames,args)
             arguments
                 obj
@@ -269,48 +323,42 @@ classdef Simulator<handle
                 args.position=obj.fluorophores.position(0);
             end
             dim=args.dim;
-            % flpos=args.position(1,:);
-            flpos=args.position;
-            % flpos=obj.fluorophores(1).pos; %the main one
-            brightness=obj.fluorophores.brightness;
-            bg=obj.background/brightness(1); %hack, to not have to calculate with all fluorophores
-            
-            ih=0;
-            % make x,y, z fisher matrix
+            if isa(obj.fluorophores,'FlCollection')
+                fl1=obj.fluorophores.fall(1);
+            else
+                fl1=obj.fluorophores;
+            end
+            posold=fl1.pos;
             eps=1;
             IFisher=zeros(length(dim));
-                pattern=obj.patterns(patternnames);
-                for k=length(pattern.zeropos):-1:1
-                    for coord=1:length(dim)
-                        dposa=[0 0 0]; dposa(dim(coord))=eps/2; dposa2=dposa; dposa2(dim(coord))=-eps/2;
-                        dpdc(dim(coord))=(pi(dposa)-pi(dposa2))/eps;
-                    end
-                    for coord=1:length(dim)
-                        for coord2=1:length(dim)
-                            % IFisher(dim(coord),dim(coord2))=IFisher(dim(coord),dim(coord2))+dpdc(dim(coord))*dpdc(dim(coord2))/(pi([0 0 0])+1e-5);
-                             IFisher((coord),(coord2))=IFisher((coord),(coord2))+dpdc(dim(coord))*dpdc(dim(coord2))/(pi([0 0 0])+1e-5);
-                        end
-                    end
-                end
-                crlb=(inv(IFisher));
-                locprech=diag(sqrt(crlb))';
-                locprec=[0 0 0];
-                locprec(dim)=locprech;%(dim);
+            % out1=patternscan(patternames);
+            % 
+            out0=obj.patternscan(patternnames);
+            pi0=out0.intensity/sum(out0.intensity);
+            for coord=1:length(dim)
+                dposa=[0 0 0]; dposa(dim(coord))=eps/2; dposa2=dposa; dposa2(dim(coord))=-eps/2;
 
-            function iho=pi(dpos)
-                    flposh=flpos;
-                    flposh(1,:)=flposh(1,:)-dpos;
-                    bgh=bg*pattern.backgroundfac(k);
-                    ih=sum(pattern.psf(k).intensity(flposh-obj.posgalvo,pattern.pos(k,:),pattern.phasemask(k),pattern.zeropos(k))+bgh);
-                    
-                    ihm=0;
-                    for m=length(pattern.zeropos):-1:1
-                        bgh=bg*pattern.backgroundfac(m);
-                         ihm=ihm+sum(pattern.psf(m).intensity(flposh-obj.posgalvo,pattern.pos(m,:),pattern.phasemask(m),pattern.zeropos(m))+bgh);
-                    end
-                    iho=ih/ihm;
+                fl1.pos=posold+dposa;
+                out1=obj.patternscan(patternnames);
+                fl1.pos=posold+dposa2;  
+                out2=obj.patternscan(patternnames);
+                dpdc(:,dim(coord))=((out1.intensity/sum(out1.intensity)-out2.intensity/sum(out2.intensity))/eps);
             end
+            for coord=1:length(dim)
+                for coord2=1:length(dim)
+                    % IFisher(dim(coord),dim(coord2))=IFisher(dim(coord),dim(coord2))+dpdc(dim(coord))*dpdc(dim(coord2))/(pi([0 0 0])+1e-5
+                    fh=dpdc(:,dim(coord)).*dpdc(:,dim(coord2))./(pi0+1e-8);
+                     IFisher((coord),(coord2))=sum(fh);
+                end
+            end
+
+        
+            crlb=(inv(IFisher));
+            locprech=diag(sqrt(crlb))';
+            locprec=[0 0 0];
+            locprec(dim)=locprech;%(dim);
         end
+        
         function st=displayresults(obj,out,args)%, lpcrb,L)
             arguments
                 obj
@@ -382,8 +430,8 @@ classdef Simulator<handle
                 args.dimscan=1;
                 args.title="FoV scan";
                 args.fluorophorenumber=1;
-                args.ax1={"std"};
-                args.ax2={"bias"};
+                args.ax1="std";
+                args.ax2="bias";
             end
 
             so.std=zeros(length(xcoords),3); so.rmse=so.std; so.bias=so.std;
@@ -392,7 +440,7 @@ classdef Simulator<handle
             else
                 fl=obj.fluorophores;
             end
-            coords={"x","y","z"};
+            coords=["x","y","z"];
 
             for k=1:length(xcoords)
                 fl.pos(args.dimscan)=xcoords(k);
@@ -402,17 +450,20 @@ classdef Simulator<handle
                 so.bias(k,:)=stats.bias;
                 so.rmse(k,:)=stats.rmse;
                 so.sCRB(k,:)=stats.sCRB;
+                so.pos(k,:)=stats.pos;
             end
+            so.stdrel=so.std./so.sCRB;
+            so.biasrel=so.bias./so.pos;
         
             if args.display
                 yyaxis left
-                hold off
+                % hold off
                 ylab=coords(args.dimplot)+": ";
                 for m=1:length(args.ax1)
-                    yval=so.(args.ax1{m});
+                    yval=so.(args.ax1(m));
                     plot(xcoords,yval(:,args.dimplot))
                     hold on
-                    ylab=ylab+args.ax1{m};
+                    ylab=ylab+args.ax1(m);
                     if m<length(args.ax2)
                         ylab=ylab +"/";
                     end
@@ -421,16 +472,19 @@ classdef Simulator<handle
 
 
                 yyaxis right
-                hold off
+                % hold off
                 ylab2=coords(args.dimplot)+": ";
                 for m=1:length(args.ax2)
-                    yval=so.(args.ax2{m});
+                    yval=so.(args.ax2(m));
                     plot(xcoords,yval(:,args.dimplot))
                     hold on
-                    ylab2=ylab2+args.ax2{m};
+                    ylab2=ylab2+args.ax2(m);
                     if m<length(args.ax2)
                         ylab2=ylab2 +"/";
                     end
+                end
+                if any(contains(args.ax2,"bias"))
+                    plot(xcoords,0*xcoords)
                 end
                 ylabel(ylab2 + " (nm)")
                

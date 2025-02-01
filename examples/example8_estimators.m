@@ -8,19 +8,20 @@ fl=FlStatic;
 fl.pos=[20 0 0];
 sim=Simulator(fl);
 
-numberOfLocalizations=1000;
+numberOfLocalizations=100;
 L=75;
 probecenter=true;
 sim.definePattern("donut", psf_vec, phasemask="vortex", makepattern="orbitscan", orbitpoints=4, ...
     probecenter=probecenter,orbitL=L,laserpower=100)
-
+% sim.calculateCRB("donut")
+% sim.calculateCRBscan("donut")
 
 %% no background
 sim.defineComponent("estdonut","estimator",@est_donut2d,parameters={sim.patterns("donut").pos,L,360},dim=1:2);
 seq={"donut","estdonut"};
 psf_vec.zerooffset=0;
-xcoords=0:5:100;
-figure(293); statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true);
+xcoords=0:2:50;
+figure(293); clf; statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax2=["biasrel"]);
 
 
 % out=sim.runSequence(seq,"maxlocs",numberOfLocalizations);
