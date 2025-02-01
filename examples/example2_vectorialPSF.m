@@ -63,7 +63,7 @@ end
 %Add Zernike:
 % Zr(k,1): n, Zr(k,2): m, Zr(k,3): amplitude as fraction of wavelength
 sys.Zr(1,1)=4;sys.Zr(1,2)=0;sys.Zr(1,3)=0.1; %spherical aberrations 
-sys.Zr(1,1)=2;sys.Zr(1,2)=2;sys.Zr(1,3)=0.2; %astigmatism 
+sys.Zr(1,1)=2;sys.Zr(1,2)=2;sys.Zr(1,3)=0.05; %astigmatism 
 psf_vec2.setpar(sys)
 sim.definePattern("donut_aber", psf_vec2, phasemask="vortex", makepattern="orbitscan", orbitpoints=orbitpoints, ...
     probecenter=probecenter,orbitL=L,pointdwelltime=pointdwelltime,laserpower=laserpower,repetitions=repetitions)
@@ -73,7 +73,7 @@ out=sim.runSequence(seq);
 disp("aberrations:")
 sim.displayresults(out);
 psfab=psf_vec2.imagestack("vortex");
-imx(horzcat(psf0,psfab),'Parent',figure(121)); %compare the two PSFs
+imx(horzcat(psf0,psfab),'Parent',figure(121),'Title',"Aberrations"); %compare the two PSFs
 
 %% Misaligned phase plate
 if ~exist("psf_vec2","var") %if PSF is already defined, we need not recalculate it if no parameters are changed
@@ -93,7 +93,7 @@ out=sim.runSequence(seq);
 disp("misaligned phase plate:")
 sim.displayresults(out);
 psfab=psf_vec2.imagestack("vortex");
-imx(horzcat(psf0,psfab),'Parent',figure(129)); %compare the two PSFs
+imx(horzcat(psf0,psfab),'Parent',figure(129),'Title',"Misaligned phase plate"); %compare the two PSFs
 
 
 %% Pinhole
@@ -123,7 +123,7 @@ disp("pinhole misaligned:")
 sim.displayresults(out);
 
 psfph=psf_vecph2.imagestack("vortex");
-imx(horzcat(psf0,psfph),'Parent',figure(123)); %compare the two PSFs
+imx(horzcat(psf0,psfph),'Parent',figure(123),'Title',"Misaligned pinhole"); %compare the two PSFs
 
 
 %% 3D with tophat

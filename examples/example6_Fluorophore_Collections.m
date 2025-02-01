@@ -30,7 +30,7 @@ biasx=zeros(length(x),3); stdx=biasx; rmsex=biasx; crb=biasx;
 for k=1:length(x)
     fl2.pos(1)=x(k);
     out=sim.runSequence(seq,"maxlocs",numberOfLocalizations);
-    stats=sim.displayresults(out);
+    stats=sim.displayresults(out,display=false);
     biasx(k,:)=stats.bias;
     stdx(k,:)=stats.std;
     rmsex(k,:)=stats.rmse;
@@ -47,6 +47,29 @@ legend('rmse','std','sCRB','bias')
 ylabel('rmse / std / sCRB (nm)')
 xlabel('separation x (nm)')
 
+% now z-dependence
+fl1.pos=[0 0 0]; fl2.pos=[100 0 0];
+x=0:50:1000;
+biasx=zeros(length(x),3); stdx=biasx; rmsex=biasx; crb=biasx;
+for k=1:length(x)
+    fl2.pos(3)=x(k);
+    out=sim.runSequence(seq,"maxlocs",numberOfLocalizations);
+    stats=sim.displayresults(out,display=false);
+    biasx(k,:)=stats.bias;
+    stdx(k,:)=stats.std;
+    rmsex(k,:)=stats.rmse;
+    crb(k,:)=stats.sCRB;
+end
+
+figure(146)
+yyaxis right
+plot(x,biasx(:,1))
+ylabel('bias (nm)')
+yyaxis left
+plot(x,rmsex(:,1),x,stdx(:,1),x,crb(:,1))
+legend('rmse','std','sCRB','bias')
+ylabel('rmse / std / sCRB (nm)')
+xlabel('separation z (nm)')
 
 %% Imaging of blinking fluorophores with Abberior sequence
 %make abberior simulator

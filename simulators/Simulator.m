@@ -302,7 +302,13 @@ classdef Simulator<handle
                     iho=ih/ihm;
             end
         end
-        function stats=displayresults(obj,out)%, lpcrb,L)
+        function stats=displayresults(obj,out,args)%, lpcrb,L)
+            arguments
+                obj
+                out
+                args.display=true;
+            end
+               
           
             photraw=out.raw;
             photraw(photraw==-1)=NaN;
@@ -329,18 +335,6 @@ classdef Simulator<handle
                 end
             end
 
-             ff1='%1.1f,';
-            disp([ 'photch: ', num2str(photch(:)',ff1),...
-                ' mean(phot): ', num2str(mean(phot),ff1)])
-             ff='%1.2f,';
-            disp(['std:  ', num2str(std(xest,'omitnan'),ff),...
-                ' rmse: ', num2str(rmse(xest,flpos,'omitnan'),ff),...
-                ' pos: ', num2str(mean(xest,'omitnan'),ff),...
-                ' bias: ', num2str(mean(xest-flpos,'omitnan'),ff)]);
-            disp(['locp: ', num2str(lp,ff),...
-                ' sCRB: ', num2str(sigmaCRB/sqrt(mean(phot)),ff),...
-                ' sCRB*sqrt(phot): ', num2str(sigmaCRB,ff1)])
-
             stats.photch=photch(:);
             stats.phot=mean(phot);
             stats.std=std(xest,'omitnan');
@@ -349,7 +343,20 @@ classdef Simulator<handle
             stats.locp=lp;
             stats.sCRB=sigmaCRB/sqrt(mean(phot));
             stats.sCRB1=sigmaCRB;
-
+            
+            if args.display
+                ff1='%1.1f,';
+                disp([ 'photch: ', num2str(photch(:)',ff1),...
+                    ' mean(phot): ', num2str(mean(phot),ff1)])
+                 ff='%1.2f,';
+                disp(['std:  ', num2str(std(xest,'omitnan'),ff),...
+                    ' rmse: ', num2str(rmse(xest,flpos,'omitnan'),ff),...
+                    ' pos: ', num2str(mean(xest,'omitnan'),ff),...
+                    ' bias: ', num2str(mean(xest-flpos,'omitnan'),ff)]);
+                disp(['locp: ', num2str(lp,ff),...
+                    ' sCRB: ', num2str(sigmaCRB/sqrt(mean(phot)),ff),...
+                    ' sCRB*sqrt(phot): ', num2str(sigmaCRB,ff1)])
+            end
         end
     end
 end

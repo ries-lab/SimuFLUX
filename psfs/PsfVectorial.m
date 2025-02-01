@@ -44,6 +44,10 @@ classdef PsfVectorial<Psf
             if recalculate 
                 obj.PSFs=dictionary;%delete pre-calculated PSFs
                 obj.normfactgauss=[];
+                if ~isempty(obj.pinholepar)
+                    pp=struct2pairs(obj.pinholepar);
+                    obj.setpinhole(pp{:})
+                end
             end
         end
         function [idet,phfac]=intensity(obj, flpos ,patternpos, phasepattern, L)
@@ -88,6 +92,7 @@ classdef PsfVectorial<Psf
             end
             fprintf(key + ", ")
             intmethod='cubic'; %linear,cubic?
+            extraolation_method='nearest'; 
 
             opt=obj.parameters.opt;
             out=obj.parameters.addpar;
@@ -129,7 +134,7 @@ classdef PsfVectorial<Psf
                     PSF=squeeze(out.I(:,:,:,:))/normfact;
                     PSF = obj.beadsize(PSF, sys.beadradius);
                     [PSF,PSFdonut.normalization]=normpsf(PSF);
-                    PSFdonut.interp = griddedInterpolant(X,Y,Z,PSF,intmethod);              
+                    PSFdonut.interp = griddedInterpolant(X,Y,Z,PSF,intmethod, extraolation_method);              
                     obj.PSFs(key)=PSFdonut;
                 case {'halfmoonx','halfmoony'}
                     %convert L into phase
@@ -143,8 +148,8 @@ classdef PsfVectorial<Psf
                     PSF=squeeze(out.I(:,:,:,:))/normfact;
                     PSF = obj.beadsize(PSF, sys.beadradius);
                     [PSF,normalization]=normpsf(PSF);
-                    PSFx.interp = griddedInterpolant(X,Y,Z,permute(PSF,[2,1,3]),intmethod);
-                    PSFy.interp = griddedInterpolant(X,Y,Z,PSF,intmethod);     
+                    PSFx.interp = griddedInterpolant(X,Y,Z,permute(PSF,[2,1,3]),intmethod, extraolation_method);
+                    PSFy.interp = griddedInterpolant(X,Y,Z,PSF,intmethod, extraolation_method);     
                     PSFx.normalization=normalization;
                     PSFy.normalization=normalization;
                     obj.PSFs("halfmoonx"+Lxs) =PSFx; 
@@ -171,7 +176,7 @@ classdef PsfVectorial<Psf
                     kernel=double((Xk-phpos(1)).^2+(Yk-phpos(2)).^2<(phdiameter/2)^2);
                     psfph=conv2fft(psfg,kernel);
                     [psfph,PSFdonut.normalization]=normpsf(psfph);
-                    PSFdonut.interp = griddedInterpolant(X,Y,Z,psfph,intmethod);
+                    PSFdonut.interp = griddedInterpolant(X,Y,Z,psfph,intmethod,extraolation_method);
                     obj.PSFs(key)=PSFdonut;   
                 case 'tophat'
                     dzdphi=-3.6; %nm/degree
@@ -183,7 +188,7 @@ classdef PsfVectorial<Psf
                     PSF=squeeze(out.I(:,:,:,:))/normfact;
                     PSF = obj.beadsize(PSF, sys.beadradius);
                     [PSF,PSFdonut.normalization]=normpsf(PSF);
-                    PSFdonut.interp = griddedInterpolant(X,Y,Z,PSF,intmethod);
+                    PSFdonut.interp = griddedInterpolant(X,Y,Z,PSF,intmethod, extraolation_method);
                     obj.PSFs(key)=PSFdonut;   
                 case 'vortex'
                     sys.Ei = { 'phaseramp',  'circular'};  
@@ -193,7 +198,7 @@ classdef PsfVectorial<Psf
                     PSF=squeeze(out.I(:,:,:,:))/normfact;
                     PSF = obj.beadsize(PSF, sys.beadradius);
                     [PSF,PSFdonut.normalization]=normpsf(PSF);
-                    PSFdonut.interp = griddedInterpolant(X,Y,Z,PSF,intmethod);              
+                    PSFdonut.interp = griddedInterpolant(X,Y,Z,PSF,intmethod, extraolation_method);              
                     obj.PSFs(key)=PSFdonut;
                 otherwise
                     warning(phasepattern+" PSF name not defined")
@@ -232,8 +237,17 @@ classdef PsfVectorial<Psf
                 % [sys,opt,out]=systemparameters;
                 args.diameter=round(args.AU*1.22*obj.parameters.sys.loem*1e9/obj.parameters.sys.NA); %single nm accuracy should be sufficient
             end
-            if isempty(obj.PSFph)||(~isempty(obj.pinholepar) && (args.diameter ~= obj.pinholepar.diameter...
-                    || any(args.offset ~= obj.pinholepar.offset)) ) || ~isKey(obj.PSFs,"pinhole"+num2str([args.diameter,args.offset]))
+
+            %sdetermine if PH is already calculated
+            phdefined=~isempty(obj.PSFph) && ~isempty(obj.pinholepar);
+            notchanged=phdefined && (args.diameter == obj.pinholepar.diameter...
+                    && all(args.offset == obj.pinholepar.offset)); 
+
+            calculated=notchanged && ((obj.PSFs.isConfigured) && isKey(obj.PSFs,"pinhole"+num2str([args.diameter,args.offset])));
+
+            % if isempty(obj.PSFph)||(~isempty(obj.pinholepar) && (args.diameter ~= obj.pinholepar.diameter...
+            %         || any(args.offset ~= obj.pinholepar.offset)) ) || (~isempty(obj.PSFs) && ~isKey(obj.PSFs,"pinhole"+num2str([args.diameter,args.offset])))
+            if ~calculated
                 obj.PSFph=obj.calculatePSFs('pinhole',[args.diameter,args.offset],1);
             end
             obj.pinholepar.offset=args.offset;
