@@ -74,7 +74,7 @@ classdef Simulator<handle
                 pattern.phasemask(k)=string(args.phasemask);
                 pattern.zeropos(k)=string((zeropos(k)));
                 pattern.psf(k).calculatePSFs(args.phasemask,pattern.zeropos(k));
-                pattern.background(k)=obj.background/psf.normfactor(args.phasemask,pattern.zeropos(k));
+                pattern.backgroundfac(k)=1/psf.normfactor(args.phasemask,pattern.zeropos(k));
                 pattern.pointdwelltime(k)=args.pointdwelltime;
                 pattern.laserpower(k)=args.laserpower;
             end
@@ -100,7 +100,9 @@ classdef Simulator<handle
             flpos=zeros(fluorophores.numberOfFluorophores,3);
             flintall=zeros(fluorophores.numberOfFluorophores,1);
             flproperties=fluorophores.getproperties; %for performance
+            bgphot=0;
             time=obj.time;
+            background=obj.background;
             for r=1:repetitions
                 for k=1:numpoints
                     timep=timep+time; %for calculating average time point
@@ -113,12 +115,14 @@ classdef Simulator<handle
                     flpos(isactive,:)=flpos(isactive,:)+flposh;
                     flintall(isactive,:)=flintall(isactive,:)+flint;
                     time=time+pattern.pointdwelltime(k);
-                    intall(k)=intall(k)+intensity+pattern.background(k); %sum over repetitions, fluorophores
+                    bgphoth=pattern.backgroundfac(k)*background;
+                    bgphot=bgphoth+bgphot;
+                    intall(k)=intall(k)+intensity+bgphoth; %sum over repetitions, fluorophores
                 end
                 fluorophores.updateonoff(time);
             end
             out.phot=poissrnd(intall); %later: fl.tophot(intenall): adds bg, multiplies with brightness, does 
-            out.photbg=obj.background*sum(pattern.pointdwelltime);
+            out.photbg=bgphot;
             out.flpos=flpos/numpoints/repetitions;
             out.flint=flintall;
             out.averagetime=timep/numpoints/repetitions;
@@ -140,6 +144,7 @@ classdef Simulator<handle
                 end
             end
             photch=zeros(maxlocalizations*numpat,max(ls))-1;
+            photbg=zeros(maxlocalizations*numpat,1);
             loc=initlocs(maxlocalizations*numpat,{'xnm','ynm','znm','xfl1',...
                 'yfl1','zfl1','phot','time','abortcondition', 'xgalvo', 'ygalvo', 'zgalvo',...
                 'xeod','yeod','zeod'});
@@ -161,6 +166,7 @@ classdef Simulator<handle
                             loccounter=loccounter+1; % every localization gets a new entry, as in abberior
                             loc.phot(loccounter)=loc.phot(loccounter)+sum(scanout.phot);
                             photch(loccounter,1:length(scanout.phot))=scanout.phot;
+                            photbg(loccounter)=scanout.photbg;
                             loc.time(loccounter)=loc.time(loccounter)+scanout.averagetime;
                             flpos=scanout.flpos(1,:);
                             loc.xfl1(loccounter)=flpos(1);loc.yfl1(loccounter)=flpos(2);loc.zfl1(loccounter)=flpos(3);
@@ -190,6 +196,7 @@ classdef Simulator<handle
             out.loc=loc;
             out.raw=photch(1:loccounter,:);
             out.fluorophores=fluorophores;
+            out.bg_photons=photbg(1:loccounter);
         end
         function out=runSequence(obj,seq,args)
             arguments
@@ -202,11 +209,11 @@ classdef Simulator<handle
             for k=1:args.repetitions
                 obj.fluorophores.reset(obj.time);
                 out2=obj.runSequenceintern(seq,args.maxlocs);
-                out=obj.addout(out,out2);
+                out=obj.appendout(out,out2);
             end
             out.sequence=seq;
         end
-        function out1=addout(obj,out1,out2) %helper function
+        function out1=appendout(obj,out1,out2) %helper function
             if isempty(out2)
                 return
             end
@@ -266,7 +273,7 @@ classdef Simulator<handle
             flpos=args.position;
             % flpos=obj.fluorophores(1).pos; %the main one
             brightness=obj.fluorophores.brightness;
-            bg=obj.background/brightness(1);
+            bg=obj.background/brightness(1); %hack, to not have to calculate with all fluorophores
             
             ih=0;
             % make x,y, z fisher matrix
@@ -293,16 +300,18 @@ classdef Simulator<handle
             function iho=pi(dpos)
                     flposh=flpos;
                     flposh(1,:)=flposh(1,:)-dpos;
-                    ih=sum(pattern.psf(k).intensity(flposh-obj.posgalvo,pattern.pos(k,:),pattern.phasemask(k),pattern.zeropos(k))+bg);
+                    bgh=bg*pattern.backgroundfac(k);
+                    ih=sum(pattern.psf(k).intensity(flposh-obj.posgalvo,pattern.pos(k,:),pattern.phasemask(k),pattern.zeropos(k))+bgh);
                     
                     ihm=0;
                     for m=length(pattern.zeropos):-1:1
-                         ihm=ihm+sum(pattern.psf(m).intensity(flposh-obj.posgalvo,pattern.pos(m,:),pattern.phasemask(m),pattern.zeropos(m))+bg);
+                        bgh=bg*pattern.backgroundfac(m);
+                         ihm=ihm+sum(pattern.psf(m).intensity(flposh-obj.posgalvo,pattern.pos(m,:),pattern.phasemask(m),pattern.zeropos(m))+bgh);
                     end
                     iho=ih/ihm;
             end
         end
-        function stats=displayresults(obj,out,args)%, lpcrb,L)
+        function st=displayresults(obj,out,args)%, lpcrb,L)
             arguments
                 obj
                 out
@@ -335,27 +344,99 @@ classdef Simulator<handle
                 end
             end
 
-            stats.photch=photch(:);
-            stats.phot=mean(phot);
-            stats.std=std(xest,'omitnan');
-            stats.rmse=rmse(xest,flpos,'omitnan');
-            stats.bias=mean(xest-flpos,'omitnan');
-            stats.locp=lp;
-            stats.sCRB=sigmaCRB/sqrt(mean(phot));
-            stats.sCRB1=sigmaCRB;
+            st.photch=photch(:);
+            st.bg_photons=mean(out.bg_photons);
+            st.phot=mean(phot,'omitnan');
+            st.phot_signal= st.phot-st.bg_photons;            
+            st.std=std(xest,'omitnan');
+            st.rmse=rmse(xest,flpos,'omitnan');
+            st.pos=mean(xest,'omitnan');
+            st.bias=mean(xest-flpos,'omitnan');
+            st.locp=lp;
+            st.sCRB=sigmaCRB/sqrt(st.phot);
+            st.sCRB1=sigmaCRB;
             
             if args.display
                 ff1='%1.1f,';
-                disp([ 'photch: ', num2str(photch(:)',ff1),...
-                    ' mean(phot): ', num2str(mean(phot),ff1)])
+                disp([ 'photch: ', num2str(st.photch',ff1),...
+                    ' mean(phot): ', num2str(st.phot,ff1), 'signal phot: ', num2str(st.phot_signal,ff1)])
                  ff='%1.2f,';
-                disp(['std:  ', num2str(std(xest,'omitnan'),ff),...
-                    ' rmse: ', num2str(rmse(xest,flpos,'omitnan'),ff),...
-                    ' pos: ', num2str(mean(xest,'omitnan'),ff),...
-                    ' bias: ', num2str(mean(xest-flpos,'omitnan'),ff)]);
+                disp(['std:  ', num2str(st.std,ff),...
+                    ' rmse: ', num2str(st.rmse,ff),...
+                    ' pos: ', num2str(st.pos,ff),...
+                    ' bias: ', num2str(st.bias,ff)]);
                 disp(['locp: ', num2str(lp,ff),...
-                    ' sCRB: ', num2str(sigmaCRB/sqrt(mean(phot)),ff),...
-                    ' sCRB*sqrt(phot): ', num2str(sigmaCRB,ff1)])
+                    ' sCRB: ', num2str(st.sCRB,ff),...
+                    ' sCRB*sqrt(phot): ', num2str(st.sCRB1,ff1)])
+            end
+        end
+        function so=scan_fov(obj,seq,xcoords,args)
+            arguments
+                obj
+                seq
+                xcoords
+                args.maxlocs=1000;
+                args.repetitions=1;
+                args.display=true;
+                args.dimplot=1;
+                args.dimscan=1;
+                args.title="FoV scan";
+                args.fluorophorenumber=1;
+                args.ax1={"std"};
+                args.ax2={"bias"};
+            end
+
+            so.std=zeros(length(xcoords),3); so.rmse=so.std; so.bias=so.std;
+            if isa(obj.fluorophores,'FlCollection')
+                fl=obj.fluorophores.flall(args.fluorophorenumber);
+            else
+                fl=obj.fluorophores;
+            end
+            coords={"x","y","z"};
+
+            for k=1:length(xcoords)
+                fl.pos(args.dimscan)=xcoords(k);
+                out=obj.runSequence(seq,maxlocs=args.maxlocs,repetitions=args.repetitions);
+                stats=obj.displayresults(out,"display",false);
+                so.std(k,:)=stats.std;
+                so.bias(k,:)=stats.bias;
+                so.rmse(k,:)=stats.rmse;
+                so.sCRB(k,:)=stats.sCRB;
+            end
+        
+            if args.display
+                yyaxis left
+                hold off
+                ylab=coords(args.dimplot)+": ";
+                for m=1:length(args.ax1)
+                    yval=so.(args.ax1{m});
+                    plot(xcoords,yval(:,args.dimplot))
+                    hold on
+                    ylab=ylab+args.ax1{m};
+                    if m<length(args.ax2)
+                        ylab=ylab +"/";
+                    end
+                end
+                ylabel(ylab + " (nm)")
+
+
+                yyaxis right
+                hold off
+                ylab2=coords(args.dimplot)+": ";
+                for m=1:length(args.ax2)
+                    yval=so.(args.ax2{m});
+                    plot(xcoords,yval(:,args.dimplot))
+                    hold on
+                    ylab2=ylab2+args.ax2{m};
+                    if m<length(args.ax2)
+                        ylab2=ylab2 +"/";
+                    end
+                end
+                ylabel(ylab2 + " (nm)")
+               
+                xlabel(coords(args.dimscan) + " position (nm)")
+                title(args.title)
+                legend([args.ax1 args.ax2])
             end
         end
     end
