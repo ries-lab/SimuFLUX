@@ -331,8 +331,6 @@ classdef Simulator<handle
             posold=fl1.pos;
             eps=1;
             IFisher=zeros(length(dim));
-            % out1=patternscan(patternames);
-            % 
             out0=obj.patternscan(patternnames);
             pi0=out0.intensity/sum(out0.intensity);
             for coord=1:length(dim)
@@ -346,13 +344,12 @@ classdef Simulator<handle
             end
             for coord=1:length(dim)
                 for coord2=1:length(dim)
-                    % IFisher(dim(coord),dim(coord2))=IFisher(dim(coord),dim(coord2))+dpdc(dim(coord))*dpdc(dim(coord2))/(pi([0 0 0])+1e-5
-                    fh=dpdc(:,dim(coord)).*dpdc(:,dim(coord2))./(pi0+1e-8);
+                     fh=dpdc(:,dim(coord)).*dpdc(:,dim(coord2))./(pi0+1e-12);
                      IFisher((coord),(coord2))=sum(fh);
                 end
             end
 
-        
+            fl1.pos=posold;
             crlb=(inv(IFisher));
             locprech=diag(sqrt(crlb))';
             locprec=[0 0 0];
@@ -365,8 +362,6 @@ classdef Simulator<handle
                 out
                 args.display=true;
             end
-               
-          
             photraw=out.raw;
             photraw(photraw==-1)=NaN;
             if length(size(photraw))>3
@@ -378,8 +373,6 @@ classdef Simulator<handle
             flpos=horzcat(out.loc.xfl1,out.loc.yfl1,out.loc.zfl1);
             phot=out.loc.phot;
             
-            % sigmaCRB=obj.calculateCRB(patternkey,dim=pattern.dim);
-
             seq=out.sequence;
             lp=[0,0,0]; sigmaCRB=[0,0,0];
             for k=1:length(seq)
