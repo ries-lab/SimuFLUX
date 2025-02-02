@@ -100,6 +100,7 @@ classdef SimSequencefile<Simulator
                     scanout=sumstruct(scanout,scanouth);
                     
                     photsum=sum(scanout.phot);
+                    photbg=scanout.photbg;
                     
                     if itrs(itr).ccrLimit>-1
                         probecenter=true;
@@ -189,6 +190,7 @@ classdef SimSequencefile<Simulator
                     out.raw(loccounter,1:length(scanout.phot))=scanout.phot;
                     out.fluorophores.pos(loccounter,1:size(scanout.flpos,1),:)=scanout.flpos;
                     out.fluorophores.int(loccounter,1:size(scanout.flpos,1))=scanout.flint;
+                    out.bg_photons(loccounter)=photbg; 
                     
                     loccounter=loccounter+1;
                 end
@@ -213,7 +215,7 @@ classdef SimSequencefile<Simulator
             for k=1:args.repetitions
                 obj.fluorophores(1).reset;
                 out2=obj.runSequenceintern;
-                out=obj.addout(out,out2);
+                out=obj.appendout(out,out2);
             end
         end
         function makescoutingpattern(obj,fov,args)
@@ -248,7 +250,7 @@ classdef SimSequencefile<Simulator
                     obj.posgalvo(1:2)=obj.scoutingcoordinates(pind,:);
                     obj.posEOD=[0 0 0];
                     out2=obj.runSequence;
-                    out=obj.addout(out,out2);
+                    out=obj.appendout(out,out2);
                     if obj.fluorophores.allbleached
                         allbleached=true;
                         break

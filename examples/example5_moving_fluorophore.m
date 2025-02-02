@@ -27,7 +27,7 @@ sim.plotpositions(out,figure=211,xvalues="time");
 %% make stepping fluorophore
 sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;
 fl2=FlMoveBleach;
-fl2.photonbudget=10000;
+fl2.photonbudget=20000;
 updatetime=0.01; %us
 stepsize=16; %nm
 dwelltime=5; %ms

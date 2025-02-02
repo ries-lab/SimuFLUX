@@ -24,5 +24,5 @@ plot(out.loc.loccounter,out.loc.xeod)
 xlabel('time (itr)')
 ylabel('x position(nm)')
 legend('estimated', 'fluorophore','xgalvo','EOD')
-
-sim.displayresults(out); %display summary of simulation
+indf=out.loc.itr==max(out.loc.itr) & out.loc.vld==1;
+sim.summarize_results(out,filter=indf); %display summary of simulation

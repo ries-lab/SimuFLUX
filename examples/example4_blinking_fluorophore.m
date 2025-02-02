@@ -17,7 +17,7 @@ psf_donut=PsfDonut2D;
 sim.definePattern("donut", psf_donut, makepattern="orbitscan", orbitpoints=orbitpoints, ...
     probecenter=probecenter,orbitL=L,pointdwelltime=pointdwelltime,laserpower=25,repetitions=repetitions);
 sim.defineComponent("estdonut","estimator",@est_donut2d,parameters={sim.patterns("donut").pos,L,360},dim=1:2);
-out=sim.runSequence({"donut","estdonut"});sim.displayresults(out);
+out=sim.runSequence({"donut","estdonut"});sim.summarize_results(out);
 
 %plot std vs repetitions
 allrepetitions=1:5:25;
@@ -27,13 +27,22 @@ for k=1:length(allrepetitions)
     sim.definePattern("donut", psf_donut, makepattern="orbitscan", orbitpoints=orbitpoints, ...
     probecenter=probecenter,orbitL=L,pointdwelltime=pointdwelltime,laserpower=25,repetitions=allrepetitions(k));
     out=sim.runSequence({"donut","estdonut"},maxlocs=1000);
-    stdx(k)=std(out.loc.xnm,'omitnan');
-    stdy(k)=std(out.loc.ynm,'omitnan');
-    crb=sim.calculateCRB("donut",dim=1:2);
-    stdxrel(k)=stdx(k)/crb(1)*sqrt(mean(out.loc.phot(out.loc.phot>0)));
-    stdyrel(k)=stdy(k)/crb(2)*sqrt(mean(out.loc.phot(out.loc.phot>0)));
-    biasx(k)=mean(out.loc.xnm-out.loc.xfl1,'omitnan');
-    biasy(k)=mean(out.loc.ynm-out.loc.yfl1,'omitnan');
+    sr=sim.summarize_results(out);
+    stdx(k)=sr.std(1);
+    stdy(k)=sr.std(2);
+    % crb=sr.sCRB(1);
+    stdxrel(k)=stdx(k)/sr.sCRB(1);
+    stdyrel(k)=stdy(k)/sr.sCRB(1);
+    biasx(k)=sr.bias(1);
+    biasy(k)=sr.bias(2);
+
+    % stdx(k)=std(out.loc.xnm,'omitnan');
+    % stdy(k)=std(out.loc.ynm,'omitnan');
+    % crb=sim.calculateCRB("donut",dim=1:2);
+    % stdxrel(k)=stdx(k)/crb(1)*sqrt(mean(out.loc.phot(out.loc.phot>0)));
+    % stdyrel(k)=stdy(k)/crb(2)*sqrt(mean(out.loc.phot(out.loc.phot>0)));
+    % biasx(k)=mean(out.loc.xnm-out.loc.xfl1,'omitnan');
+    % biasy(k)=mean(out.loc.ynm-out.loc.yfl1,'omitnan');
 end
 figure(134)
 plot(allrepetitions,stdxrel,allrepetitions,stdyrel)

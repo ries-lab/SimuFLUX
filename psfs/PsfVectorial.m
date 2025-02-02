@@ -12,7 +12,7 @@ classdef PsfVectorial<Psf
         function obj=PsfVectorial(varargin)
             obj@Psf(varargin{:});
             addpath([fileparts(mfilename('fullpath')) '/PSF_simulation/library']);
-            obj.parameters=obj.loadparameters('settings/defaultsystemparameters_vectorialPSF.m');
+            obj.parameters=obj.loadparameters('/settings/defaultsystemparameters_vectorialPSF.m');
         end
         function setpar(obj,varargin)
             if nargin >2 %structure passed on
@@ -285,7 +285,9 @@ classdef PsfVectorial<Psf
             [fpath,fname,ext]=fileparts(filen);
             switch ext
                 case '.m'
-                    addpath(fpath)
+                    if exist(fpath,"dir")
+                        addpath(fpath)
+                    end
                     [sys,opt,out]=eval(fname);
                     [sys2,out]=effInit_oil_exc(sys,out,opt);
                     sys=copyfields(sys,sys2);

@@ -38,4 +38,4 @@ out=sim.runSequence(seq,maxlocs=numberOfLocalizations);
 % out.fluorophores: position of fluorophores
 % out.raw: photon measurements
 
-sim.displayresults(out); %display summary of simulation
+sim. summarize_results(out); %display summary of simulation

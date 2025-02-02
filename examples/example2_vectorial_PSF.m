@@ -41,7 +41,7 @@ out=sim.runSequence(seq,"maxlocs",numberOfLocalizations);
 sigmaCRB=sim.calculateCRB("donut",dim=1:2)/sqrt(mean(out.loc.phot));
 
 disp('vectorial PSF:')
-sim.displayresults(out); %display summary of simulation
+sim.summarize_results(out); %display summary of simulation
 
 psf0=psf_vec.imagestack("vortex");
 
@@ -50,7 +50,7 @@ psf0=psf_vec.imagestack("vortex");
 psf_vec.zerooffset=0.005;
 out=sim.runSequence(seq);
 disp("zero offset = " + psf_vec.zerooffset + ":")
-sim.displayresults(out);
+sim.summarize_results(out);
 
 %% Aberrations
 % let us change the PSF by adding aberrations. Note, in this case we have
@@ -71,7 +71,7 @@ seq={"donut_aber","estdonut"};
 out=sim.runSequence(seq);
 
 disp("aberrations:")
-sim.displayresults(out);
+sim.summarize_results(out);
 psfab=psf_vec2.imagestack("vortex");
 imx(horzcat(psf0,psfab),'Parent',figure(121),'Title',"Aberrations"); %compare the two PSFs
 
@@ -91,7 +91,7 @@ seq={"donut_misaligned","estdonut"};
 out=sim.runSequence(seq);
 
 disp("misaligned phase plate:")
-sim.displayresults(out);
+sim.summarize_results(out);
 psfab=psf_vec2.imagestack("vortex");
 imx(horzcat(psf0,psfab),'Parent',figure(129),'Title',"Misaligned phase plate"); %compare the two PSFs
 
@@ -107,7 +107,7 @@ sim.definePattern("donut_ph", psf_vecph, phasemask="vortex", makepattern="orbits
 seq={"donut_ph","estdonut"};
 disp("pinhole:")
 out=sim.runSequence(seq);
-sim.displayresults(out);
+sim.summarize_results(out);
 
 %% Misaligned pinhole
 % now lets move the pinhole (misalignment)
@@ -120,7 +120,7 @@ sim.definePattern("donut_ph", psf_vecph2, phasemask="vortex", makepattern="orbit
 seq={"donut_ph","estdonut"};
 out=sim.runSequence(seq);
 disp("pinhole misaligned:")
-sim.displayresults(out);
+sim.summarize_results(out);
 
 psfph=psf_vecph2.imagestack("vortex");
 imx(horzcat(psf0,psfph),'Parent',figure(123),'Title',"Misaligned pinhole"); %compare the two PSFs
@@ -157,7 +157,7 @@ seq={"tophat_xy","esttophat_xy","tophat_z","esttophat_z"};
 out=sim.runSequence(seq);
 
 disp("3D with tophat:")
-sim.displayresults(out);
+sim.summarize_results(out);
 
 % 3D with tophat and vortex
 sim.definePattern("donut_xy", psf_vecth, phasemask="vortex", makepattern="orbitscan", orbitpoints=orbitpoints, ...
@@ -167,7 +167,7 @@ seq={"donut_xy","estdonut","tophat_z","esttophat_z"};
 out=sim.runSequence(seq);
 
 disp("3D with donut and tophat:")
-sim.displayresults(out);
+sim.summarize_results(out);
 
 
 %% PhaseFlux 3D localization
@@ -202,4 +202,4 @@ sim.defineComponent("esttophat_z","estimator",@est_donut1d,parameters={zeroposz,
 seq={"pf_x","est_x","pf_y","est_y","pf_z","est_z"};
 out=sim.runSequence(seq);
 disp("PhaseFLUX:")
-sim.displayresults(out);
+sim.summarize_results(out);

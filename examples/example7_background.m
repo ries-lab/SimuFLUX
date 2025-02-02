@@ -20,20 +20,20 @@ psf_vec.zerooffset=0;
 sim.fluorophores=fl1;
 out=sim.runSequence(seq,"maxlocs",numberOfLocalizations);
 disp("no background")
-sim.displayresults(out);
+sim.summarize_results(out);
 
 %% imperfect zero
 psf_vec.zerooffset=0.2;
 out=sim.runSequence(seq,"maxlocs",numberOfLocalizations);
 disp("zerooffset: ")
-sim.displayresults(out);
+sim.summarize_results(out);
 
 %% Autofluorescence background
 psf_vec.zerooffset=0.0;
 sim.background=50;
 out=sim.runSequence(seq,"maxlocs",numberOfLocalizations);
 disp("fluorescence background: ")
-sim.displayresults(out);
+sim.summarize_results(out);
 
 %% nearby fluorophore
 fl2=FlStatic;
@@ -46,5 +46,5 @@ sim.fluorophores=fc; %make a simulator and attach fluorophore
 
 out=sim.runSequence(seq,"maxlocs",numberOfLocalizations);
 disp("nearby fluorophore: ")
-sim.displayresults(out);
+sim.summarize_results(out);
 

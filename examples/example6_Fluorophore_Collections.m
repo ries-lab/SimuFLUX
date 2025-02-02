@@ -23,12 +23,12 @@ sim.defineComponent("estdonut","estimator",@est_donut2d,parameters={sim.patterns
 
 seq={"donut","estdonut"};
 out=sim.runSequence(seq,"maxlocs",numberOfLocalizations);
-stats=sim.displayresults(out);
+stats=sim.summarize_results(out);
 
 x=0:20:750;
 
 figure(144)
-sim.scan_fov(seq,x,dimplot=1,dimscan=1,fluorophorenumber=2,ax1={"std","rmse","sCRB"},ax2="bias")
+sim.scan_fov(seq,x,dimplot=1,dimscan=1,fluorophorenumber=2,ax1=["std","rmse","sCRB"],ax2="bias");
 
 
 
@@ -36,7 +36,7 @@ sim.scan_fov(seq,x,dimplot=1,dimscan=1,fluorophorenumber=2,ax1={"std","rmse","sC
 fl1.pos=[0 0 0]; fl2.pos=[100 0 0];
 z=0:50:1000;
 figure(145)
-sim.scan_fov(seq,z,dimplot=1,dimscan=3,fluorophorenumber=2,ax1={"std","rmse","sCRB"},ax2="bias")
+sim.scan_fov(seq,z,dimplot=1,dimscan=3,fluorophorenumber=2,ax1=["std","rmse","sCRB"],ax2="bias");
 
 
 
