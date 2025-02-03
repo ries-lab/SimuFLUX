@@ -166,6 +166,7 @@ classdef Simulator<handle
                 end
                 posgalvo_beforecenter=obj.posgalvo;
                 xest=[0,0,0];
+                fl.pos=[];fl.int=[];
                 for s=1:numseq
                     component=obj.patterns(seq{s});
                     switch component.type
@@ -178,8 +179,8 @@ classdef Simulator<handle
                             loc.time(loccounter)=loc.time(loccounter)+scanout.averagetime;
                             flpos=scanout.flpos(1,:);
                             loc.xfl1(loccounter)=flpos(1);loc.yfl1(loccounter)=flpos(2);loc.zfl1(loccounter)=flpos(3);
-                            fluorophores.pos(loccounter,1:size(scanout.flpos,1),:)=scanout.flpos;
-                            fluorophores.int(loccounter,1:size(scanout.flpos,1))=scanout.flint;
+                            fl.pos(loccounter,1:size(scanout.flpos,1),:)=scanout.flpos;
+                            fl.int(loccounter,1:size(scanout.flpos,1))=scanout.flint;
                         case "estimator"
                             % replace placeholder names by values
                             component_par=replaceinlist(component.parameters,'patternpos',scanout.par.patternpos,'L',scanout.par.L,...
@@ -205,7 +206,7 @@ classdef Simulator<handle
             loc.abortcondition=zeros(size(loc.phot));loc.abortcondition(end)=1+2*bleached;
             out.loc=loc;
             out.raw=photch(1:loccounter,:);
-            out.fluorophores=fluorophores;
+            out.fluorophores=fl;
             out.bg_photons=photbg(1:loccounter);
         end
         function out=runSequence(obj,seq,args)
