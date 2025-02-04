@@ -245,9 +245,12 @@ classdef SimSequencefile<Simulator
             % obj.posEOD=[0 0 0];
             out=[];
             allbleached=false;
-            fprintf("scouting, repetition X of "+args.maxrep + ":" )
+            % fprintf(1,'Computation Progress: %3d%%\n',0);
+            fprintf(1,"scouting, progress: %3d%%\n",0)
             for reps=1:args.maxrep
-                fprintf(num2str(reps,"%2.0f,"))
+                prog=reps/args.maxrep*100;
+                fprintf(1,'\b\b\b\b%3.0f%%',prog)
+                % fprintf(num2str(reps,"%2.0f,"))
                 for pind=1:size(obj.scoutingcoordinates,1)
                     obj.posgalvo(1:2)=obj.scoutingcoordinates(pind,:);
                     obj.posEOD=[0 0 0];

@@ -137,11 +137,6 @@ classdef Simulator<handle
             out.par.zeropos=pattern.zeropos;
             out.par.dim=pattern.dim;
             obj.time=time;
-            
-            if any(out.flpos(:,2)>500)
-                disp('x')
-            end
-            
         end
 
         function out=runSequenceintern(obj,seq,maxlocalizations)
