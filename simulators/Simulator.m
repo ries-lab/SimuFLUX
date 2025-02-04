@@ -137,8 +137,6 @@ classdef Simulator<handle
             out.par.zeropos=pattern.zeropos;
             out.par.dim=pattern.dim;
             obj.time=time;
-            
-            
         end
 
         function out=runSequenceintern(obj,seq,maxlocalizations)

@@ -188,7 +188,7 @@ classdef SimSequencefile<Simulator
                     out.loc.patternrepeat(loccounter,1)=scanout.counter;
                     out.loc.measuretime(loccounter,1)=scanout.patterntotaltime;           
                     out.raw(loccounter,1:length(scanout.phot))=scanout.phot;
-                    out.fluorophores.pos(loccounter,1:size(scanout.flpos,1),:)=scanout.flpos;
+                    out.fluorophores.pos(loccounter,1:size(scanout.flpos,1),:)=scanout.flpos/scanout.counter;
                     out.fluorophores.int(loccounter,1:size(scanout.flpos,1))=scanout.flint;
                     out.bg_photons(loccounter)=photbg; 
                     
@@ -241,12 +241,17 @@ classdef SimSequencefile<Simulator
                 args.maxrep=2;
             end
             %reset fluorophore?
-            obj.posgalvo(1:2)=obj.scoutingcoordinates(1,:);
-            obj.posEOD=[0 0 0];
+            % obj.posgalvo(1:2)=obj.scoutingcoordinates(1,:);
+            % obj.posEOD=[0 0 0];
             out=[];
             allbleached=false;
+            % fprintf(1,'Computation Progress: %3d%%\n',0);
+            fprintf(1,"scouting, progress: %3d%%\n",0)
             for reps=1:args.maxrep
-                for pind=2:size(obj.scoutingcoordinates,1)
+                prog=reps/args.maxrep*100;
+                fprintf(1,'\b\b\b\b%3.0f%%',prog)
+                % fprintf(num2str(reps,"%2.0f,"))
+                for pind=1:size(obj.scoutingcoordinates,1)
                     obj.posgalvo(1:2)=obj.scoutingcoordinates(pind,:);
                     obj.posEOD=[0 0 0];
                     out2=obj.runSequence;
