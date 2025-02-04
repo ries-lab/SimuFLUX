@@ -9,6 +9,8 @@ if isempty(sadd)
 end
 fn=fieldnames(sin);
 for k=1:length(fn)
-    sout.(fn{k})=sin.(fn{k})+sadd.(fn{k});
+    if isnumeric(sadd.(fn{k}))
+        sout.(fn{k})=sin.(fn{k})+sadd.(fn{k});
+    end
 end
 end

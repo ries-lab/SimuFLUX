@@ -25,7 +25,7 @@ classdef FlMoving<Fluorophore
                 case {'trace','diffusion','steps'}
                     %XXXX add test if ind. already too high (e.g. 2x
                     %position asked. If asked 2x same time: should work)
-                    posind=obj.posind;
+                    posind=max(1,obj.posind-1); 
                     if pos(posind,1)>time
                         posind=find(pos(:,1)<time,1,'last');
                         if isempty(posind)
@@ -51,7 +51,7 @@ classdef FlMoving<Fluorophore
                 dt %us
                 args.startpos=[0 0 0]
                 args.dim=2;
-                args.numpoints=1000;
+                args.numpoints=10000;
                 args.boundarybox=[]; %nm, half length of box, periodic boundary conditions
             end
             obj.posparameters={D,dt,args};
@@ -63,7 +63,7 @@ classdef FlMoving<Fluorophore
             pos=horzcat(cumsum(jumps,1))+args.startpos(1:args.dim);
             if ~isempty(args.boundarybox) %periodic boundary conditions
                 if numel(args.boundarybox)==1
-                    args.boundarybox=args.boundarybox*ones(1,args.dim);
+                    args.boundarybox=args.boundarybox.*ones(1,args.dim);
                 end
                 pos2=pos+args.boundarybox;
                 pos3=mod(pos2,2*args.boundarybox);
@@ -108,7 +108,7 @@ classdef FlMoving<Fluorophore
             args=obj.posparameters{end};
             switch obj.posmode
                 case 'diffusion'
-                    obj.makediffusion(obj.posparameters{1},obj.posparameters{2},dim=args.dim,numpoints=args.numpoints,startpos=currentpos(2:end))
+                    obj.makediffusion(obj.posparameters{1},obj.posparameters{2},dim=args.dim,numpoints=args.numpoints,startpos=currentpos(2:end),boundarybox=args.boundarybox)
                 case 'steps'
                     obj.makesteps(obj.posparameters{1},obj.posparameters{2},obj.posparameters{3},dim=args.dim,numpoints=args.numpoints,startpos=currentpos(2:end), angle=args.angle)
             end        

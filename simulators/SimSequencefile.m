@@ -241,12 +241,14 @@ classdef SimSequencefile<Simulator
                 args.maxrep=2;
             end
             %reset fluorophore?
-            obj.posgalvo(1:2)=obj.scoutingcoordinates(1,:);
-            obj.posEOD=[0 0 0];
+            % obj.posgalvo(1:2)=obj.scoutingcoordinates(1,:);
+            % obj.posEOD=[0 0 0];
             out=[];
             allbleached=false;
+            fprintf("scouting, repetition X of "+args.maxrep + ":" )
             for reps=1:args.maxrep
-                for pind=2:size(obj.scoutingcoordinates,1)
+                fprintf(num2str(reps,"%2.0f,"))
+                for pind=1:size(obj.scoutingcoordinates,1)
                     obj.posgalvo(1:2)=obj.scoutingcoordinates(pind,:);
                     obj.posEOD=[0 0 0];
                     out2=obj.runSequence;

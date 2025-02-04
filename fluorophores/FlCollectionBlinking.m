@@ -10,14 +10,14 @@ classdef FlCollectionBlinking<FlCollection
             fact=find(isactive);
             pos=zeros(length(fact),3);
             for k=1:length(fact)
-                pos(k,:)=flall(fact(k)).position(time);
+                pos(k,:)=flall{fact(k)}.position(time);
             end
         end
         function ih=intensity(obj,intin,dt,time,phfac,props)
             fact=find(obj.flprop.isactive);
             ih=zeros(length(fact),1);
             for k=1:length(fact)
-                ih(k)=obj.flall(fact(k)).intensity(intin(k),dt,time,phfac(k));
+                ih(k)=obj.flall{fact(k)}.intensity(intin(k),dt,time,phfac(k));
             end
         end        
         function add(obj,fllist)
@@ -25,11 +25,15 @@ classdef FlCollectionBlinking<FlCollection
                 obj.addstatic(fllist);
                 return
             end
+            if ~iscell(fllist)
+                fllist={fllist};
+            end
              obj.flall=cat(2,obj.flall,fllist);
              numfl=length(fllist);
              flproph.isactive=true(1,numfl); flproph.nexton=zeros(1,numfl); flproph.nextoff=zeros(1,numfl);
              flproph.moving=true(1,numfl); flproph.activations=zeros(1,numfl); flproph.remaining_activations=zeros(1,numfl);
              obj.flprop=appendstruct(obj.flprop,flproph);
+             obj.numberOfFluorophores=length(obj.flall);
         end
         function addstatic(obj,poslist)
             %arguments timestart: if obj.time different
@@ -54,7 +58,7 @@ classdef FlCollectionBlinking<FlCollection
 
                 flproph.nexton(k)=exprnd(switchpar.toffsmlm);
                 flproph.nextoff(k)=exprnd(switchpar.tonsmlm);
-                fllist(k)=addfl;
+                fllist{k}=addfl;
             end
             flproph.activations=double(flproph.isactive);
             flproph.remaining_activations=max(1,poissrnd(switchpar.activations,1,numfl));
@@ -73,7 +77,7 @@ classdef FlCollectionBlinking<FlCollection
             %add remaining photons=0?
             activef=find(isactive&~flprop.moving);
             for k=1:length(activef)
-                if obj.flall(activef(k)).remainingphotons<1
+                if obj.flall{activef(k)}.remainingphotons<1
                     switchoff(activef(k))=true;
                 end
             end
@@ -93,7 +97,7 @@ classdef FlCollectionBlinking<FlCollection
                 obj.flprop.nextoff(switchon)=exprnd(switchpar.tonsmlm,sson,1)+time;
                 obj.flprop.remaining_activations(switchon)=obj.flprop.remaining_activations(switchon)-1;
                 for k=1:sson
-                    obj.flall(switchon(k)).reset;
+                    obj.flall{switchon(k)}.reset;
                 end
             end
             if sson>0 || ssoff>0

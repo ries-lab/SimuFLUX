@@ -14,7 +14,7 @@
             % fact=find(isactive);
             pos=zeros(length(flall),3);
             for k=1:length(flall)
-                pos(k,:)=obj.flall(k).position(time);
+                pos(k,:)=obj.flall{k}.position(time);
             end
             isactive=true(length(flall),1);
         end
@@ -22,7 +22,7 @@
             flall=obj.flall;
             ih=zeros(length(flall),1);
             for k=1:length(flall)
-                ih(k)=flall(k).intensity(intin(k),dt,time,phfac(k));
+                ih(k)=flall{k}.intensity(intin(k),dt,time,phfac(k));
             end
 
         end
