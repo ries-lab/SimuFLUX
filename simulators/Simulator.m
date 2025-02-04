@@ -138,6 +138,9 @@ classdef Simulator<handle
             out.par.dim=pattern.dim;
             obj.time=time;
             
+            if any(out.flpos(:,2)>500)
+                disp('x')
+            end
             
         end
 

@@ -46,7 +46,7 @@ fc.add(posnpc);
 D=10; %um^2/s
 fd=FlMoving;
 fd.brightness=switchpar.brightness;
-fd.makediffusion(D,0.01,dim=3,boundarybox=[.5 0.5 1]);
+fd.makediffusion(D,0.01,dim=3,boundarybox=[500 500 1000]);
 fc.add(fd)
 
 sim.fluorophores=fc;
@@ -57,13 +57,16 @@ out=sim.scoutingSequence(maxrep=10);
 vld=out.loc.vld==1 & out.loc.itr==max(out.loc.itr) ;
 vldcfr=vld & out.loc.cfr<0.1;
 figure(89); hold off;
-plot(sim.scoutingcoordinates(:,1),sim.scoutingcoordinates(:,2),'k+')
+posdiff=squeeze(out.fluorophores.pos(:,end,:));
+plot(posdiff(:,1),posdiff(:,2),'c')
 hold on
+plot(sim.scoutingcoordinates(:,1),sim.scoutingcoordinates(:,2),'k+')
+
 plot(out.loc.xnm(vld),out.loc.ynm(vld),'r.')
 plot(out.loc.xnm(vldcfr),out.loc.ynm(vldcfr),'bx')
 posfl=out.fluorophores.pos(end,:,2:end);
 plot(posfl(:,1),posfl(:,2),'mo')
-posdiff=squeeze(out.fluorophores.pos(:,end,:));
-plot(posdiff(:,1),posdiff(:,2))
+
+
 axis equal
 legend('scouting','last itr vld','last itr vld +cfr', 'fluorophore')

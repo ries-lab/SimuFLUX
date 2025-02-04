@@ -188,7 +188,7 @@ classdef SimSequencefile<Simulator
                     out.loc.patternrepeat(loccounter,1)=scanout.counter;
                     out.loc.measuretime(loccounter,1)=scanout.patterntotaltime;           
                     out.raw(loccounter,1:length(scanout.phot))=scanout.phot;
-                    out.fluorophores.pos(loccounter,1:size(scanout.flpos,1),:)=scanout.flpos;
+                    out.fluorophores.pos(loccounter,1:size(scanout.flpos,1),:)=scanout.flpos/scanout.counter;
                     out.fluorophores.int(loccounter,1:size(scanout.flpos,1))=scanout.flint;
                     out.bg_photons(loccounter)=photbg; 
                     
