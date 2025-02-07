@@ -40,7 +40,7 @@ fl2=FlStatic;
 fl2.pos=[50 100 600];
 
 fc=FlCollection;
-fc.add([fl1, fl2])
+fc.add({fl1, fl2})
 psf_vec.zerooffset=0;
 sim.fluorophores=fc; %make a simulator and attach fluorophore
 

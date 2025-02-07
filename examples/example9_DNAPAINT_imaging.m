@@ -50,8 +50,8 @@ fc.add(fd)
 sim.fluorophores=fc;
 maxtime=10*1e3; %10 seconds
 % repetitions=[500,100];
-brightnesses=[0,1]; %compare without and with background from diffusing fluorophore
-
+brightnesses=[1,0]; %compare without and with background from diffusing fluorophore
+sim.bgcSenseValue=0;
 for k=1:length(brightnesses)
     sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;
     fd.brightness=switchpar.brightness*brightnesses(k);

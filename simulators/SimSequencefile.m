@@ -4,6 +4,7 @@ classdef SimSequencefile<Simulator
         estimators=struct('function',"","par",[],"dim",[]);
         scoutingcoordinates
         psfvec=PsfVectorial; %store only one copy in which different patterns are defined
+        bgcSenseValue=0;
     end
     methods
         function loadsequence(obj,varargin)
@@ -100,6 +101,7 @@ classdef SimSequencefile<Simulator
                     % repeat scanning until sufficient photons collected,
                     % or abort condition met
                     scanouth=obj.patternscan(itrname);
+                    scanouth=obj.subtractbackground(scanouth);
                     scanout=sumstruct(scanout,scanouth);
                     
                     photsum=sum(scanout.phot);
@@ -161,8 +163,6 @@ classdef SimSequencefile<Simulator
                         xesttot=[0,0,0];
                     end
     
-                    
-                    
                     if itrs(itr).ccrLimit>-1
                         out.loc.eco(loccounter,1)=sum(scanout.phot(1:end-1));
                         out.loc.ecc(loccounter,1)=sum(scanout.phot(end));
@@ -325,6 +325,16 @@ classdef SimSequencefile<Simulator
             ylabel(ax,'x position(nm)')
             legend(ax,'estimated', 'fluorophore','xgalvo','EOD')
 
+        end
+        function so=subtractbackground(obj,si)
+            bg=obj.bgcSenseValue;
+            so=si;
+            if bg>0
+                pointtime=si.par.pointdwelltime;
+                so.phot=so.phot-bg*pointtime;
+                % so.photbg=so.photbg+bg*pointtime; % this is explicitely used in some
+                % estimators... not consistent
+            end
         end
     end
 end
