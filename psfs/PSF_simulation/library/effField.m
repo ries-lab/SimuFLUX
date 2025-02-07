@@ -138,6 +138,9 @@ for z=1:nz
    E=ifft(vmul(fft(Et,M,2),v),M,2);
    E=ifft(vmul(fft(vmul(E(:,m,:),a),N,3),w),N,3);
    E=vmul(E(:,:,n),b);
+   % E=ifft((fft(Et,M,2).*v),M,2);
+   % E=ifft((fft((E(:,m,:).*a),N,3).*w),N,3);
+   % E=(E(:,:,n).*b);
    out.E(:,:,:,z)=E;
    if opt.Ef            % Displaying electric field.
       E=vabs(E);

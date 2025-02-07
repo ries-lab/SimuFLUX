@@ -109,11 +109,11 @@ classdef Simulator<handle
                     timep=timep+time; %for calculating average time point
                     [flposh,isactive]=fluorophores.position(obj.time,flproperties);
                     flposrel=flposh-posgalvo;
-                    [intensityh,pinholehfac]=pattern.psf(k).intensity(flposrel,pattern.pos(k,:)+posEOD,pattern.phasemask(k),pattern.zeropos(k));
+                    [intensityh,pinholehfac]=pattern.psf(k).intensity(flposrel(isactive,:),pattern.pos(k,:)+posEOD,pattern.phasemask(k),pattern.zeropos(k));
                     intensityh=intensityh*pattern.laserpower(k);
                     flint=fluorophores.intensity(intensityh,pattern.pointdwelltime(k),time,pinholehfac,flproperties);
                     intensity=sum(flint);
-                    flpos(isactive,:)=flpos(isactive,:)+flposh;
+                    flpos(:,:)=flpos(:,:)+flposh;
                     flintall(isactive,:)=flintall(isactive,:)+flint;
                     time=time+pattern.pointdwelltime(k);
                     bgphoth=pattern.backgroundfac(k)*background;
@@ -337,7 +337,7 @@ classdef Simulator<handle
                 return
             end
             if isa(obj.fluorophores,'FlCollection')
-                fl1=obj.fluorophores.flall(1);
+                fl1=obj.fluorophores.flall{1};
             else
                 fl1=obj.fluorophores;
             end
@@ -452,7 +452,7 @@ classdef Simulator<handle
 
             so.std=zeros(length(xcoords),3); so.rmse=so.std; so.bias=so.std;
             if isa(obj.fluorophores,'FlCollection')
-                fl=obj.fluorophores.flall(args.fluorophorenumber);
+                fl=obj.fluorophores.flall{args.fluorophorenumber};
             else
                 fl=obj.fluorophores;
             end

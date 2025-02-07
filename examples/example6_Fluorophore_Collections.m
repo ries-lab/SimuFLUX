@@ -9,7 +9,7 @@ end
 psf_vec.setpinhole("AU",1);
 
 fc=FlCollection;
-fc.add([fl1, fl2])
+fc.add({fl1, fl2})
 
 sim=Simulator(fc); %make a simulator and attach fluorophore
 
@@ -87,7 +87,7 @@ plot(sim.scoutingcoordinates(:,1),sim.scoutingcoordinates(:,2),'k+')
 hold on
 plot(out.loc.xnm(vld),out.loc.ynm(vld),'r.')
 plot(out.loc.xnm(vldcfr),out.loc.ynm(vldcfr),'bx')
-posfl=vertcat(fc.flall.pos);
+posfl=squeeze(out.fluorophores.pos(end,:,:));
 plot(posfl(:,1),posfl(:,2),'mo')
 axis equal
 legend('scouting','last itr vld','last itr vld +cfr', 'fluorophore')

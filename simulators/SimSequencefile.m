@@ -19,7 +19,7 @@ classdef SimSequencefile<Simulator
         function makepatterns(obj,psfs,phasemasks)
             if nargin<2
                 if isfield(obj.sequence,'PSF') && isfield(obj.sequence.PSF,'global')
-                    [psfs,phasemasks]=psf_sequence(obj.sequence.PSF,obj.psfvec);
+                    [psfs,phasemasks]=psf_sequence(obj.sequence.PSF,obj.psfvec,obj.sequence);
                 else
                     psfs{1}=PsfGauss2D;
                     psfs{2}=PsfDonut2D;
@@ -86,16 +86,19 @@ classdef SimSequencefile<Simulator
             loccounter=1;
             
             numitr=0;itr=1;
+            abortphot=false;
             stickinesscounter=0;
             xest=[0,0,0];
 
-            while numitr<loclimit && stickinesscounter<stickiness 
+            while numitr<loclimit && stickinesscounter<stickiness && ~abortphot
                 %scan iteration
                 itrname="itr"+itr;
                 stickiness=obj.sequence.stickiness;
                 photsum=0;abortccr=0;abortphot=0;
                 scanout=[];
-                while photsum<itrs(itr).phtLimit && stickinesscounter<stickiness 
+                while photsum<itrs(itr).phtLimit && stickinesscounter<stickiness && ~abortphot
+                    % repeat scanning until sufficient photons collected,
+                    % or abort condition met
                     scanouth=obj.patternscan(itrname);
                     scanout=sumstruct(scanout,scanouth);
                     
@@ -119,7 +122,7 @@ classdef SimSequencefile<Simulator
                         abortphot=false;
                         offtimestamp=scanouth.averagetime;
                     end
-                    if abortphot || abortccr
+                    if abortccr
                         stickinesscounter=stickinesscounter+1;
                     else
                         stickinesscounter=0;
@@ -238,8 +241,10 @@ classdef SimSequencefile<Simulator
         function out=scoutingSequence(obj,args)
             arguments
                 obj
-                args.maxrep=2;
+                args.maxrep=100000;
+                args.maxtime=1e6;
             end
+            timestart=obj.time;
             %reset fluorophore?
             % obj.posgalvo(1:2)=obj.scoutingcoordinates(1,:);
             % obj.posEOD=[0 0 0];
@@ -248,7 +253,11 @@ classdef SimSequencefile<Simulator
             % fprintf(1,'Computation Progress: %3d%%\n',0);
             fprintf(1,"scouting, progress: %3d%%\n",0)
             for reps=1:args.maxrep
+                if obj.time>timestart+args.maxtime
+                    break
+                end
                 prog=reps/args.maxrep*100;
+                prog=max(prog, (obj.time-timestart)/args.maxtime*100);
                 fprintf(1,'\b\b\b\b%3.0f%%',prog)
                 % fprintf(num2str(reps,"%2.0f,"))
                 for pind=1:size(obj.scoutingcoordinates,1)

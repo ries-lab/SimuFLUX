@@ -48,14 +48,16 @@ fd.makediffusion(D,0.01,dim=3,boundarybox=[500 500 1000]);
 fc.add(fd)
 
 sim.fluorophores=fc;
-repetitions=[500,100];
+maxtime=10*1e3; %10 seconds
+% repetitions=[500,100];
 brightnesses=[0,1]; %compare without and with background from diffusing fluorophore
 
 for k=1:length(brightnesses)
     sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;
     fd.brightness=switchpar.brightness*brightnesses(k);
     
-    out=sim.scoutingSequence(maxrep=repetitions(k));
+    out=sim.scoutingSequence(maxtime=maxtime);
+    % out=sim.scoutingSequence(maxrep=repetitions(k));
     
     %plot results
     vld=out.loc.vld==1 & out.loc.itr==max(out.loc.itr) ;
@@ -65,7 +67,7 @@ for k=1:length(brightnesses)
     hold on
     plot(out.loc.xnm(vld),out.loc.ynm(vld),'r.')
     plot(out.loc.xnm(vldcfr),out.loc.ynm(vldcfr),'bx')
-    posfl=out.fluorophores.pos(end,:,2:end);
+    posfl=squeeze(out.fluorophores.pos(end,1:end-1,:)); %last one is diffusing
     plot(posfl(:,1),posfl(:,2),'mo')
     axis equal
     legend('scouting','last itr vld','last itr vld +cfr', 'fluorophore')

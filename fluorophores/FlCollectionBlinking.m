@@ -7,10 +7,11 @@ classdef FlCollectionBlinking<FlCollection
         function [pos,isactive]=position(obj,time,props)
             flall=obj.flall;
             isactive=obj.flprop.isactive;
-            fact=find(isactive);
-            pos=zeros(length(fact),3);
-            for k=1:length(fact)
-                pos(k,:)=flall{fact(k)}.position(time);
+            % fact=find(isactive);
+            % pos=zeros(length(fact),3);
+            pos=zeros(length(flall),3);
+            for k=1:length(flall)
+                pos(k,:)=flall{k}.position(time);
             end
         end
         function ih=intensity(obj,intin,dt,time,phfac,props)
