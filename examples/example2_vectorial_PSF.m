@@ -16,18 +16,15 @@ numberOfLocalizations=1000;
 
 %define scan pattern
 L=75; %size of scan pattern
-orbitpoints=6; %number of probing points in orbit
 probecenter=true; %should we also probe the center?
 laserpower=5; %relative, increases brightness
 pointdwelltime=0.1; % ms, measurement time in each point
 repetitions=2; %how often to repeat the pattern scan
-sim.definePattern("donut", psf_vec, phasemask="vortex", makepattern="orbitscan", orbitpoints=orbitpoints, ...
+sim.definePattern("donut", psf_vec, phasemask="vortex", makepattern="orbitscan", orbitpoints=4, ...
     probecenter=probecenter,orbitL=L,pointdwelltime=pointdwelltime,laserpower=laserpower,repetitions=repetitions)
-% sim.definePattern(key, PSF_object, arguments...)
 
 %we need an estimator. Define as component
-fwhm=360;% size of the donut, needed for proper estimation. 
-sim.defineComponent("estdonut","estimator",@est_donut2d,parameters={sim.patterns("donut").pos,L,fwhm},dim=1:2);
+sim.defineComponent("estdonut","estimator",@est_quad2Diter4points,parameters={L},dim=1:2);
 % sim.defineComponent(key,type (estimator),function handle of estimator function,parameters);
 
 %sequence: 
@@ -65,7 +62,7 @@ end
 sys.Zr(1,1)=4;sys.Zr(1,2)=0;sys.Zr(1,3)=0.1; %spherical aberrations 
 sys.Zr(1,1)=2;sys.Zr(1,2)=2;sys.Zr(1,3)=0.05; %astigmatism 
 psf_vec2.setpar(sys)
-sim.definePattern("donut_aber", psf_vec2, phasemask="vortex", makepattern="orbitscan", orbitpoints=orbitpoints, ...
+sim.definePattern("donut_aber", psf_vec2, phasemask="vortex", makepattern="orbitscan", orbitpoints=4, ...
     probecenter=probecenter,orbitL=L,pointdwelltime=pointdwelltime,laserpower=laserpower,repetitions=repetitions)
 seq={"donut_aber","estdonut"};
 out=sim.runSequence(seq);
@@ -85,7 +82,7 @@ sys.Zr(1,1)=4;sys.Zr(1,2)=0;sys.Zr(1,3)=0.0; %spherical aberrations
 sys.Zr(1,1)=2;sys.Zr(1,2)=2;sys.Zr(1,3)=0.0; %astigmatism 
 sys.maskshift=[0.2,0]; % radius of pupil function is 1
 psf_vec2.setpar(sys)
-sim.definePattern("donut_misaligned", psf_vec2, phasemask="vortex", makepattern="orbitscan", orbitpoints=orbitpoints, ...
+sim.definePattern("donut_misaligned", psf_vec2, phasemask="vortex", makepattern="orbitscan", orbitpoints=4, ...
     probecenter=probecenter,orbitL=L,pointdwelltime=pointdwelltime,laserpower=laserpower,repetitions=repetitions)
 seq={"donut_misaligned","estdonut"};
 out=sim.runSequence(seq);
@@ -102,7 +99,7 @@ if ~exist("psf_vecph","var") %if PSF is already defined, we need not recalculate
     psf_vecph=PsfVectorial; %simple 2D donut PSF
 end
 psf_vecph.setpinhole("AU",1);
-sim.definePattern("donut_ph", psf_vecph, phasemask="vortex", makepattern="orbitscan", orbitpoints=orbitpoints, ...
+sim.definePattern("donut_ph", psf_vecph, phasemask="vortex", makepattern="orbitscan", orbitpoints=4, ...
     probecenter=probecenter,orbitL=L,pointdwelltime=pointdwelltime,laserpower=laserpower,repetitions=repetitions)
 seq={"donut_ph","estdonut"};
 disp("pinhole:")
@@ -115,7 +112,7 @@ if ~exist("psf_vecph2","var") %if PSF is already defined, we need not recalculat
     psf_vecph2=PsfVectorial; %simple 2D donut PSF
 end
 psf_vecph2.setpinhole("AU",1,"offset",[150,0]);
-sim.definePattern("donut_ph", psf_vecph2, phasemask="vortex", makepattern="orbitscan", orbitpoints=orbitpoints, ...
+sim.definePattern("donut_ph", psf_vecph2, phasemask="vortex", makepattern="orbitscan", orbitpoints=4, ...
     probecenter=probecenter,orbitL=L,pointdwelltime=pointdwelltime,laserpower=laserpower,repetitions=repetitions)
 seq={"donut_ph","estdonut"};
 out=sim.runSequence(seq);
@@ -141,16 +138,15 @@ probecenterxy=true;
 probecenterz=false;
 L=75;
 Lz=150;
-fwhm=450;
 sigmaz=200;
 laserpower=30;
 
-sim.definePattern("tophat_xy", psf_vecth, phasemask="tophat", makepattern="orbitscan", orbitpoints=orbitpoints, ...
+sim.definePattern("tophat_xy", psf_vecth, phasemask="tophat", makepattern="orbitscan", orbitpoints=4, ...
     probecenter=probecenterxy,orbitL=L,pointdwelltime=pointdwelltime,laserpower=laserpower,repetitions=repetitions,dim=1:2);
 sim.definePattern("tophat_z", psf_vecth, phasemask="tophat", makepattern="zscan", orbitpoints=2, ...
     probecenter=probecenterz,orbitL=Lz,pointdwelltime=pointdwelltime,laserpower=laserpower,repetitions=repetitions,dim=3);
 
-sim.defineComponent("esttophat_xy","estimator",@est_donut2d,parameters={sim.patterns("tophat_xy").pos,L,fwhm},dim=1:2);
+sim.defineComponent("esttophat_xy","estimator",@est_quad2Diter4points,parameters={L},dim=1:2);
 sim.defineComponent("esttophat_z","estimator",@est_donut1d,parameters={sim.patterns("tophat_z").pos,Lz,sigmaz},dim=3);
 
 seq={"tophat_xy","esttophat_xy","tophat_z","esttophat_z"};
@@ -160,7 +156,7 @@ disp("3D with tophat:")
 sim.summarize_results(out);
 
 % 3D with tophat and vortex
-sim.definePattern("donut_xy", psf_vecth, phasemask="vortex", makepattern="orbitscan", orbitpoints=orbitpoints, ...
+sim.definePattern("donut_xy", psf_vecth, phasemask="vortex", makepattern="orbitscan", orbitpoints=4, ...
     probecenter=probecenter,orbitL=L,pointdwelltime=pointdwelltime,laserpower=laserpower,repetitions=repetitions)
 
 seq={"donut_xy","estdonut","tophat_z","esttophat_z"};
@@ -171,7 +167,7 @@ sim.summarize_results(out);
 
 
 %% PhaseFlux 3D localization
-sim.fluorophores.pos=[20,0, 50];
+sim.fluorophores.pos=[20,-10, 50];
 if ~exist("psf_vecphaseflux","var") %if PSF is already defined, we need not recalculate it if no parameters are changed
     psf_vecphaseflux=PsfVectorial; %simple 2D donut PSF
 end
@@ -183,23 +179,24 @@ Lz=150;
 fwhm=450;
 sigmaz=200;
 laserpower=30;
-zeroposx=[-1; 0 ;1]*L/2;
-zeroposz=[-1; 0 ;1]*Lz/2;
+zeroposx=[-1;1;0]*L/2;
+zeroposz=[-1;1;0]*Lz/2;
 
 sim.definePattern("pf_x", psf_vecphaseflux, phasemask="halfmoonx", zeropos=zeroposx,...
     pointdwelltime=pointdwelltime,laserpower=laserpower,repetitions=repetitions,dim=1);
 sim.definePattern("pf_y", psf_vecphaseflux, phasemask="halfmoony", zeropos=zeroposx,...
     pointdwelltime=pointdwelltime,laserpower=laserpower,repetitions=repetitions,dim=2);
 sim.definePattern("pf_z", psf_vecphaseflux, phasemask="tophat", zeropos=zeroposz,...
-    pointdwelltime=pointdwelltime,laserpower=laserpower,repetitions=repetitions,dim=3);
+    pointdwelltime=pointdwelltime,laserpower=laserpower*10,repetitions=repetitions,dim=3);
 
-sim.defineComponent("est_x","estimator",@est_phaseflux1d,parameters={L},dim=1);
-sim.defineComponent("est_y","estimator",@est_phaseflux1d,parameters={L},dim=2);
-sim.defineComponent("est_z","estimator",@est_phaseflux1d,parameters={Lz},dim=3);
-sim.defineComponent("esttophat_z","estimator",@est_donut1d,parameters={zeroposz,Lz,sigmaz},dim=3);
+sim.defineComponent("est_x","estimator",@est_quad1Diter,parameters={L},dim=1);
+sim.defineComponent("est_y","estimator",@est_quad1Diter,parameters={L},dim=2);
+sim.defineComponent("est_z","estimator",@est_quad1Diter,parameters={Lz},dim=3);
+% sim.defineComponent("esttophat_z","estimator",@est_quad1Diter,parameters={Lz},dim=3);
 
 
 seq={"pf_x","est_x","pf_y","est_y","pf_z","est_z"};
+% seq={"pf_z","est_z"};
 out=sim.runSequence(seq);
 disp("PhaseFLUX:")
 sim.summarize_results(out);

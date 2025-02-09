@@ -7,6 +7,7 @@ classdef Simulator<handle
         posgalvo=[0 0 0]; %nm, position of pattern center
         posEOD=[0 0 0]; %nm, not descanned, with respect to posgalvo.
         time=0;
+        estimatedbackground=0;
     end
     methods
         function obj=Simulator(fl)
@@ -165,6 +166,7 @@ classdef Simulator<handle
                 end
                 posgalvo_beforecenter=obj.posgalvo;
                 xest=[0,0,0];
+                loccounter_seq=loccounter+1; %XXXX 9.2.25
                 for s=1:numseq
                     component=obj.patterns(seq{s});
                     switch component.type
@@ -182,7 +184,8 @@ classdef Simulator<handle
                         case "estimator"
                             % replace placeholder names by values
                             component_par=replaceinlist(component.parameters,'patternpos',scanout.par.patternpos,'L',scanout.par.L,...
-                                'probecenter',scanout.par.probecenter,'bg_phot',scanout.photbg);
+                                'probecenter',scanout.par.probecenter,'bg_phot',scanout.photbg, ...
+                                'background_est',obj.estimatedbackground,'iteration',s);
                             xesth=component.functionhandle(scanout.phot,component_par{:});
                             if length(xesth)==3
                                 xest(component.dim)=xesth(component.dim);
@@ -190,7 +193,7 @@ classdef Simulator<handle
                                 xest(component.dim)=xesth;
                             end
                             xesttot=xest+posgalvo_beforecenter;
-                            loc.xnm(loccounter)=xesttot(1);loc.ynm(loccounter)=xesttot(2);loc.znm(loccounter)=xesttot(3);
+                            
                             loc.xgalvo(loccounter,1)=obj.posgalvo(1);loc.ygalvo(loccounter,1)=obj.posgalvo(2);loc.zgalvo(loccounter,1)=obj.posgalvo(3);
                             loc.xeod(loccounter,1)=obj.posEOD(1);loc.yeod(loccounter,1)=obj.posEOD(2);loc.zeod(loccounter,1)=obj.posEOD(3);
                         
@@ -199,6 +202,9 @@ classdef Simulator<handle
                             obj.posgalvo(component.dim)=posgalvo(component.dim);obj.posEOD(component.dim)=posEOD(component.dim);
                     end
                 end
+                % write position estimates for all localizations in sequence together, 9.2.25
+                loc.xnm(loccounter_seq:loccounter)=xesttot(1);loc.ynm(loccounter_seq:loccounter)=xesttot(2);loc.znm(loccounter_seq:loccounter)=xesttot(3);
+
             end
             loc=removeempty(loc,loccounter);
             loc.abortcondition=zeros(size(loc.phot));loc.abortcondition(end)=1+2*bleached;

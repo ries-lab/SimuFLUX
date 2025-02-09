@@ -9,7 +9,7 @@ fname2='PSFvectorial2D.json'; %use a PSF that is defined via a json file
 sim.loadsequence(fname,fname2);
 sim.makepatterns;
 
-%% make diffusing, bleaching
+%% make diffusing, bleaching fluorophores
 sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;
 fl=FlMoveBleach;
 fl.photonbudget=100000;
@@ -18,10 +18,7 @@ D=0.5; %um^2/s
 fl.makediffusion(D,updatetime)
 %diffusion coefficient, update time args.startpos,dim, numpoints, buondarybox
 sim.fluorophores=fl;
-
-
 out=sim.runSequence("repetitions",1);
-
 sim.plotpositions(out,figure=211,xvalues="time");
 
 %% make stepping fluorophore

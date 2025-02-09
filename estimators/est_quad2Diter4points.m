@@ -11,15 +11,16 @@ if length(photonsi)==4
 else
     itfun=@iterationcenter;
 end
-    pi=photonsi/sum(photonsi);
-    xest=[0,0];
-    for k=1:iter
-        xo=xest;
-        xest=itfun(pi,xest,L);
-        if sum((xest-xo).^2)<eps^2
-            break
-        end
-    end    
+pi=photonsi/sum(photonsi);
+xest=[0,0];
+for k=1:iter
+    xo=xest;
+    xest=itfun(pi,xest,L);
+    if sum((xest-xo).^2)<eps^2
+        break
+    end
+end    
+xest=max(min(xest,L),-L); %avoid crazy high numbers
 end
 
 function dro=iteration(p,xy,L)

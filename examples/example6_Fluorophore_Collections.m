@@ -18,7 +18,8 @@ numberOfLocalizations=1000;
 L=75;
 sim.definePattern("donut", psf_vec, phasemask="vortex", makepattern="orbitscan", orbitpoints=4, ...
     probecenter=false,orbitL=L,laserpower=100)
-sim.defineComponent("estdonut","estimator",@est_donut2d,parameters={sim.patterns("donut").pos,L,360},dim=1:2);
+% sim.defineComponent("estdonut","estimator",@est_donut2d,parameters={sim.patterns("donut").pos,L,360},dim=1:2);
+sim.defineComponent("estdonut","estimator",@est_quad2Diter4points,parameters={L},dim=1:2);
 
 
 seq={"donut","estdonut"};
@@ -28,7 +29,7 @@ stats=sim.summarize_results(out);
 x=0:20:750;
 
 figure(144)
-sim.scan_fov(seq,x,dimplot=1,dimscan=1,fluorophorenumber=2,ax1=["std","rmse","sCRB"],ax2="bias");
+sim.scan_fov(seq,x,dimplot=1,dimscan=1,fluorophorenumber=2,ax1=["std","rmse","sCRB"],ax2="bias",title="scan second fluorophore in x");
 
 
 
@@ -36,7 +37,7 @@ sim.scan_fov(seq,x,dimplot=1,dimscan=1,fluorophorenumber=2,ax1=["std","rmse","sC
 fl1.pos=[0 0 0]; fl2.pos=[100 0 0];
 z=0:50:1000;
 figure(145)
-sim.scan_fov(seq,z,dimplot=1,dimscan=3,fluorophorenumber=2,ax1=["std","rmse","sCRB"],ax2="bias");
+sim.scan_fov(seq,z,dimplot=1,dimscan=3,fluorophorenumber=2,ax1=["std","rmse","sCRB"],ax2="bias",title="scan second fluorophore in z");
 
 
 
@@ -49,7 +50,7 @@ else
 end
 fname='Imaging_2D.json';
 sim.loadsequence(fname); %only sequence file, then simple gauss and donut PSFs are used (fast)
-sim.makepatterns;
+% sim.makepatterns;
 sim.makescoutingpattern([-100 -100; 400 250 ]) %for imaging
 
 % make fake NPCs

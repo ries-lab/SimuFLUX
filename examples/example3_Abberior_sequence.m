@@ -1,4 +1,4 @@
-% Run an abberior sequence file and see how EOD an Galvo move
+% Run an abberior sequence file and see how EOD an Galvo move.
 addpath(genpath(fileparts(fileparts(mfilename('fullpath'))))); %add all folders to serach path
 if ~exist('sim','var') || ~isa(sim,"SimSequencefile")
     sim=SimSequencefile;
@@ -7,7 +7,7 @@ else
 end
 laserpower=50;
 fl=FlBleach; %define a bleaching fluorophore
-fl.photonbudget=10000;
+fl.photonbudget=20000;
 fl.pos=[200 50 0];
 fl.brightness=200*laserpower; %kHz 
 sim.fluorophores=fl;

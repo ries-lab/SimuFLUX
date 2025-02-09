@@ -1,5 +1,7 @@
 % Investigate the effect of background
 % Causes: imperfect zero, autofluorescence background, nearby fluorophore
+%XXX background handling of estimator wrong, this makes this not well
+%interpretable. Use bg calibration and background in estimator
 addpath(genpath(fileparts(fileparts(mfilename('fullpath'))))); %add all folders to serach path
 if ~exist("psf_vec","var") %if PSF is already defined, we need not recalculate it if no parameters are changed
     psf_vec=PsfVectorial; %simple 2D donut PSF
@@ -11,7 +13,7 @@ numberOfLocalizations=1000;
 L=75;
 sim.definePattern("donut", psf_vec, phasemask="vortex", makepattern="orbitscan", orbitpoints=4, ...
     probecenter=true,orbitL=L,laserpower=100)
-sim.defineComponent("estdonut","estimator",@est_donut2d,parameters={sim.patterns("donut").pos,L,360},dim=1:2);
+sim.defineComponent("estdonut","estimator",@est_quad2Diter4points,parameters={L},dim=1:2);
 seq={"donut","estdonut"};
 %% no background
 fl1=FlStatic;

@@ -8,14 +8,21 @@ classdef SimSequencefile<Simulator
     end
     methods
         function loadsequence(obj,varargin)
+            update=true;
             for k=1:length(varargin)
+                if strcmp(varargin{k},"noupdate")
+                    update=false;
+                    continue
+                end
                 fid=fopen(varargin{k});
                 raw=fread(fid,inf);
                 str=char(raw');
                 fclose(fid);
                 obj.sequence=copyfields(obj.sequence,jsondecode(str));
             end
-            obj.makepatterns;
+            if update
+                obj.makepatterns;
+            end
             % obj.sequence_json=jsondecode(str);
         end
         function makepatterns(obj,psfs,phasemasks)
@@ -27,7 +34,7 @@ classdef SimSequencefile<Simulator
                     psfs{2}=PsfDonut2D;
                     phasemasks{1}.phasemask='gauss2D';
                     phasemasks{2}.phasemask='donut2D';
-                    obj.loadsequence('defaultestimators.json')
+                    obj.loadsequence('defaultestimators.json',"noupdate")
                 end
             end
             % if ~isfield(obj.sequence.PSF,'Estimators')
@@ -144,7 +151,8 @@ classdef SimSequencefile<Simulator
                         estimator=obj.estimators(itr);
                         estf=str2func(estimator.function);
                         estpar=estimator.par;
-                        estpar=replaceinlist(estpar,'patternpos',patternpos,'L',L,'probecenter',probecenter);
+                        estpar=replaceinlist(estpar,'patternpos',patternpos,'L',L,'probecenter',probecenter,...
+                            'background_est',obj.estimatedbackground(min(itr,length(obj.estimatedbackground))),'iteration',itr);
                         xesth=estf(scanout.phot,estpar{:});
                         xest(estimator.dim)=xesth(estimator.dim);
 
