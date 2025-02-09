@@ -6,15 +6,15 @@ end
 psf_vec.setpinhole("AU",1);
 
 fl=FlStatic;
-fl.brightness=1000000;
+fl.brightness=100000; %very bright to look at bias
 fl.pos=[20 0 0];
 sim=Simulator(fl);
 
 numberOfLocalizations=100;
 L=75;
-xcoords=0:2:2*L;
+xcoords=0:2:L;
 probecenter=true;
-sim.definePattern("donut", psf_vec, phasemask="vortex", makepattern="orbitscan", orbitpoints=4, ...
+sim.definePattern("donut", psf_vec, phasemask="vortex", makepattern="orbitscan", orbitpoints=6, ...
     probecenter=probecenter,orbitL=L,laserpower=100)
 % sim.calculateCRB("donut")
 % sim.calculateCRBscan("donut")
@@ -28,17 +28,13 @@ psf_vec.zerooffset=0;
 figure(293); statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax2=ax2v, ax1=ax1v,clearfigure=true);
 
 %% iterative
-sim.defineComponent("estiter","estimator",@est_quad2Diter4points,parameters={L,15},dim=1:2);
+sim.defineComponent("estiter","estimator",@est_quad2Diter,parameters={L,probecenter,10},dim=1:2);
 seq={"donut","estiter"};
 % sim.fluorophores.pos=[30 20 0];
 statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax2=ax2v, ax1=ax1v,clearfigure=false);
 % out=sim.runSequence(seq,maxlocs=1);
 % sim.summarize_results(out);
-%% no background, debiased estimator
-sim.defineComponent("estmLMS","estimator",@est_donut2d_mLMS,parameters={sim.patterns("donut").pos,L,360,[1.3 3.6]},dim=1:2);
-seq={"donut","estmLMS"};
-hold off
-statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax2=ax2v, ax1=ax1v,clearfigure=false);
+
 
 %% no background, direct estimator
 sim.defineComponent("estdirect","estimator",@est_quadraticdirect1D,parameters={L},dim=1);
@@ -46,27 +42,37 @@ seq={"donut","estdirect"};
 hold off
 statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax2=ax2v, ax1=ax1v,clearfigure=false);
 
-%% no background, quadratic approx
-sim.defineComponent("estq","estimator",@est_quadraticND,parameters={sim.patterns("donut").pos},dim=1:2);
-seq={"donut","estq"};
-hold off
-statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax2=ax2v, ax1=ax1v,clearfigure=false);
-
-%% no background, simple estimator
+%% explore impact of background on estimator
+%no background
+fl.brightness=1000;
+fl.pos=[30 0 0];
 sim.background=0;
-sim.defineComponent("estdonut","estimator",@est_donut2d,parameters={sim.patterns("donut").pos,L,360,"bg_phot"},dim=1:2);
+sim.defineComponent("estdonut","estimator",@est_quad2Diter,parameters={L,probecenter},dim=1:2);
 seq={"donut","estdonut"};
 psf_vec.zerooffset=0;
 xcoords=0:5:50;
-figure(294); statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax2=["biasrel"]);
+figure(294); statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=["bias"],tag="no bg");
+% out=sim.runSequence(seq,maxlocs=1);
+% sim.summarize_results(out);
 
-%background, simple estimator
-sim.background=30;
-sim.defineComponent("estdonut","estimator",@est_donut2d,parameters={sim.patterns("donut").pos,L,360,0},dim=1:2);
-seq={"donut","estdonut"};
+%background, 
+sim.background=3000;
+% xcoords=0:2:100;
+statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=["bias"],clearfigure=false,tag="bg");
+
+%background subtracted,
+bgf=sim.patterns('donut').backgroundfac(1); %background used for simulation
+sim.background_estimated=3000*bgf;
+sim.defineComponent("estdonut","estimator",@est_quad2Diter,parameters={L,probecenter},dim=1:2);
+sim.defineComponent("bg","background",@backgroundsubtractor,parameters={"background_estimated"});
+seq={"donut","bg","estdonut"};
 psf_vec.zerooffset=0;
 % xcoords=0:2:100;
-figure(294); statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax2=["biasrel"],clearfigure=false);
+figure(294); statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=["bias"],clearfigure=false,tag="bg est");
+
+
+% out=sim.runSequence(seq,maxlocs=1);
+% sim.summarize_results(out);
 
 % sim.background=30;
 % sim.defineComponent("estdonut","estimator",@est_donut2d,parameters={sim.patterns("donut").pos,L,360,"bg_phot"},dim=1:2);

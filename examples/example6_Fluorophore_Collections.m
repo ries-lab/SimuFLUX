@@ -14,12 +14,13 @@ fc.add({fl1, fl2})
 sim=Simulator(fc); %make a simulator and attach fluorophore
 
 numberOfLocalizations=1000;
-
+orbitpoints=4;
+probecenter=true;
 L=75;
-sim.definePattern("donut", psf_vec, phasemask="vortex", makepattern="orbitscan", orbitpoints=4, ...
-    probecenter=false,orbitL=L,laserpower=100)
+sim.definePattern("donut", psf_vec, phasemask="vortex", makepattern="orbitscan", orbitpoints=orbitpoints, ...
+    probecenter=probecenter,orbitL=L,laserpower=100)
 % sim.defineComponent("estdonut","estimator",@est_donut2d,parameters={sim.patterns("donut").pos,L,360},dim=1:2);
-sim.defineComponent("estdonut","estimator",@est_quad2Diter4points,parameters={L},dim=1:2);
+sim.defineComponent("estdonut","estimator",@est_quad2Diter,parameters={L,probecenter},dim=1:2);
 
 
 seq={"donut","estdonut"};

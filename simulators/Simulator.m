@@ -7,7 +7,7 @@ classdef Simulator<handle
         posgalvo=[0 0 0]; %nm, position of pattern center
         posEOD=[0 0 0]; %nm, not descanned, with respect to posgalvo.
         time=0;
-        estimatedbackground=0;
+        background_estimated=0;
     end
     methods
         function obj=Simulator(fl)
@@ -117,14 +117,15 @@ classdef Simulator<handle
                     flpos(:,:)=flpos(:,:)+flposh;
                     flintall(isactive,:)=flintall(isactive,:)+flint;
                     time=time+pattern.pointdwelltime(k);
-                    bgphoth=pattern.backgroundfac(k)*background;
+                    bgphoth=pattern.backgroundfac(k)*background*pattern.pointdwelltime(k);
                     bgphot=bgphoth+bgphot;
                     intall(k)=intall(k)+intensity+bgphoth; %sum over repetitions, fluorophores
                 end
                 fluorophores.updateonoff(time);
             end
             out.phot=poissrnd(intall); %later: fl.tophot(intenall): adds bg, multiplies with brightness, does 
-            out.photbg=bgphot;
+            out.photbg_gt=bgphot;
+            out.bgphot_est=0;
             out.intensity=intall;
             out.flpos=flpos/numpoints/repetitions;
             out.flint=flintall;
@@ -175,7 +176,7 @@ classdef Simulator<handle
                             loccounter=loccounter+1; % every localization gets a new entry, as in abberior
                             loc.phot(loccounter)=loc.phot(loccounter)+sum(scanout.phot);
                             photch(loccounter,1:length(scanout.phot))=scanout.phot;
-                            photbg(loccounter)=scanout.photbg;
+                            photbg(loccounter)=scanout.photbg_gt;
                             loc.time(loccounter)=loc.time(loccounter)+scanout.averagetime;
                             flpos=scanout.flpos(1,:);
                             loc.xfl1(loccounter)=flpos(1);loc.yfl1(loccounter)=flpos(2);loc.zfl1(loccounter)=flpos(3);
@@ -184,8 +185,8 @@ classdef Simulator<handle
                         case "estimator"
                             % replace placeholder names by values
                             component_par=replaceinlist(component.parameters,'patternpos',scanout.par.patternpos,'L',scanout.par.L,...
-                                'probecenter',scanout.par.probecenter,'bg_phot',scanout.photbg, ...
-                                'background_est',obj.estimatedbackground,'iteration',s);
+                                'probecenter',scanout.par.probecenter,'bg_phot_gt',scanout.photbg_gt, ...
+                                'background_estimated',obj.background_estimated,'iteration',s);
                             xesth=component.functionhandle(scanout.phot,component_par{:});
                             if length(xesth)==3
                                 xest(component.dim)=xesth(component.dim);
@@ -200,6 +201,14 @@ classdef Simulator<handle
                         case "positionupdater"
                             [posgalvo,posEOD]=component.functionhandle(xest,obj.posgalvo,obj.posEOD,component.parameters{:});
                             obj.posgalvo(component.dim)=posgalvo(component.dim);obj.posEOD(component.dim)=posEOD(component.dim);
+                        case "background"
+                            component_par=replaceinlist(component.parameters,'patternpos',scanout.par.patternpos,'L',scanout.par.L,...
+                                'probecenter',scanout.par.probecenter,'bg_phot_gt',scanout.photbg_gt, ...
+                                'background_estimated',obj.background_estimated,'iteration',s);
+                            scanout=component.functionhandle(scanout,component_par{:});
+
+                        otherwise
+                            disp(component.type+ " not defined")
                     end
                 end
                 % write position estimates for all localizations in sequence together, 9.2.25
@@ -211,7 +220,8 @@ classdef Simulator<handle
             out.loc=loc;
             out.raw=photch(1:loccounter,:);
             out.fluorophores=fl;
-            out.bg_photons=photbg(1:loccounter);
+            out.bg_photons_gt=photbg(1:loccounter);
+            % out.bg_photons_est=
         end
         function out=runSequence(obj,seq,args)
             arguments
@@ -411,14 +421,14 @@ classdef Simulator<handle
             end
 
             st.photch=photch;
-            st.bg_photons=mean(out.bg_photons(ind));
+            st.bg_photons=mean(out.bg_photons_gt(ind));
             st.phot=mean(phot,'omitnan');
             st.phot_signal= st.phot-st.bg_photons;    
-            st.pos=mean(xest,'omitnan');
-            st.std=std(xest,'omitnan');
-            st.rmse=rmse(xest,flpos,'omitnan');
+            st.pos=mean(xest,1,'omitnan');
+            st.std=std(xest,[],1,'omitnan');
+            st.rmse=rmse(xest,flpos,1,'omitnan');
             
-            st.bias=mean(xest-flpos,'omitnan');
+            st.bias=mean(xest-flpos,1,'omitnan');
             st.locp=lp;
             st.sCRB=sigmaCRB/sqrt(st.phot);
             st.sCRB1=sigmaCRB;
@@ -450,11 +460,12 @@ classdef Simulator<handle
                 args.title="FoV scan";
                 args.fluorophorenumber=1;
                 args.ax1="std";
-                args.ax2="bias";
+                % args.ax2="bias";
                 args.clearfigure=true;
+                args.tag="";
             end
             args.ax1=string(args.ax1);
-            args.ax2=string(args.ax2);
+            % args.ax2=string(args.ax2);
 
             so.std=zeros(length(xcoords),3); so.rmse=so.std; so.bias=so.std;
             if isa(obj.fluorophores,'FlCollection')
@@ -476,9 +487,14 @@ classdef Simulator<handle
             end
             so.stdrel=so.std./so.sCRB;
             so.biasrel=so.bias./so.pos;
-        
             if args.display
-                yyaxis left
+                axh=gca;
+                if ~isempty(axh.Legend) && ~args.clearfigure
+                    ltxt=axh.Legend.String;
+                else
+                    ltxt={};
+                end
+                % yyaxis left
                 if args.clearfigure
                     hold off
                 else
@@ -490,36 +506,44 @@ classdef Simulator<handle
                     plot(xcoords,yval(:,args.dimplot))
                     hold on
                     ylab=ylab+args.ax1(m);
-                    if m<length(args.ax2)
-                        ylab=ylab +"/";
-                    end
+                    % if m<length(args.ax2)
+                    %     ylab=ylab +"/";
+                    % end
                 end
                 ylabel(ylab + " (nm)")
                 % hold off
-
-
-                yyaxis right
-                if args.clearfigure
-                    hold off
-                else
-                    hold on
-                end
-                ylab2=coords(args.dimplot)+": ";
-                for m=1:length(args.ax2)
-                    yval=so.(args.ax2(m));
-                    plot(xcoords,yval(:,args.dimplot))
-                    hold on
-                    ylab2=ylab2+args.ax2(m);
-                    if m<length(args.ax2)
-                        ylab2=ylab2 +"/";
-                    end
-                end
-                ylabel(ylab2 + " (nm)")
-                % hold off
-               
+    
+                % yyaxis right
+                % if args.clearfigure
+                %     hold off
+                % else
+                %     hold on
+                % end
+                % ylab2=coords(args.dimplot)+": ";
+                % for m=1:length(args.ax2)
+                %     yval=so.(args.ax2(m));
+                %     plot(xcoords,yval(:,args.dimplot))
+                %     hold on
+                %     ylab2=ylab2+args.ax2(m);
+                %     if m<length(args.ax2)
+                %         ylab2=ylab2 +"/";
+                %     end
+                % end
+                % ylabel(ylab2 + " (nm)")
+                % % hold off
+                % 
                 xlabel(coords(args.dimscan) + " position (nm)")
                 title(args.title)
-                legend([args.ax1 args.ax2])
+                % legend
+                % axh=gca;
+                % if ~isempty(axh.Legend)
+                %     ltxt=axh.Legend.String;
+                % else
+                %     ltxt={};
+                % end
+                ltxt=horzcat(ltxt,{args.ax1+": "+args.tag});
+                % ltxt=horzcat(ltxt,{args.ax1+": "+args.tag args.ax2+": "+args.tag});
+                legend(ltxt)
                 if any(contains(args.ax1,"bias"))
                     grid on
                     % plot(xcoords,0*xcoords,'r-')

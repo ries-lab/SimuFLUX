@@ -10,7 +10,7 @@ repetitions=1; %how often to repeat the pattern scan
 L=75;
 pointdwelltimerep=0.1; %ms, for all repetitions
 pointdwelltime=pointdwelltimerep/repetitions;%ms
-orbitorder=[1 2 3 4 5 6]; %order might matter
+orbitorder=[1 2 3 4 5 6]; %order might matter. If you change this, you cannot use est_quad2Diter.
 orbitpoints=6;
 probecenter=true;
 psf_donut=PsfDonut2D;
@@ -23,14 +23,14 @@ out=sim.runSequence({"donut","estdonut"});sim.summarize_results(out);
 %% plot std vs repetitions
 allrepetitions=1:2:25;
 stdx=zeros(length(allrepetitions),1);stdy=stdx;stdxrel=stdx;stdyrel=stdy;biasx=stdy;biasy=stdy;
-sim.defineComponent("estsq","estimator",@est_quad2Diter4points,parameters={L},dim=1:2);
+sim.defineComponent("estsq","estimator",@est_quad2Diter,parameters={L,probecenter},dim=1:2);
 for k=1:length(allrepetitions)
     pointdwelltime=pointdwelltimerep/allrepetitions(k);%us
-    sim.definePattern("donut4", psf_donut, makepattern="orbitscan", orbitpoints=4, ...
+    sim.definePattern("donut4", psf_donut, makepattern="orbitscan", orbitpoints=orbitpoints, ...
     probecenter=probecenter,orbitL=L,pointdwelltime=pointdwelltime,laserpower=25,repetitions=allrepetitions(k));
     out=sim.runSequence({"donut4","estsq"},maxlocs=1000);
     bright=out.loc.phot>10; %filter out localizations that are too dim
-    sr=sim.summarize_results(out,filter=bright);
+    sr=sim.summarize_results(out,filter=bright,display=false);
     stdx(k)=sr.std(1);
     stdy(k)=sr.std(2);
     % crb=sr.sCRB(1);

@@ -25,7 +25,7 @@ end
 
 function dro=iteration(p,x0,L)
 d12=p(1)-p(2);
-dr=((L^2 + 4 *x0^2)* (-4 *L *x0 + d12 (L^2 + 4 *x0^2)))/(4 *(L^3 - 4 *L *x0^2));
+dr=((L^2 + 4 *x0^2)* (-4 *L *x0 + d12* (L^2 + 4 *x0^2)))/(4 *(L^3 - 4 *L *x0^2));
 dro=dr+x0;
 end
 

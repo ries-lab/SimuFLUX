@@ -15,7 +15,7 @@ numberOfLocalizations=1000;
 
 %define scan pattern
 L=75; %size of scan pattern
-orbitpoints=4; %number of probing points in orbit. If you change this, you also need to change the current estimator
+orbitpoints=4; %number of probing points in orbit. 
 probecenter=true; %should we also probe the center?
 laserpower=5; %relative, increases brightness
 pointdwelltime=0.1; %ms, measurement time in each point
@@ -26,12 +26,8 @@ sim.definePattern("donut", psf_donut, makepattern="orbitscan", orbitpoints=orbit
 
 %we need an estimator. Define as component
 
-sim.defineComponent("estdonut","estimator",@est_quad2Diter4points,parameters={L},dim=1:2);
+sim.defineComponent("estdonut","estimator",@est_quad2Diter,parameters={L,probecenter},dim=1:2);
 % sim.defineComponent(key,type (estimator),function handle of estimator function,parameters);
-% for orbitpoints ~=4 use e.g. @est_donut2d:
-%   fwhm=360;% size of the donut, needed for proper estimation. 
-%   sim.defineComponent("estdonut","estimator",@est_donut2d,parameters={sim.patterns("donut").pos,L,fwhm},dim=1:2);
-
 
 %sequence: 
 seq={"donut","estdonut"};
