@@ -19,7 +19,7 @@ L=75; %size of scan pattern
 orbitpoints=6; %number of probing points in orbit
 probecenter=true; %should we also probe the center?
 laserpower=5; %relative, increases brightness
-pointdwelltime=.100; % ms, measurement time in each point
+pointdwelltime=0.1; % ms, measurement time in each point
 repetitions=2; %how often to repeat the pattern scan
 sim.definePattern("donut", psf_vec, phasemask="vortex", makepattern="orbitscan", orbitpoints=orbitpoints, ...
     probecenter=probecenter,orbitL=L,pointdwelltime=pointdwelltime,laserpower=laserpower,repetitions=repetitions)

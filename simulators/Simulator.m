@@ -157,6 +157,7 @@ classdef Simulator<handle
    
             bleached=false;
             loccounter=0;
+            fl.pos=[];fl.int=[];
             for k=1:maxlocalizations
                 if obj.fluorophores.remainingphotons<1
                     bleached=true;
@@ -164,7 +165,6 @@ classdef Simulator<handle
                 end
                 posgalvo_beforecenter=obj.posgalvo;
                 xest=[0,0,0];
-                fl.pos=[];fl.int=[];
                 for s=1:numseq
                     component=obj.patterns(seq{s});
                     switch component.type
@@ -475,6 +475,8 @@ classdef Simulator<handle
                 yyaxis left
                 if args.clearfigure
                     hold off
+                else
+                    hold on
                 end
                 ylab=coords(args.dimplot)+": ";
                 for m=1:length(args.ax1)
@@ -493,6 +495,8 @@ classdef Simulator<handle
                 yyaxis right
                 if args.clearfigure
                     hold off
+                else
+                    hold on
                 end
                 ylab2=coords(args.dimplot)+": ";
                 for m=1:length(args.ax2)
@@ -504,15 +508,16 @@ classdef Simulator<handle
                         ylab2=ylab2 +"/";
                     end
                 end
-                if any(contains(args.ax2,"bias"))
-                    plot(xcoords,0*xcoords,'r-')
-                end
                 ylabel(ylab2 + " (nm)")
                 % hold off
                
                 xlabel(coords(args.dimscan) + " position (nm)")
                 title(args.title)
                 legend([args.ax1 args.ax2])
+                if any(contains(args.ax1,"bias"))
+                    grid on
+                    % plot(xcoords,0*xcoords,'r-')
+                end
             end
         end
     end

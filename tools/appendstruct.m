@@ -7,6 +7,8 @@ sout=sin;
 fn=fieldnames(sin);
 ln=length(sadd.(fn{1}));
 for k=1:length(fn)
-    sout.(fn{k})(end+1:end+ln)=sadd.(fn{k});
+    if isfield(sadd,fn{k})
+     sout.(fn{k})(end+1:end+ln)=sadd.(fn{k});
+    end
 end
 end

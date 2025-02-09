@@ -1,18 +1,23 @@
 classdef FlCollectionBlinking<FlCollection
     properties
-        flprop %.moving, isactive, nexton, nextoff, remaining_activations
+        flprop %.moving, isactive, nexton, nextoff, remaining_activations, startpos
         switchpar=struct('starton',-1,'tonsmlm',1e3,'toffsmlm',1e5,'photonbudget',1000,'activations',1e6,'brightness',1000) %starton, tonsmlm, toffsmlm, microseconds
+        % posstatic;
     end
     methods
         function [pos,isactive]=position(obj,time,props)
             flall=obj.flall;
-            isactive=obj.flprop.isactive;
+            flprop=obj.flprop;
+            isactive=flprop.isactive;
             % fact=find(isactive);
             % pos=zeros(length(fact),3);
             pos=zeros(length(flall),3);
-            for k=1:length(flall)
-                pos(k,:)=flall{k}.position(time);
+            fmoving=find(flprop.moving);
+
+            for k=1:length(fmoving)
+                pos(fmoving(k),:)=flall{fmoving(k)}.position(time);
             end
+            pos(~flprop.moving,:)=flprop.startpos(~flprop.moving,:);
         end
         function ih=intensity(obj,intin,dt,time,phfac,props)
             fact=find(obj.flprop.isactive);
@@ -32,9 +37,10 @@ classdef FlCollectionBlinking<FlCollection
              obj.flall=cat(2,obj.flall,fllist);
              numfl=length(fllist);
              flproph.isactive=true(1,numfl); flproph.nexton=zeros(1,numfl); flproph.nextoff=zeros(1,numfl);
-             flproph.moving=true(1,numfl); flproph.activations=zeros(1,numfl); flproph.remaining_activations=zeros(1,numfl);
+             flproph.moving=true(1,numfl); flproph.activations=zeros(1,numfl); flproph.remaining_activations=ones(1,numfl);
              obj.flprop=appendstruct(obj.flprop,flproph);
              obj.numberOfFluorophores=length(obj.flall);
+             obj.updatepos;
         end
         function addstatic(obj,poslist)
             %arguments timestart: if obj.time different
@@ -67,6 +73,7 @@ classdef FlCollectionBlinking<FlCollection
             obj.flall=cat(2,obj.flall,fllist);
 
             obj.numberOfFluorophores=length(obj.flall);
+            obj.updatepos;
         end
         function updateonoff(obj,time)
             flprop=obj.flprop;
@@ -119,6 +126,12 @@ classdef FlCollectionBlinking<FlCollection
         % end
         function bl=allbleached(obj)
             bl=sum(obj.flprop.remaining_activations)==0;
+        end
+        function updatepos(obj)
+            fl=obj.flall;
+            for k=length(fl):-1:1
+                obj.flprop.startpos(k,:)=fl{k}.position(0);
+            end
         end
     end
 end
