@@ -14,33 +14,33 @@ numberOfLocalizations=100;
 L=75;
 xcoords=0:2:L;
 probecenter=true;
-sim.definePattern("donut", psf_vec, phasemask="vortex", makepattern="orbitscan", orbitpoints=6, ...
+sim.definePattern("donut", psf_vec, phasemask="vortex", makepattern="orbitscan", orbitpoints=4, ...
     probecenter=probecenter,orbitL=L,laserpower=100)
 % sim.calculateCRB("donut")
 % sim.calculateCRBscan("donut")
 
-ax1v="pos"; ax2v="rmse";
+ax1v="bias"; 
 %% no background, simple estimator
 sim.defineComponent("estdonut","estimator",@est_donut2d,parameters={sim.patterns("donut").pos,L,360},dim=1:2);
 seq={"donut","estdonut"};
 psf_vec.zerooffset=0;
 
-figure(293); statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax2=ax2v, ax1=ax1v,clearfigure=true);
+figure(293); statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,clearfigure=true,tag="simple est");
 
-%% iterative
+%iterative
 sim.defineComponent("estiter","estimator",@est_quad2Diter,parameters={L,probecenter,10},dim=1:2);
 seq={"donut","estiter"};
 % sim.fluorophores.pos=[30 20 0];
-statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax2=ax2v, ax1=ax1v,clearfigure=false);
+statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true, ax1=ax1v,clearfigure=false,tag="iterative est");
 % out=sim.runSequence(seq,maxlocs=1);
 % sim.summarize_results(out);
 
 
-%% no background, direct estimator
+% no background, direct estimator
 sim.defineComponent("estdirect","estimator",@est_quadraticdirect1D,parameters={L},dim=1);
 seq={"donut","estdirect"};
 hold off
-statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax2=ax2v, ax1=ax1v,clearfigure=false);
+statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,clearfigure=false, tag="direct est");
 
 %% explore impact of background on estimator
 %no background
