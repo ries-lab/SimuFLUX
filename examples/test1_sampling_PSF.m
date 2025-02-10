@@ -12,7 +12,7 @@ ix2nm=load("examples/donut2nmpixelprofile.mat").ix;
 xs=0:0.01:20;
 figure(88)
 hold off
-pixelsizes=150e-9;
+% pixelsizes=150e-9;
 for k=1:length(pixelsizes)
     psf_vec=PsfVectorial; %simple 2D donut PSF
     psf_vec.setpar('dr',pixelsizes(k),'dz',pixelsizes(k))
