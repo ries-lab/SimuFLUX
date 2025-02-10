@@ -10,10 +10,20 @@ classdef Simulator<handle
         background_estimated=0;
     end
     methods
-        function obj=Simulator(fl)
-            if nargin>0    
-                obj.fluorophores=fl;
+        function obj=Simulator(args)
+            arguments
+                args.fluorophores=[];
+                args.background=0;
+                args.background_estimated=0;
+                args.loadfile={};
             end
+            obj.fluorophores=args.fluorophores;
+            obj.background=args.background;
+            obj.background_estimated=args.background_estimated;
+            if ~isempty(args.loadfile)
+                obj.loadsequence(args.loadfile{:});
+            end
+
         end
         function defineComponent(obj,key,type,functionhandle,args)
             %define estimators, recenterers or other functions to be called
@@ -124,7 +134,7 @@ classdef Simulator<handle
                 fluorophores.updateonoff(time);
             end
             out.phot=poissrnd(intall); %later: fl.tophot(intenall): adds bg, multiplies with brightness, does 
-            out.photbg_gt=bgphot;
+            out.bg_photons_gt=bgphot;
             out.bgphot_est=0;
             out.intensity=intall;
             out.flpos=flpos/numpoints/repetitions;
@@ -176,7 +186,7 @@ classdef Simulator<handle
                             loccounter=loccounter+1; % every localization gets a new entry, as in abberior
                             loc.phot(loccounter)=loc.phot(loccounter)+sum(scanout.phot);
                             photch(loccounter,1:length(scanout.phot))=scanout.phot;
-                            photbg(loccounter)=scanout.photbg_gt;
+                            photbg(loccounter)=scanout.bg_photons_gt;
                             loc.time(loccounter)=loc.time(loccounter)+scanout.averagetime;
                             flpos=scanout.flpos(1,:);
                             loc.xfl1(loccounter)=flpos(1);loc.yfl1(loccounter)=flpos(2);loc.zfl1(loccounter)=flpos(3);
@@ -185,7 +195,7 @@ classdef Simulator<handle
                         case "estimator"
                             % replace placeholder names by values
                             component_par=replaceinlist(component.parameters,'patternpos',scanout.par.patternpos,'L',scanout.par.L,...
-                                'probecenter',scanout.par.probecenter,'bg_phot_gt',scanout.photbg_gt, ...
+                                'probecenter',scanout.par.probecenter,'bg_photons_gt',scanout.bg_photons_gt, ...
                                 'background_estimated',obj.background_estimated,'iteration',s);
                             xesth=component.functionhandle(scanout.phot,component_par{:});
                             if length(xesth)==3
@@ -203,7 +213,7 @@ classdef Simulator<handle
                             obj.posgalvo(component.dim)=posgalvo(component.dim);obj.posEOD(component.dim)=posEOD(component.dim);
                         case "background"
                             component_par=replaceinlist(component.parameters,'patternpos',scanout.par.patternpos,'L',scanout.par.L,...
-                                'probecenter',scanout.par.probecenter,'bg_phot_gt',scanout.photbg_gt, ...
+                                'probecenter',scanout.par.probecenter,'bg_photons_gt',scanout.bg_photons_gt, ...
                                 'background_estimated',obj.background_estimated,'iteration',s);
                             scanout=component.functionhandle(scanout,component_par{:});
 
@@ -348,7 +358,7 @@ classdef Simulator<handle
             end
             dim=args.dim;
             %patternscan with blinking fluorophores cannot be used for CRB
-            if isa(obj.fluorophores,'FlCollectionBlinking') || isa(obj.fluorophores,'FlBlinkBleach')
+            if isa(obj.fluorophores,'FlCollectionBlinking') || isa(obj.fluorophores,'FlBlinkBleach')|| isa(obj.fluorophores,'FlMoving')
                 locprec=calculateCRBdirect(obj,patternnames,dim=args.dim,position=args.position);
                 return
             end
@@ -360,6 +370,7 @@ classdef Simulator<handle
             warning('off','MATLAB:structOnObject')
             oldpar=struct(fl1);
             fl1.remainingphotons=inf;
+            posold=fl1.position(obj.time);
             eps=1;
             IFisher=zeros(length(dim));
             out0=obj.patternscan(patternnames);
@@ -367,9 +378,9 @@ classdef Simulator<handle
             for coord=1:length(dim)
                 dposa=[0 0 0]; dposa(dim(coord))=eps/2; dposa2=dposa; dposa2(dim(coord))=-eps/2;
 
-                fl1.pos=oldpar.pos+dposa;
+                fl1.pos=posold+dposa;
                 out1=obj.patternscan(patternnames);
-                fl1.pos=oldpar.pos+dposa2;  
+                fl1.pos=posold+dposa2;  
                 out2=obj.patternscan(patternnames);
                 dpdc(:,dim(coord))=((out1.intensity/sum(out1.intensity)-out2.intensity/sum(out2.intensity))/eps);
             end
@@ -490,7 +501,7 @@ classdef Simulator<handle
             if args.display
                 axh=gca;
                 if ~isempty(axh.Legend) && ~args.clearfigure
-                    ltxt=axh.Legend.String;
+                    ltxt=string(axh.Legend.String);
                 else
                     ltxt={};
                 end
@@ -506,9 +517,9 @@ classdef Simulator<handle
                     plot(xcoords,yval(:,args.dimplot))
                     hold on
                     ylab=ylab+args.ax1(m);
-                    % if m<length(args.ax2)
-                    %     ylab=ylab +"/";
-                    % end
+                    if m<length(args.ax1)
+                        ylab=ylab +"/";
+                    end
                 end
                 ylabel(ylab + " (nm)")
                 % hold off
@@ -541,7 +552,7 @@ classdef Simulator<handle
                 % else
                 %     ltxt={};
                 % end
-                ltxt=horzcat(ltxt,{args.ax1+": "+args.tag});
+                ltxt=horzcat(ltxt,args.ax1+": "+args.tag);
                 % ltxt=horzcat(ltxt,{args.ax1+": "+args.tag args.ax2+": "+args.tag});
                 legend(ltxt)
                 if any(contains(args.ax1,"bias"))
@@ -549,6 +560,9 @@ classdef Simulator<handle
                     % plot(xcoords,0*xcoords,'r-')
                 end
             end
+        end
+        function loadsequence(obj,varargin)
+            warning('no sequence loader implemented for Simulator class')
         end
     end
 end

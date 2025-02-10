@@ -7,6 +7,9 @@ classdef SimSequencefile<Simulator
         % bgcSenseValue=0;
     end
     methods
+        function obj=SimSequencefile(varargin)
+            obj@Simulator(varargin{:})
+        end
         function loadsequence(obj,varargin)
             update=true;
             for k=1:length(varargin)
@@ -113,7 +116,7 @@ classdef SimSequencefile<Simulator
                     scanout=sumstruct(scanout,scanouth);
                     
                     photsum=sum(scanout.phot);
-                    photbg=scanout.photbg;
+                    photbg=scanout.bg_photons_gt;
                     
                     if itrs(itr).ccrLimit>-1
                         probecenter=true;
@@ -152,7 +155,7 @@ classdef SimSequencefile<Simulator
                         estf=str2func(estimator.function);
                         estpar=estimator.par;
                         estpar=replaceinlist(estpar,'patternpos',patternpos,'L',L,'probecenter',probecenter,...
-                            'background_est',obj.estimatedbackground(min(itr,length(obj.estimatedbackground))),'iteration',itr);
+                            'background_est',obj.background_estimated(min(itr,length(obj.background_estimated))),'iteration',itr);
                         xesth=estf(scanout.phot,estpar{:});
                         xest(estimator.dim)=xesth(estimator.dim);
 
@@ -202,7 +205,7 @@ classdef SimSequencefile<Simulator
                     out.raw(loccounter,1:length(scanout.phot))=scanout.phot;
                     out.fluorophores.pos(loccounter,1:size(scanout.flpos,1),:)=scanout.flpos/scanout.counter;
                     out.fluorophores.int(loccounter,1:size(scanout.flpos,1))=scanout.flint;
-                    out.bg_photons(loccounter)=photbg; 
+                    out.bg_photons_gt(loccounter)=photbg; 
                     
                     loccounter=loccounter+1;
                 end

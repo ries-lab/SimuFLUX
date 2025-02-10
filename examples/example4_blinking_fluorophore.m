@@ -2,7 +2,7 @@
 %% flickering fluorophore and repetitions
 addpath(genpath(fileparts(fileparts(mfilename('fullpath'))))); %add all folders to serach path
 fl=FlBlinkBleach;
-sim=Simulator(fl);
+sim=Simulator(fluorophores=fl);
 sim.fluorophores.fast_toff = .1; %off-time ms
 sim.fluorophores.fast_ton = .1; % on-time ms
 
@@ -29,7 +29,7 @@ for k=1:length(allrepetitions)
     sim.definePattern("donut4", psf_donut, makepattern="orbitscan", orbitpoints=orbitpoints, ...
     probecenter=probecenter,orbitL=L,pointdwelltime=pointdwelltime,laserpower=25,repetitions=allrepetitions(k));
     out=sim.runSequence({"donut4","estsq"},maxlocs=1000);
-    bright=out.loc.phot>10; %filter out localizations that are too dim
+    bright=out.loc.phot>quantile(out.loc.phot,0.05); %filter out localizations that are too dim, outliers from fluorophores that are mostly off
     sr=sim.summarize_results(out,filter=bright,display=false);
     stdx(k)=sr.std(1);
     stdy(k)=sr.std(2);

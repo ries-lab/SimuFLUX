@@ -98,9 +98,9 @@ classdef PsfVectorial<Psf
             out=obj.parameters.addpar;
              sys=obj.parameters.sys;
             % interpolant:
-            nx=(-opt.radiusCanvas:out.dr:opt.radiusCanvas)*1e9; %to nm
-            nz=(-opt.depthCanvas:out.dz:opt.depthCanvas)*1e9; %to nm
-            [X,Y,Z] = ndgrid(nx,nx,nz);
+            % nx=(-opt.radiusCanvas:out.dr:opt.radiusCanvas)*1e9; %to nm
+            % nz=(-opt.depthCanvas:out.dz:opt.depthCanvas)*1e9; %to nm
+            % [X,Y,Z] = ndgrid(nx,nx,nz);
             
            
             % sigma from wavelength, NA
@@ -134,6 +134,7 @@ classdef PsfVectorial<Psf
                     PSF=squeeze(out.I(:,:,:,:))/normfact;
                     PSF = obj.beadsize(PSF, sys.beadradius);
                     [PSF,PSFdonut.normalization]=normpsf(PSF);
+                    [X,Y,Z]=meshgrid4PSF(PSF,out.dr,out.dz);
                     PSFdonut.interp = griddedInterpolant(X,Y,Z,PSF,intmethod, extraolation_method);              
                     obj.PSFs(key)=PSFdonut;
                 case {'halfmoonx','halfmoony'}
@@ -148,6 +149,7 @@ classdef PsfVectorial<Psf
                     PSF=squeeze(out.I(:,:,:,:))/normfact;
                     PSF = obj.beadsize(PSF, sys.beadradius);
                     [PSF,normalization]=normpsf(PSF);
+                    [X,Y,Z]=meshgrid4PSF(PSF,out.dr,out.dz);
                     PSFx.interp = griddedInterpolant(X,Y,Z,permute(PSF,[2,1,3]),intmethod, extraolation_method);
                     PSFy.interp = griddedInterpolant(X,Y,Z,PSF,intmethod, extraolation_method);     
                     PSFx.normalization=normalization;
@@ -176,6 +178,7 @@ classdef PsfVectorial<Psf
                     kernel=double((Xk-phpos(1)).^2+(Yk-phpos(2)).^2<(phdiameter/2)^2);
                     psfph=conv2fft(psfg,kernel);
                     [psfph,PSFdonut.normalization]=normpsf(psfph);
+                    [X,Y,Z]=meshgrid4PSF(PSF,out.dr,out.dz);
                     PSFdonut.interp = griddedInterpolant(X,Y,Z,psfph,intmethod,extraolation_method);
                     obj.PSFs(key)=PSFdonut;   
                 case 'tophat'
@@ -188,6 +191,7 @@ classdef PsfVectorial<Psf
                     PSF=squeeze(out.I(:,:,:,:))/normfact;
                     PSF = obj.beadsize(PSF, sys.beadradius);
                     [PSF,PSFdonut.normalization]=normpsf(PSF);
+                    [X,Y,Z]=meshgrid4PSF(PSF,out.dr,out.dz);
                     PSFdonut.interp = griddedInterpolant(X,Y,Z,PSF,intmethod, extraolation_method);
                     obj.PSFs(key)=PSFdonut;   
                 case 'vortex'
@@ -198,6 +202,7 @@ classdef PsfVectorial<Psf
                     PSF=squeeze(out.I(:,:,:,:))/normfact;
                     PSF = obj.beadsize(PSF, sys.beadradius);
                     [PSF,PSFdonut.normalization]=normpsf(PSF);
+                    [X,Y,Z]=meshgrid4PSF(PSF,out.dr,out.dz);
                     PSFdonut.interp = griddedInterpolant(X,Y,Z,PSF,intmethod, extraolation_method);              
                     obj.PSFs(key)=PSFdonut;
                 otherwise
@@ -363,4 +368,10 @@ end
 function [PSF,normf]=normpsf(PSF)
 normf=max(PSF(:));
 PSF=PSF/normf;
+end
+
+function [X,Y,Z]=meshgrid4PSF(PSF,dr,dz)
+nx=((1:size(PSF,1))-mean((1:size(PSF,1))))*dr*1e9;
+nz=((1:size(PSF,3))-mean((1:size(PSF,3))))*dz*1e9;
+[X,Y,Z]=ndgrid(nx,nx,nz);
 end

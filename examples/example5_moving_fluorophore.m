@@ -22,7 +22,6 @@ out=sim.runSequence("repetitions",1);
 sim.plotpositions(out,figure=211,xvalues="time");
 
 %% make stepping fluorophore
-sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;
 fl2=FlMoveBleach;
 fl2.photonbudget=20000;
 updatetime=0.01; %us
@@ -35,3 +34,14 @@ sim.fluorophores=fl2;sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;
 out=sim.runSequence("repetitions",1);
 sim.plotpositions(out,figure=212);
 
+%% instabilities: vibrations
+fl3=FlMoving(brightness=10000);
+fl3.posmode='function';
+frequency=.1; %kHz
+amplitude=5; %nm
+posfl=[0 0 0];
+fl3.posfunction={@(t) amplitude*sin(frequency*t)+posfl(1), @(t) 0*t+posfl(2), @(t) 0*t+posfl(3)};
+
+sim.fluorophores=fl3;sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;
+out=sim.runSequence("repetitions",1);
+sim.summarize_results(out);

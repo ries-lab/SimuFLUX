@@ -11,7 +11,7 @@ psf_vec.setpinhole("AU",1);
 fc=FlCollection;
 fc.add({fl1, fl2})
 
-sim=Simulator(fc); %make a simulator and attach fluorophore
+sim=Simulator(fluorophores=fc); %make a simulator and attach fluorophore
 
 numberOfLocalizations=1000;
 orbitpoints=4;
@@ -30,7 +30,7 @@ stats=sim.summarize_results(out);
 x=0:20:750;
 
 figure(144)
-sim.scan_fov(seq,x,dimplot=1,dimscan=1,fluorophorenumber=2,ax1=["std","rmse","sCRB"],ax2="bias",title="scan second fluorophore in x");
+sim.scan_fov(seq,x,dimplot=1,dimscan=1,fluorophorenumber=2,ax1=["std","rmse","sCRB","bias"],title="scan second fluorophore in x", tag="x");
 
 
 
@@ -38,7 +38,7 @@ sim.scan_fov(seq,x,dimplot=1,dimscan=1,fluorophorenumber=2,ax1=["std","rmse","sC
 fl1.pos=[0 0 0]; fl2.pos=[100 0 0];
 z=0:50:1000;
 figure(145)
-sim.scan_fov(seq,z,dimplot=1,dimscan=3,fluorophorenumber=2,ax1=["std","rmse","sCRB"],ax2="bias",title="scan second fluorophore in z");
+sim.scan_fov(seq,z,dimplot=1,dimscan=3,fluorophorenumber=2,ax1=["std","rmse","sCRB","bias"],title="scan second fluorophore in z",tag="z");
 
 
 

@@ -9,7 +9,7 @@ fl.brightness=1000; %kHz if excited at the center of a Gaussian beam
 
 psf_donut=PsfDonut2D; % here you define a PSF. In this case, an analytical 2D donut PSF
 
-sim=Simulator(fl); %make a simulator and attach fluorophore
+sim=Simulator(fluorophores=fl); %make a simulator and attach fluorophore
 
 numberOfLocalizations=1000;
 

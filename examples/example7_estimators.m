@@ -8,7 +8,7 @@ psf_vec.setpinhole("AU",1);
 fl=FlStatic;
 fl.brightness=100000; %very bright to look at bias
 fl.pos=[20 0 0];
-sim=Simulator(fl);
+sim=Simulator(fluorophores=fl);
 
 numberOfLocalizations=100;
 L=75;
@@ -62,7 +62,7 @@ statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,
 
 %background subtracted,
 bgf=sim.patterns('donut').backgroundfac(1); %background used for simulation
-sim.background_estimated=3000*bgf;
+sim.background_estimated=sim.background*bgf; %in general, the GT background is not known but needs to be calibrated 
 sim.defineComponent("estdonut","estimator",@est_quad2Diter,parameters={L,probecenter},dim=1:2);
 sim.defineComponent("bg","background",@backgroundsubtractor,parameters={"background_estimated"});
 seq={"donut","bg","estdonut"};

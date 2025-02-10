@@ -4,27 +4,32 @@ classdef FlMoving<Fluorophore
         posind=1;
         posparameters=[];
         posmode
+        posfunction
     end
     methods
+        function obj=FlMoving(varargin)
+            obj@Fluorophore(varargin{:})
+        end
         % function reset(obj)
         %     reset@MFfluorophore(obj);
         %     %later: also reset trace / position if wanted
         % end
         function [posout,isactive]=position(obj,time,props)
             isactive=true;
-            pos=obj.pos;
             posout=[0 0 0];
             posmode=obj.posmode;
             switch posmode
                 case 'function'
-                    for k=length(pos):-1:1
-                        posh(k)=pos{k}(time);
+                    posfunction=obj.posfunction;
+                    for k=length(posfunction):-1:1
+                        posh(k)=posfunction{k}(time);
                     end
                 case 'static'
-                    posh=pos;
+                    posh=obj.pos;
                 case {'trace','diffusion','steps'}
                     %XXXX add test if ind. already too high (e.g. 2x
                     %position asked. If asked 2x same time: should work)
+                    pos=obj.pos;
                     posind=max(1,obj.posind-1); 
                     if pos(posind,1)>time
                         posind=find(pos(:,1)<time,1,'last');

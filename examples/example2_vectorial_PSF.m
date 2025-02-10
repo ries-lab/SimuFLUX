@@ -1,16 +1,15 @@
 %% Vectorial PSF
 addpath(genpath(fileparts(fileparts(mfilename('fullpath'))))); %add all folders to serach path
 
-fl=FlStatic; %define a static fluorophore
+fl=FlStatic(brightness=1000); %define a static fluorophore
 fl.pos=[10 0 0];
-fl.brightness=1000; %kHz if excited at the center of a Gaussian beam
 
 if ~exist("psf_vec","var") %if PSF is already defined, we need not recalculate it if no parameters are changed
     psf_vec=PsfVectorial; %simple 2D donut PSF
 end
 psf_vec.zerooffset=0.000; %true zero
 
-sim=Simulator(fl); %make a simulator and attach fluorophore
+sim=Simulator(fluorophores=fl); %make a simulator and attach fluorophore
 
 numberOfLocalizations=1000;
 
@@ -60,9 +59,9 @@ if ~exist("psf_vec2","var") %if PSF is already defined, we need not recalculate 
 end
 %Add Zernike:
 % Zr(k,1): n, Zr(k,2): m, Zr(k,3): amplitude as fraction of wavelength
-sys.Zr(1,1)=4;sys.Zr(1,2)=0;sys.Zr(1,3)=0.1; %spherical aberrations 
-sys.Zr(1,1)=2;sys.Zr(1,2)=2;sys.Zr(1,3)=0.05; %astigmatism 
-psf_vec2.setpar(sys)
+sys_aberr.Zr(1,1)=4;sys_aberr.Zr(1,2)=0;sys_aberr.Zr(1,3)=0.1; %spherical aberrations 
+sys_aberr.Zr(2,1)=2;sys_aberr.Zr(2,2)=2;sys_aberr.Zr(2,3)=0.05; %astigmatism 
+psf_vec2.setpar(sys_aberr)
 sim.definePattern("donut_aber", psf_vec2, phasemask="vortex", makepattern="orbitscan", orbitpoints=4, ...
     probecenter=probecenter,orbitL=L,pointdwelltime=pointdwelltime,laserpower=laserpower,repetitions=repetitions)
 seq={"donut_aber","estdonut"};
@@ -79,10 +78,10 @@ if ~exist("psf_vec2","var") %if PSF is already defined, we need not recalculate 
 end
 %Add Zernike:
 % Zr(k,1): n, Zr(k,2): m, Zr(k,3): amplitude as fraction of wavelength
-sys.Zr(1,1)=4;sys.Zr(1,2)=0;sys.Zr(1,3)=0.0; %spherical aberrations 
-sys.Zr(1,1)=2;sys.Zr(1,2)=2;sys.Zr(1,3)=0.0; %astigmatism 
-sys.maskshift=[0.2,0]; % radius of pupil function is 1
-psf_vec2.setpar(sys)
+sys_mis.Zr(1,1)=4;sys_mis.Zr(1,2)=0;sys_mis.Zr(1,3)=0.0; %spherical aberrations 
+sys_mis.Zr(2,1)=2;sys_mis.Zr(2,2)=2;sys_mis.Zr(2,3)=0.0; %astigmatism 
+sys_mis.maskshift=[0.2,0]; % radius of pupil function is 1
+psf_vec2.setpar(sys_mis)
 sim.definePattern("donut_misaligned", psf_vec2, phasemask="vortex", makepattern="orbitscan", orbitpoints=orbitpoints, ...
     probecenter=probecenter,orbitL=L,pointdwelltime=pointdwelltime,laserpower=laserpower,repetitions=repetitions)
 seq={"donut_misaligned","estdonut"};
@@ -130,16 +129,16 @@ if ~exist("psf_vecth","var") %if PSF is already defined, we need not recalculate
     psf_vecth=PsfVectorial; %simple 2D donut PSF
 end
 psf_vecth.setpinhole("AU",1);
-sys.Zr(1,1)=4;sys.Zr(1,2)=0;sys.Zr(1,3)=0.0; %spherical aberrations 
-sys.Zr(1,1)=2;sys.Zr(1,2)=2;sys.Zr(1,3)=0.0; %astigmatism 
-psf_vecth.setpar(sys)
+sys_th.Zr(1,1)=4;sys_th.Zr(1,2)=0;sys_th.Zr(1,3)=0.0; %spherical aberrations 
+sys_th.Zr(2,1)=2;sys_th.Zr(2,2)=2;sys_th.Zr(2,3)=0.0; %astigmatism 
+psf_vecth.setpar(sys_th)
 
 orbitpoints=4;
 probecenterxy=true;
-probecenterz=false;
+probecenterz=true;
 L=75;
 Lz=150;
-sigmaz=200;
+% sigmaz=200;
 laserpower=30;
 
 sim.definePattern("tophat_xy", psf_vecth, phasemask="tophat", makepattern="orbitscan", orbitpoints=orbitpoints, ...

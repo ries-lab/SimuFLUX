@@ -3,6 +3,8 @@ classdef FlStatic<Fluorophore
 
     end
     methods
-        
+        function obj=FlStatic(varargin)
+            obj@Fluorophore(varargin{:})
+        end
     end
 end
