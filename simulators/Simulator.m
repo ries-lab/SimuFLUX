@@ -143,22 +143,30 @@ classdef Simulator<handle
             end
             out.phot=poissrnd(intall); %later: fl.tophot(intenall): adds bg, multiplies with brightness, does 
             out.photrate=out.phot./pattern.pointdwelltime';out.photrate=out.photrate/sum(out.photrate)*sum(out.phot); 
-            out.pointdwelltimes=pattern.pointdwelltime';
+            out.pointdwelltime=pattern.pointdwelltime';
             out.bg_photons_gt=bgphot;
             out.bgphot_est=0;
             out.intensity=intall;
             out.flpos=flpos/numpoints/repetitions;
             out.flint=flintall;
-            out.averagetime=timep/numpoints/repetitions;
-            out.patterntotaltime=time-timestart;
-            out.patterntime=sum(pattern.pointdwelltime);
+            out.time.averagetime=timep/numpoints/repetitions;
+            out.time.patterntotaltime=time-timestart;
+            out.time.patterntime=sum(pattern.pointdwelltime);
             out.counter=1;
             out.repetitions=repetitions;
+            out.par.pattern.repetitions=repetitions;
             out.par=pattern.par;
             out.par.L=pattern.L;
-            out.par.patternpos=pattern.pos;
-            out.par.zeropos=pattern.zeropos;
-            out.par.dim=pattern.dim;
+            out.par.pattern.L=pattern.L;
+            % out.par.patternpos=pattern.pos;
+            % out.par.zeropos=pattern.zeropos;
+            out.par.pattern.dim=pattern.dim;
+            out.par.pattern.pos=pattern.pos;
+            out.par.pattern.zeropos=pattern.zeropos;
+            out.par.pattern.phasemask=pattern.phasemask;
+            out.par.pattern.backgroundfac=pattern.backgroundfac;
+            out.par.pattern.laserpower=pattern.laserpower;
+            out.par.pattern.pointdwelltime=pattern.pointdwelltime;
             obj.time=time;
         end
 
@@ -181,6 +189,7 @@ classdef Simulator<handle
             bleached=false;
             loccounter=0;
             fl.pos=[];fl.int=[];
+            par={};
             for k=1:maxlocalizations
                 if obj.fluorophores.remainingphotons<1
                     bleached=true;
@@ -198,11 +207,14 @@ classdef Simulator<handle
                             loc.phot(loccounter)=loc.phot(loccounter)+sum(scanout.phot);
                             photch(loccounter,1:length(scanout.phot))=scanout.phot;
                             photbg(loccounter)=scanout.bg_photons_gt;
-                            loc.time(loccounter)=loc.time(loccounter)+scanout.averagetime;
+                            loc.time(loccounter)=loc.time(loccounter)+scanout.time.averagetime;
                             flpos=scanout.flpos(1,:);
                             loc.xfl1(loccounter)=flpos(1);loc.yfl1(loccounter)=flpos(2);loc.zfl1(loccounter)=flpos(3);
                             fl.pos(loccounter,1:size(scanout.flpos,1),:)=scanout.flpos;
                             fl.int(loccounter,1:size(scanout.flpos,1))=scanout.flint;
+                            if k==1   %just first localization
+                                par{s}=scanout.par;
+                            end
                         case "estimator"
                             % replace placeholder names by values
                             component_par=replaceinlist(component.parameters,'patternpos',scanout.par.patternpos,'L',scanout.par.L,...
@@ -234,7 +246,6 @@ classdef Simulator<handle
                 end
                 % write position estimates for all localizations in sequence together, 9.2.25
                 loc.xnm(loccounter_seq:loccounter)=xesttot(1);loc.ynm(loccounter_seq:loccounter)=xesttot(2);loc.znm(loccounter_seq:loccounter)=xesttot(3);
-
             end
             loc=removeempty(loc,loccounter);
             loc.abortcondition=zeros(size(loc.phot));loc.abortcondition(end)=1+2*bleached;
@@ -242,6 +253,7 @@ classdef Simulator<handle
             out.raw=photch(1:loccounter,:);
             out.fluorophores=fl;
             out.bg_photons_gt=photbg(1:loccounter);
+            out.par=par;
             % out.bg_photons_est=
         end
         function out=runSequence(obj,seq,args)
@@ -269,6 +281,7 @@ classdef Simulator<handle
                 out1.loc.rep=1+0*out1.loc.xnm;
                 out1.fluorophores.pos=out2.fluorophores.pos;
                 out1.fluorophores.int=out2.fluorophores.int;
+                
             else 
                 sr=size(out2.raw);
                 if length(sr)==2 %Abberior
@@ -458,7 +471,7 @@ classdef Simulator<handle
             if args.display
                 ff1='%1.1f,';
                 disp([ 'photch: ', num2str(st.photch,ff1),...
-                    ' mean(phot): ', num2str(st.phot,ff1), 'signal phot: ', num2str(st.phot_signal,ff1)])
+                    ' mean(phot): ', num2str(st.phot,ff1)]) %, 'signal phot: ', num2str(st.phot_signal,ff1)
                  ff='%1.2f,';
                 disp(['std:  ', num2str(st.std,ff),...
                     ' rmse: ', num2str(st.rmse,ff),...

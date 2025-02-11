@@ -6,7 +6,7 @@ end
 psf_vec.setpinhole("AU",1);
 
 fl=FlStatic;
-fl.brightness=100000; %very bright to look at bias
+fl.brightness=10000; %very bright to look at bias
 fl.pos=[20 0 0];
 sim=Simulator(fluorophores=fl);
 

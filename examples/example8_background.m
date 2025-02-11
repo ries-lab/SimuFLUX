@@ -11,35 +11,50 @@ sim=Simulator;
 
 numberOfLocalizations=1000;
 L=75;
+probecenter=true;
 sim.definePattern("donut", psf_vec, phasemask="vortex", makepattern="orbitscan", orbitpoints=4, ...
-    probecenter=true,orbitL=L,laserpower=100)
-sim.defineComponent("estdonut","estimator",@est_quad2Diter4points,parameters={L},dim=1:2);
-seq={"donut","estdonut"};
-%% no background
+    probecenter=probecenter,orbitL=L,laserpower=100)
+sim.defineComponent("estdonut","estimator",@est_quad2Diter,parameters={L,probecenter},dim=1:2);
+sim.defineComponent("bg","background",@backgroundsubtractor,parameters={"background_estimated"});
+seq={"donut","bg","estdonut"};
+bgf=sim.patterns('donut').backgroundfac(1); %background used for simulation
+fltestpos=[10 0 0];
 fl1=FlStatic;
-fl1.pos=[20 0 0];
-psf_vec.zerooffset=0;
+fl1.pos=fltestpos;
 sim.fluorophores=fl1;
+%% no background
+sim.background_estimated=0;
+fl1.pos=fltestpos;
+psf_vec.zerooffset=0;
 out=sim.runSequence(seq,"maxlocs",numberOfLocalizations);
 disp("no background")
 sim.summarize_results(out);
 
 %% imperfect zero
-psf_vec.zerooffset=0.2;
+psf_vec.zerooffset=0.1;
+% estimate background by scanning centered fluorophore
+fl1.pos=[0 0 0];
+outtest=sim.runSequence(seq,"maxlocs",numberOfLocalizations);
+bgphot=mean(outtest.raw(:,end));
+sim.background_estimated=bgphot/outtest.par{1}.pointdwelltime(1);
+
+fl1.pos=fltestpos;
+% sim.background_estimated=psf_vec.zerooffset*fl.brightness*bgf; %in general, the GT background is not known but needs to be calibrated 
 out=sim.runSequence(seq,"maxlocs",numberOfLocalizations);
 disp("zerooffset: ")
 sim.summarize_results(out);
 
 %% Autofluorescence background
 psf_vec.zerooffset=0.0;
-sim.background=50;
+sim.background=3000;
+sim.background_estimated=sim.background*bgf; %in general, the GT background is not known but needs to be calibrated 
 out=sim.runSequence(seq,"maxlocs",numberOfLocalizations);
 disp("fluorescence background: ")
 sim.summarize_results(out);
 
 %% nearby fluorophore
 fl2=FlStatic;
-fl2.pos=[50 100 600];
+fl2.pos=[50 50 400];
 
 fc=FlCollection;
 fc.add({fl1, fl2})

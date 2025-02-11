@@ -51,29 +51,29 @@ classdef FlCollectionBlinking<FlCollection
             switchpar=obj.switchpar;
             for k=numfl:-1:1
                 flproph.moving(k)=false;
-                if switchpar.starton>-1
-                    flproph.isactive(k)=(switchpar.starton==1);
-                else %random
-                    flproph.isactive(k)=rand<switchpar.tonsmlm/(switchpar.toffsmlm+switchpar.tonsmlm);
-                end
+                % if switchpar.starton>-1
+                %     flproph.isactive(k)=(switchpar.starton==1);
+                % else %random
+                %     flproph.isactive(k)=rand<switchpar.tonsmlm/(switchpar.toffsmlm+switchpar.tonsmlm);
+                % end
                 
                 addfl=FlBleach;
-                addfl.brightness=switchpar.brightness;
-                addfl.photonbudget=switchpar.photonbudget;
+                % addfl.brightness=switchpar.brightness;
+                % addfl.photonbudget=switchpar.photonbudget;
                 addfl.pos=poslist(k,:);
                 addfl.reset;
 
-                flproph.nexton(k)=exprnd(switchpar.toffsmlm);
-                flproph.nextoff(k)=exprnd(switchpar.tonsmlm);
+                % flproph.nexton(k)=exprnd(switchpar.toffsmlm);
+                % flproph.nextoff(k)=exprnd(switchpar.tonsmlm);
                 fllist{k}=addfl;
             end
-            flproph.activations=double(flproph.isactive);
-            flproph.remaining_activations=max(1,poissrnd(switchpar.activations,1,numfl));
+            % flproph.activations=double(flproph.isactive);
+            % flproph.remaining_activations=max(1,poissrnd(switchpar.activations,1,numfl));
             obj.flprop=appendstruct(obj.flprop,flproph);
             obj.flall=cat(2,obj.flall,fllist);
 
-            obj.numberOfFluorophores=length(obj.flall);
-            obj.updatepos;
+            % obj.numberOfFluorophores=length(obj.flall);
+            obj.reset; %reset fluorophores
         end
         function updateonoff(obj,time)
             flprop=obj.flprop;
@@ -121,9 +121,40 @@ classdef FlCollectionBlinking<FlCollection
             obj.switchpar=copyfields(obj.switchpar,spar);
                 
         end
-        % function reset(obj)
-        %     %XXX reset fluorophore dynamics if needed
-        % end
+        function reset(obj, time)
+            if nargin<2
+                time=0;
+            end
+            flproph=obj.flprop;
+            flall=obj.flall;
+            numfl=length(flall);
+            switchpar=obj.switchpar;
+            for k=numfl:-1:1
+                flall{k}.reset;
+                if flproph.moving(k)
+                    continue
+                end
+                if switchpar.starton>-1
+                    flproph.isactive(k)=(switchpar.starton==1);
+                else %random
+                    flproph.isactive(k)=rand<switchpar.tonsmlm/(switchpar.toffsmlm+switchpar.tonsmlm);
+                end
+                
+                % addfl=FlBleach;
+                flall{k}.brightness=switchpar.brightness;
+                flall{k}.photonbudget=switchpar.photonbudget;
+
+                % addfl.reset;
+
+                flproph.nexton(k)=exprnd(switchpar.toffsmlm)+time;
+                flproph.nextoff(k)=exprnd(switchpar.tonsmlm)+time;
+            end
+            flproph.activations=double(flproph.isactive);
+            flproph.remaining_activations=max(1,poissrnd(switchpar.activations,1,numfl));
+            obj.flprop=flproph;
+            obj.numberOfFluorophores=length(obj.flall);
+            obj.updatepos;
+        end
         function bl=allbleached(obj)
             bl=sum(obj.flprop.remaining_activations)==0;
         end
