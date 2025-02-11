@@ -70,7 +70,11 @@ classdef SimSequencefile<Simulator
                 end
                 
                 patterntime=(itrs(k).patDwellTime/itrs(k).patRepeat*(1+probecenter*obj.sequence.ctrDwellFactor))*1e3; %ms
-                pointdwelltime=patterntime/(patternpoints+probecenter);
+                pointdwelltime=itrs(k).patDwellTime/itrs(k).patRepeat*1e3/patternpoints;
+                if probecenter
+                    pointdwelltime(2)=pointdwelltime(1)*patternpoints*obj.sequence.ctrDwellFactor;
+                end
+                % pointdwelltime=patterntime/(patternpoints+probecenter);
                 laserpower=itrs(k).pwrFactor;
                 obj.definePattern("itr"+k, psf, phasemask=phasemask, makepattern='orbitscan', orbitpoints=patternpoints, orbitL=L,...
                 probecenter=probecenter,pointdwelltime=pointdwelltime, laserpower=laserpower,repetitions=itrs(k).patRepeat);
@@ -156,7 +160,7 @@ classdef SimSequencefile<Simulator
                         estpar=estimator.par;
                         estpar=replaceinlist(estpar,'patternpos',patternpos,'L',L,'probecenter',probecenter,...
                             'background_est',obj.background_estimated(min(itr,length(obj.background_estimated))),'iteration',itr);
-                        xesth=estf(scanout.phot,estpar{:});
+                        xesth=estf(scanout.photrate,estpar{:});
                         xest(estimator.dim)=xesth(estimator.dim);
 
                         % xest=estimators(estimator.estimator,scanout.phot,patternpos,L,estimator.parameters{:});
@@ -175,16 +179,19 @@ classdef SimSequencefile<Simulator
                         xesttot=[0,0,0];
                     end
     
-                    if itrs(itr).ccrLimit>-1
+                    if itrs(itr).ccrLimit>-1 %probe center
                         out.loc.eco(loccounter,1)=sum(scanout.phot(1:end-1));
                         out.loc.ecc(loccounter,1)=sum(scanout.phot(end));
                         
-                        orbittime=scanout.patterntotaltime/(1+probecenter*obj.sequence.ctrDwellFactor);
-                        out.loc.efo=out.loc.eco/(orbittime)*1e6;
-                        out.loc.efc=out.loc.ecc/(scanout.patterntotaltime-orbittime)*1e6;
+                        % orbittime=scanout.patterntotaltime/(1+probecenter*obj.sequence.ctrDwellFactor);
+                        % out.loc.efo=out.loc.eco/(orbittime)*1e6;
+                        out.loc.efo=out.loc.eco/(sum(scanout.pointdwelltimes(1:end-1)))*1e6;
+                        % out.loc.efc=out.loc.ecc/(scanout.patterntotaltime-orbittime)*1e6;
+                        out.loc.efc=out.loc.ecc/(scanout.pointdwelltimes(end))*1e6;
                     else
                         out.loc.eco(loccounter,1)=sum(scanout.phot);
-                        out.loc.efo=out.loc.eco/(scanout.patterntotaltime);
+                        out.loc.efo=out.loc.eco/(sum(scanout.pointdwelltimes));
+                        % out.loc.efo=out.loc.eco/(scanout.patterntotaltime);
                         out.loc.ecc(loccounter,1)=-1;
                         out.loc.efc(loccounter,1)=-1;
                         cfr=-1;

@@ -178,7 +178,7 @@ classdef PsfVectorial<Psf
                     kernel=double((Xk-phpos(1)).^2+(Yk-phpos(2)).^2<(phdiameter/2)^2);
                     psfph=conv2fft(psfg,kernel);
                     [psfph,PSFdonut.normalization]=normpsf(psfph);
-                    [X,Y,Z]=meshgrid4PSF(PSF,out.dr,out.dz);
+                    [X,Y,Z]=meshgrid4PSF(psfph,out.dr,out.dz);
                     PSFdonut.interp = griddedInterpolant(X,Y,Z,psfph,intmethod,extraolation_method);
                     obj.PSFs(key)=PSFdonut;   
                 case 'tophat'

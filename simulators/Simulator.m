@@ -87,8 +87,16 @@ classdef Simulator<handle
                 pattern.zeropos(k)=string((zeropos(k)));
                 pattern.psf(k).calculatePSFs(args.phasemask,pattern.zeropos(k));
                 pattern.backgroundfac(k)=1/psf.normfactor(args.phasemask,pattern.zeropos(k));
-                pattern.pointdwelltime(k)=args.pointdwelltime;
+               
                 pattern.laserpower(k)=args.laserpower;
+            end
+            if length(args.pointdwelltime)==size(pos,1) %one dwelltime per position
+                pattern.pointdwelltime=args.pointdwelltime;
+            else
+                pattern.pointdwelltime=zeros(1,size(pos,1))+args.pointdwelltime(1);
+            end
+            if length(args.pointdwelltime)==2
+                pattern.pointdwelltime(end)=args.pointdwelltime(2);
             end
             pattern.L=args.orbitL;
             pattern.dim=args.dim;
@@ -134,6 +142,8 @@ classdef Simulator<handle
                 fluorophores.updateonoff(time);
             end
             out.phot=poissrnd(intall); %later: fl.tophot(intenall): adds bg, multiplies with brightness, does 
+            out.photrate=out.phot./pattern.pointdwelltime';out.photrate=out.photrate/sum(out.photrate)*sum(out.phot); 
+            out.pointdwelltimes=pattern.pointdwelltime';
             out.bg_photons_gt=bgphot;
             out.bgphot_est=0;
             out.intensity=intall;
@@ -141,6 +151,7 @@ classdef Simulator<handle
             out.flint=flintall;
             out.averagetime=timep/numpoints/repetitions;
             out.patterntotaltime=time-timestart;
+            out.patterntime=sum(pattern.pointdwelltime);
             out.counter=1;
             out.repetitions=repetitions;
             out.par=pattern.par;
@@ -197,7 +208,7 @@ classdef Simulator<handle
                             component_par=replaceinlist(component.parameters,'patternpos',scanout.par.patternpos,'L',scanout.par.L,...
                                 'probecenter',scanout.par.probecenter,'bg_photons_gt',scanout.bg_photons_gt, ...
                                 'background_estimated',obj.background_estimated,'iteration',s);
-                            xesth=component.functionhandle(scanout.phot,component_par{:});
+                            xesth=component.functionhandle(scanout.photrate,component_par{:});
                             if length(xesth)==3
                                 xest(component.dim)=xesth(component.dim);
                             else
