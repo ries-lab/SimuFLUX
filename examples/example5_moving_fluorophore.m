@@ -19,20 +19,21 @@ fl.makediffusion(D,updatetime)
 %diffusion coefficient, update time args.startpos,dim, numpoints, buondarybox
 sim.fluorophores=fl;
 out=sim.runSequence("repetitions",1);
-sim.plotpositions(out,figure=211,xvalues="time");
+sim.plotpositions(out,figure=250);
 
 %% make stepping fluorophore
 fl2=FlMoveBleach;
 fl2.photonbudget=20000;
+fl2.brightness=200;
 updatetime=0.01; %us
 stepsize=16; %nm
-dwelltime=5; %ms
+dwelltime=28; %ms
 fl2.makesteps(stepsize,dwelltime, updatetime,angle=45)
       % args.startpos, dim, numpoints,angle (degree);
 
 sim.fluorophores=fl2;sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;
 out=sim.runSequence("repetitions",1);
-sim.plotpositions(out,figure=212);
+sim.plotpositions(out,figure=251,xvalues="time");
 
 %% instabilities: vibrations
 fl3=FlMoving(brightness=10000);

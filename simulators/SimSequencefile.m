@@ -9,6 +9,7 @@ classdef SimSequencefile<Simulator
     methods
         function obj=SimSequencefile(varargin)
             obj@Simulator(varargin{:})
+            obj.deadtimes=struct('point',0.011,'pattern',0,'estimator',0.015,'positionupdate',0,'localization',0.4);
         end
         function loadsequence(obj,varargin)
             update=true;
@@ -86,6 +87,9 @@ classdef SimSequencefile<Simulator
             out=[];
             itrs=obj.sequence.Itr;
             maxiter=length(itrs);
+            starttime=obj.time;
+
+            deadtimes=obj.deadtimes;
             
             stickiness=obj.sequence.stickiness;
             loclimit=obj.sequence.locLimit;
@@ -119,6 +123,7 @@ classdef SimSequencefile<Simulator
                     scanouth=obj.patternscan(itrname);
                     % scanouth=obj.subtractbackground(scanouth);
                     scanout=sumstruct(scanout,scanouth);
+                    
                     
                     photsum=sum(scanout.phot);
                     photbg=scanout.bg_photons_gt;
@@ -163,6 +168,7 @@ classdef SimSequencefile<Simulator
                             'background_est',obj.background_estimated(min(itr,length(obj.background_estimated))),'iteration',itr);
                         xesth=estf(scanout.photrate,estpar{:});
                         xest(estimator.dim)=xesth(estimator.dim);
+                        obj.time=obj.time+deadtimes.estimator;
 
                         % xest=estimators(estimator.estimator,scanout.phot,patternpos,L,estimator.parameters{:});
                         xesttot=xest+obj.posgalvo+obj.posEOD;
@@ -173,6 +179,7 @@ classdef SimSequencefile<Simulator
                             xold=obj.posgalvo;
                             obj.posgalvo=(1-dampf)*obj.posgalvo+dampf*(xesttot);
                             obj.posEOD=obj.posEOD+xold-obj.posgalvo+xest;
+                            obj.time=obj.time+deadtimes.positionupdate;
                         else
                             obj.posEOD=obj.posEOD+xest;
                         end
@@ -200,7 +207,7 @@ classdef SimSequencefile<Simulator
     
                     out.loc.xnm(loccounter,1)=xesttot(1);out.loc.ynm(loccounter,1)=xesttot(2);out.loc.znm(loccounter,1)=xesttot(3);
                     out.loc.xfl1(loccounter,1)=scanout.flpos(1,1)/scanout.counter;out.loc.yfl1(loccounter,1)=scanout.flpos(1,2)/scanout.counter;out.loc.zfl1(loccounter,1)=scanout.flpos(1,3)/scanout.counter;
-                    out.loc.time(loccounter,1)=scanout.time.averagetime/scanout.counter;
+                    out.loc.time(loccounter,1)=scanout.time.averagetime;
                     out.loc.itr(loccounter,1)=itr;
                     out.loc.numitr(loccounter,1)=numitr;
                     out.loc.loccounter(loccounter,1)=loccounter;
@@ -231,6 +238,8 @@ classdef SimSequencefile<Simulator
                 out.sequence="itr"+max(out.loc.itr);
                 out.par=par;
             end
+            obj.time=obj.time+deadtimes.localization;
+            out.duration=obj.time-starttime;
         end
         function out=runSequence(obj,args)
             arguments
@@ -239,6 +248,7 @@ classdef SimSequencefile<Simulator
                 args.repetitions=1;
                 args.resetfluorophores=false;
             end
+            starttime=obj.time;
             out=[];
             for k=1:args.repetitions
                 if args.resetfluorophores
@@ -247,6 +257,7 @@ classdef SimSequencefile<Simulator
                 out2=obj.runSequenceintern;
                 out=obj.appendout(out,out2);
             end
+            out.duration=obj.time-starttime;
         end
         function makescoutingpattern(obj,fov,args)
             %fov=[x,y;x2,y2]
@@ -301,6 +312,7 @@ classdef SimSequencefile<Simulator
                     break
                 end
             end
+            out.duration=obj.time-timestart;
         end
         % function displayresults(obj)
         %     keys=obj.patterns.keys;

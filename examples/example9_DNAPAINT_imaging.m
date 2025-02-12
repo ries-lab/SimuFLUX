@@ -93,7 +93,7 @@ for k=1:length(brightnesses)
     %plot results
     vld=out.loc.vld==1 & out.loc.itr==max(out.loc.itr) ;
     vldcfr=vld & out.loc.cfr<0.2;
-    figure(89+k); hold off;
+    figure(290+k); hold off;
     plot(sim2.scoutingcoordinates(:,1),sim2.scoutingcoordinates(:,2),'k+')
     hold on
     plot(out.loc.xnm(vld),out.loc.ynm(vld),'r.')

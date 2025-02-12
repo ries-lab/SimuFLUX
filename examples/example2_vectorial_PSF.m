@@ -70,7 +70,7 @@ out=sim.runSequence(seq);
 disp("aberrations:")
 sim.summarize_results(out);
 psfab=psf_vec2.imagestack("vortex");
-imx(horzcat(psf0,psfab),'Parent',figure(121),'Title',"Aberrations"); %compare the two PSFs
+imx(horzcat(psf0,psfab),'Parent',figure(220),'Title',"Aberrations"); %compare the two PSFs
 
 %% Misaligned phase plate
 if ~exist("psf_vec2","var") %if PSF is already defined, we need not recalculate it if no parameters are changed
@@ -90,7 +90,7 @@ out=sim.runSequence(seq);
 disp("misaligned phase plate:")
 sim.summarize_results(out);
 psfab=psf_vec2.imagestack("vortex");
-imx(horzcat(psf0,psfab),'Parent',figure(129),'Title',"Misaligned phase plate"); %compare the two PSFs
+imx(horzcat(psf0,psfab),'Parent',figure(221),'Title',"Misaligned phase plate"); %compare the two PSFs
 
 
 %% Pinhole
@@ -120,7 +120,7 @@ disp("pinhole misaligned:")
 sim.summarize_results(out);
 
 psfph=psf_vecph2.imagestack("vortex");
-imx(horzcat(psf0,psfph),'Parent',figure(123),'Title',"Misaligned pinhole"); %compare the two PSFs
+imx(horzcat(psf0,psfph),'Parent',figure(222),'Title',"Misaligned pinhole"); %compare the two PSFs
 
 
 %% 3D with tophat

@@ -15,20 +15,20 @@ orbitpoints=6;
 probecenter=true;
 psf_donut=PsfDonut2D;
 sim.definePattern("donut", psf_donut, makepattern="orbitscan", orbitpoints=orbitpoints, ...
-    probecenter=probecenter,orbitL=L,pointdwelltime=pointdwelltime,laserpower=25,...
+    probecenter=probecenter,orbitL=L,pointdwelltime=pointdwelltime,laserpower=100,...
     repetitions=repetitions,orbitorder=orbitorder);
 sim.defineComponent("estdonut","estimator",@est_donut2d,parameters={sim.patterns("donut").pos,L,360},dim=1:2);
 out=sim.runSequence({"donut","estdonut"});sim.summarize_results(out);
 
 %% plot std vs repetitions
-allrepetitions=1:2:25;
+allrepetitions=1:1:25;
 stdx=zeros(length(allrepetitions),1);stdy=stdx;stdxrel=stdx;stdyrel=stdy;biasx=stdy;biasy=stdy;
 sim.defineComponent("estsq","estimator",@est_quad2Diter,parameters={L,probecenter},dim=1:2);
 for k=1:length(allrepetitions)
     pointdwelltime=pointdwelltimerep/allrepetitions(k);%us
     sim.definePattern("donut4", psf_donut, makepattern="orbitscan", orbitpoints=orbitpoints, ...
-    probecenter=probecenter,orbitL=L,pointdwelltime=pointdwelltime,laserpower=25,repetitions=allrepetitions(k));
-    out=sim.runSequence({"donut4","estsq"},maxlocs=1000);
+    probecenter=probecenter,orbitL=L,pointdwelltime=pointdwelltime,laserpower=100,repetitions=allrepetitions(k));
+    out=sim.runSequence({"donut4","estsq"},maxlocs=3000);
     bright=out.loc.phot>quantile(out.loc.phot,0.05); %filter out localizations that are too dim, outliers from fluorophores that are mostly off
     sr=sim.summarize_results(out,filter=bright,display=false);
     stdx(k)=sr.std(1);
@@ -39,7 +39,7 @@ for k=1:length(allrepetitions)
     biasx(k)=sr.bias(1);
     biasy(k)=sr.bias(2);
 end
-figure(134)
+figure(240)
 plot(allrepetitions,stdxrel,allrepetitions,stdyrel)
 xlabel('repetitions')
 ylabel('std/sCRB')

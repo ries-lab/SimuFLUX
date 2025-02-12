@@ -29,7 +29,7 @@ stats=sim.summarize_results(out);
 
 x=0:20:750;
 
-figure(144)
+figure(260)
 sim.scan_fov(seq,x,dimplot=1,dimscan=1,fluorophorenumber=2,ax1=["std","rmse","sCRB","bias"],title="scan second fluorophore in x", tag="x");
 
 
@@ -37,7 +37,7 @@ sim.scan_fov(seq,x,dimplot=1,dimscan=1,fluorophorenumber=2,ax1=["std","rmse","sC
 % now z-dependence
 fl1.pos=[0 0 0]; fl2.pos=[100 0 0];
 z=0:50:1000;
-figure(145)
+figure(261)
 sim.scan_fov(seq,z,dimplot=1,dimscan=3,fluorophorenumber=2,ax1=["std","rmse","sCRB","bias"],title="scan second fluorophore in z",tag="z");
 
 
@@ -84,7 +84,7 @@ out=sim.scoutingSequence(maxrep=1000);
 %plot results
 vld=out.loc.vld==1 & out.loc.itr==max(out.loc.itr) ;
 vldcfr=vld & out.loc.cfr<0.1;
-figure(89); hold off;
+figure(262); hold off;
 plot(sim.scoutingcoordinates(:,1),sim.scoutingcoordinates(:,2),'k+')
 hold on
 plot(out.loc.xnm(vld),out.loc.ynm(vld),'r.')

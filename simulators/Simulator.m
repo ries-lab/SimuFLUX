@@ -8,6 +8,7 @@ classdef Simulator<handle
         posEOD=[0 0 0]; %nm, not descanned, with respect to posgalvo.
         time=0;
         background_estimated=0;
+        deadtimes=struct('point',0,'pattern',0,'estimator',0,'positionupdate',0,'localization',0)
     end
     methods
         function obj=Simulator(args)
@@ -113,6 +114,7 @@ classdef Simulator<handle
             intall=zeros(numpoints,1);
             repetitions=pattern.repetitions;
             timestart=obj.time;
+            deadtimes=obj.deadtimes;
            
             timep=0;
             posgalvo=obj.posgalvo;
@@ -134,12 +136,13 @@ classdef Simulator<handle
                     intensity=sum(flint);
                     flpos(:,:)=flpos(:,:)+flposh;
                     flintall(isactive,:)=flintall(isactive,:)+flint;
-                    time=time+pattern.pointdwelltime(k);
+                    time=time+pattern.pointdwelltime(k)+deadtimes.point;
                     bgphoth=pattern.backgroundfac(k)*background*pattern.pointdwelltime(k);
                     bgphot=bgphoth+bgphot;
                     intall(k)=intall(k)+intensity+bgphoth; %sum over repetitions, fluorophores
                 end
-                fluorophores.updateonoff(time);
+                time=time+deadtimes.pattern;
+                fluorophores.updateonoff(time); %try moving into loop, how slow it gets
             end
             out.phot=poissrnd(intall); %later: fl.tophot(intenall): adds bg, multiplies with brightness, does 
             out.photrate=out.phot./pattern.pointdwelltime';out.photrate=out.photrate/sum(out.photrate)*sum(out.phot); 
@@ -150,7 +153,7 @@ classdef Simulator<handle
             out.flpos=flpos/numpoints/repetitions;
             out.flint=flintall;
             out.time.averagetime=timep/numpoints/repetitions;
-            out.time.patterntotaltime=time-timestart;
+            out.time.patterntotaltime=sum(pattern.pointdwelltime)*repetitions;
             out.time.patterntime=sum(pattern.pointdwelltime);
             out.counter=1;
             out.repetitions=repetitions;
@@ -171,6 +174,7 @@ classdef Simulator<handle
         end
 
         function out=runSequenceintern(obj,seq,maxlocalizations)
+            timestart=obj.time;
             numseq=length(seq);
             numpat=0;
             for s=numseq:-1:1
@@ -190,6 +194,7 @@ classdef Simulator<handle
             loccounter=0;
             fl.pos=[];fl.int=[];
             par={};
+            deadtimes=obj.deadtimes;
             for k=1:maxlocalizations
                 if obj.fluorophores.remainingphotons<1
                     bleached=true;
@@ -230,10 +235,11 @@ classdef Simulator<handle
                             
                             loc.xgalvo(loccounter,1)=obj.posgalvo(1);loc.ygalvo(loccounter,1)=obj.posgalvo(2);loc.zgalvo(loccounter,1)=obj.posgalvo(3);
                             loc.xeod(loccounter,1)=obj.posEOD(1);loc.yeod(loccounter,1)=obj.posEOD(2);loc.zeod(loccounter,1)=obj.posEOD(3);
-                        
+                            obj.time=obj.time+deadtimes.estimator;
                         case "positionupdater"
                             [posgalvo,posEOD]=component.functionhandle(xest,obj.posgalvo,obj.posEOD,component.parameters{:});
                             obj.posgalvo(component.dim)=posgalvo(component.dim);obj.posEOD(component.dim)=posEOD(component.dim);
+                            obj.time=obj.time+deadtimes.positionupdate;
                         case "background"
                             component_par=replaceinlist(component.parameters,'patternpos',scanout.par.patternpos,'L',scanout.par.L,...
                                 'probecenter',scanout.par.probecenter,'bg_photons_gt',scanout.bg_photons_gt, ...
@@ -246,6 +252,7 @@ classdef Simulator<handle
                 end
                 % write position estimates for all localizations in sequence together, 9.2.25
                 loc.xnm(loccounter_seq:loccounter)=xesttot(1);loc.ynm(loccounter_seq:loccounter)=xesttot(2);loc.znm(loccounter_seq:loccounter)=xesttot(3);
+                obj.time=obj.time+deadtimes.localization;
             end
             loc=removeempty(loc,loccounter);
             loc.abortcondition=zeros(size(loc.phot));loc.abortcondition(end)=1+2*bleached;
@@ -254,6 +261,7 @@ classdef Simulator<handle
             out.fluorophores=fl;
             out.bg_photons_gt=photbg(1:loccounter);
             out.par=par;
+            out.duration=obj.time-timestart;
             % out.bg_photons_est=
         end
         function out=runSequence(obj,seq,args)
@@ -264,12 +272,14 @@ classdef Simulator<handle
                 args.repetitions=1;
             end
             out=[];
+            timestart=obj.time;
             for k=1:args.repetitions
                 obj.fluorophores.reset(obj.time);
                 out2=obj.runSequenceintern(seq,args.maxlocs);
                 out=obj.appendout(out,out2);
             end
             out.sequence=seq;
+            out.duration=obj.time-timestart;
         end
         function out1=appendout(obj,out1,out2) %helper function
             if isempty(out2)
@@ -467,12 +477,15 @@ classdef Simulator<handle
             st.locp=lp;
             st.sCRB=sigmaCRB/sqrt(st.phot);
             st.sCRB1=sigmaCRB;
+            st.duration=out.duration;
             
             if args.display
                 ff1='%1.1f,';
+                ff='%1.2f,';
                 disp([ 'photch: ', num2str(st.photch,ff1),...
-                    ' mean(phot): ', num2str(st.phot,ff1)]) %, 'signal phot: ', num2str(st.phot_signal,ff1)
-                 ff='%1.2f,';
+                    ' mean(phot): ', num2str(st.phot,ff1),...
+                    ' duration ms: ', num2str(st.duration,ff1)]) %, 'signal phot: ', num2str(st.phot_signal,ff1)
+                
                 disp(['std:  ', num2str(st.std,ff),...
                     ' rmse: ', num2str(st.rmse,ff),...
                     ' pos: ', num2str(st.pos,ff),...

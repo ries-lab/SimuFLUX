@@ -19,7 +19,7 @@ sim.loadsequence(fname,fname2);
 sim.makepatterns;
 out=sim.runSequence("repetitions",1);
 
-figure(88);hold off;plot(out.loc.loccounter, out.loc.xnm);hold on; plot(out.loc.loccounter,out.loc.xfl1);hold on; plot(out.loc.loccounter,out.loc.xgalvo)
+figure(230);hold off;plot(out.loc.loccounter, out.loc.xnm);hold on; plot(out.loc.loccounter,out.loc.xfl1);hold on; plot(out.loc.loccounter,out.loc.xgalvo)
 plot(out.loc.loccounter,out.loc.xeod)
 xlabel('time (itr)')
 ylabel('x position(nm)')

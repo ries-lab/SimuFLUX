@@ -25,7 +25,7 @@ sim.defineComponent("estdonut","estimator",@est_donut2d,parameters={sim.patterns
 seq={"donut","estdonut"};
 psf_vec.zerooffset=0;
 
-figure(293); statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,clearfigure=true,tag="simple est");
+figure(270); statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,clearfigure=true,tag="simple est");
 
 %iterative
 sim.defineComponent("estiter","estimator",@est_quad2Diter,parameters={L,probecenter,10},dim=1:2);
@@ -51,7 +51,7 @@ sim.defineComponent("estdonut","estimator",@est_quad2Diter,parameters={L,probece
 seq={"donut","estdonut"};
 psf_vec.zerooffset=0;
 xcoords=0:5:50;
-figure(294); statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=["bias"],tag="no bg");
+figure(271); statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=["bias"],tag="no bg");
 % out=sim.runSequence(seq,maxlocs=1);
 % sim.summarize_results(out);
 
@@ -68,7 +68,7 @@ sim.defineComponent("bg","background",@backgroundsubtractor,parameters={"backgro
 seq={"donut","bg","estdonut"};
 psf_vec.zerooffset=0;
 % xcoords=0:2:100;
-figure(294); statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=["bias"],clearfigure=false,tag="bg est");
+figure(272); statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=["bias"],clearfigure=false,tag="bg est");
 
 
 % out=sim.runSequence(seq,maxlocs=1);
