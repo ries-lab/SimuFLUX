@@ -168,6 +168,10 @@ class Simulator:
                 timep = timep + time   # for calculating average time point
                 flposh, isactive = fluorophores.position(self.time, flproperties)
                 flposrel = flposh - posgalvo
+                # print(f"flposrel: {flposrel}")
+                # print(f"pattern.pos[k,:] + posEOD: {pattern.pos[k,:] + posEOD}")
+                # print(f"pattern.phasemask[k]: {pattern.phasemask[k]}")
+                # print(f"pattern.zeropos[:,k]: {pattern.zeropos[:,k]}")
                 intensityh, pinholehfac = pattern.psf[k].intensity(flposrel,
                                                                    pattern.pos[k,:] + posEOD,
                                                                    pattern.phasemask[k], 
