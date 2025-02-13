@@ -236,10 +236,11 @@ classdef SimSequencefile<Simulator
             end
             if ~isempty(out)
                 out.sequence="itr"+max(out.loc.itr);
+                out.duration=obj.time-starttime;
                 out.par=par;
             end
             obj.time=obj.time+deadtimes.localization;
-            out.duration=obj.time-starttime;
+            
         end
         function out=runSequence(obj,args)
             arguments
@@ -257,7 +258,9 @@ classdef SimSequencefile<Simulator
                 out2=obj.runSequenceintern;
                 out=obj.appendout(out,out2);
             end
-            out.duration=obj.time-starttime;
+            if ~isempty(out)
+                out.duration=obj.time-starttime;
+            end
         end
         function makescoutingpattern(obj,fov,args)
             %fov=[x,y;x2,y2]
@@ -312,7 +315,9 @@ classdef SimSequencefile<Simulator
                     break
                 end
             end
-            out.duration=obj.time-timestart;
+            if ~isempty(out)
+                out.duration=obj.time-timestart;
+            end
         end
         % function displayresults(obj)
         %     keys=obj.patterns.keys;
