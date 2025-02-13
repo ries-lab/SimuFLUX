@@ -58,7 +58,7 @@ switchpar.starton=-1; %fluorophores start in random on / off state, determined b
 fc.setpar(switchpar)
 
 %add fake NPCs
-fc.addstatic(makeNPC(pos=[0 0 0]));
+fc.add(makeNPC(pos=[0 0 0]));
 
 % make diffusing molecules, back of the envelope calculations
 % standard sequences: ~1 nM, fast sequences: 0.2 pM

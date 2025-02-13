@@ -68,7 +68,7 @@ sim.defineComponent("bg","background",@backgroundsubtractor,parameters={"backgro
 seq={"donut","bg","estdonut"};
 psf_vec.zerooffset=0;
 % xcoords=0:2:100;
-figure(272); statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=["bias"],clearfigure=false,tag="bg est");
+statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=["bias"],clearfigure=false,tag="bg est");
 
 
 % out=sim.runSequence(seq,maxlocs=1);

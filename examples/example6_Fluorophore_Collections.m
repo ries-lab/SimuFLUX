@@ -61,7 +61,7 @@ sim.makescoutingpattern([-100 -100; 400 250 ]) %for imaging
 
 photonbudget=[800, 5000];
 reactivations =[0 3];
-titles=["PALM","STORM"];
+titles=["PALM","dSTORM"];
 
 for k=1:length(photonbudget)
 fc=FlCollectionBlinking;
@@ -93,10 +93,10 @@ figure(262+k); hold off;
 plot(sim.scoutingcoordinates(:,1),sim.scoutingcoordinates(:,2),'k+')
 hold on
 plot(out.loc.xnm(notvld),out.loc.ynm(notvld),'c.')
-plot(out.loc.xnm(vld),out.loc.ynm(vld),'r.')
+plot(out.loc.xnm(vld),out.loc.ynm(vld),'m.')
 plot(out.loc.xnm(vldcfr),out.loc.ynm(vldcfr),'bx')
 posfl=squeeze(out.fluorophores.pos(end,:,:));
-plot(posfl(:,1),posfl(:,2),'mo')
+plot(posfl(:,1),posfl(:,2),'ro')
 axis equal
 legend('scouting','not vld', 'last itr vld','last itr vld +cfr', 'fluorophore')
 title(titles(k))
