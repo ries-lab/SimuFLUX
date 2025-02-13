@@ -4,28 +4,41 @@ classdef SimSequencefile<Simulator
         estimators=struct('function',"","par",[],"dim",[]);
         scoutingcoordinates
         psfvec=PsfVectorial; %store only one copy in which different patterns are defined
+        % bgcSenseValue=0;
     end
     methods
+        function obj=SimSequencefile(varargin)
+            obj@Simulator(varargin{:})
+            obj.deadtimes=struct('point',0.011,'pattern',0,'estimator',0.015,'positionupdate',0,'localization',0.4);
+        end
         function loadsequence(obj,varargin)
+            update=true;
             for k=1:length(varargin)
+                if strcmp(varargin{k},"noupdate")
+                    update=false;
+                    continue
+                end
                 fid=fopen(varargin{k});
                 raw=fread(fid,inf);
                 str=char(raw');
                 fclose(fid);
                 obj.sequence=copyfields(obj.sequence,jsondecode(str));
             end
+            if update
+                obj.makepatterns;
+            end
             % obj.sequence_json=jsondecode(str);
         end
         function makepatterns(obj,psfs,phasemasks)
             if nargin<2
                 if isfield(obj.sequence,'PSF') && isfield(obj.sequence.PSF,'global')
-                    [psfs,phasemasks]=psf_sequence(obj.sequence.PSF,obj.psfvec);
+                    [psfs,phasemasks]=psf_sequence(obj.sequence.PSF,obj.psfvec,obj.sequence);
                 else
                     psfs{1}=PsfGauss2D;
                     psfs{2}=PsfDonut2D;
                     phasemasks{1}.phasemask='gauss2D';
                     phasemasks{2}.phasemask='donut2D';
-                    obj.loadsequence('defaultestimators.json')
+                    obj.loadsequence('defaultestimators.json',"noupdate")
                 end
             end
             % if ~isfield(obj.sequence.PSF,'Estimators')
@@ -58,7 +71,11 @@ classdef SimSequencefile<Simulator
                 end
                 
                 patterntime=(itrs(k).patDwellTime/itrs(k).patRepeat*(1+probecenter*obj.sequence.ctrDwellFactor))*1e3; %ms
-                pointdwelltime=patterntime/(patternpoints+probecenter);
+                pointdwelltime=itrs(k).patDwellTime/itrs(k).patRepeat*1e3/patternpoints;
+                if probecenter
+                    pointdwelltime(2)=pointdwelltime(1)*patternpoints*obj.sequence.ctrDwellFactor;
+                end
+                % pointdwelltime=patterntime/(patternpoints+probecenter);
                 laserpower=itrs(k).pwrFactor;
                 obj.definePattern("itr"+k, psf, phasemask=phasemask, makepattern='orbitscan', orbitpoints=patternpoints, orbitL=L,...
                 probecenter=probecenter,pointdwelltime=pointdwelltime, laserpower=laserpower,repetitions=itrs(k).patRepeat);
@@ -70,6 +87,9 @@ classdef SimSequencefile<Simulator
             out=[];
             itrs=obj.sequence.Itr;
             maxiter=length(itrs);
+            starttime=obj.time;
+
+            deadtimes=obj.deadtimes;
             
             stickiness=obj.sequence.stickiness;
             loclimit=obj.sequence.locLimit;
@@ -86,21 +106,27 @@ classdef SimSequencefile<Simulator
             loccounter=1;
             
             numitr=0;itr=1;
+            abortphot=false;
             stickinesscounter=0;
             xest=[0,0,0];
+            par=cell(maxiter,1);
 
-            while numitr<loclimit && stickinesscounter<stickiness 
+            while numitr<loclimit && stickinesscounter<stickiness && ~abortphot
                 %scan iteration
                 itrname="itr"+itr;
                 stickiness=obj.sequence.stickiness;
                 photsum=0;abortccr=0;abortphot=0;
                 scanout=[];
-                while photsum<itrs(itr).phtLimit && stickinesscounter<stickiness 
+                while photsum<itrs(itr).phtLimit && stickinesscounter<stickiness && ~abortphot
+                    % repeat scanning until sufficient photons collected,
+                    % or abort condition met
                     scanouth=obj.patternscan(itrname);
+                    % scanouth=obj.subtractbackground(scanouth);
                     scanout=sumstruct(scanout,scanouth);
                     
+                    
                     photsum=sum(scanout.phot);
-                    photbg=scanout.photbg;
+                    photbg=scanout.bg_photons_gt;
                     
                     if itrs(itr).ccrLimit>-1
                         probecenter=true;
@@ -110,16 +136,16 @@ classdef SimSequencefile<Simulator
                         probecenter=false;
                         cfr=-1;
                     end
-                    minphot=itrs(itr).bgcThreshold*scanouth.patterntotaltime*1e-6;
+                    minphot=itrs(itr).bgcThreshold*scanouth.time.patterntotaltime*1e-6;
                     if sum(scanouth.phot)<minphot 
-                        if scanouth.averagetime>offtimestamp+maxOffTime
+                        if scanouth.time.averagetime>offtimestamp+maxOffTime
                             abortphot=true;
                         end
                     else
                         abortphot=false;
-                        offtimestamp=scanouth.averagetime;
+                        offtimestamp=scanouth.time.averagetime;
                     end
-                    if abortphot || abortccr
+                    if abortccr
                         stickinesscounter=stickinesscounter+1;
                     else
                         stickinesscounter=0;
@@ -138,9 +164,11 @@ classdef SimSequencefile<Simulator
                         estimator=obj.estimators(itr);
                         estf=str2func(estimator.function);
                         estpar=estimator.par;
-                        estpar=replaceinlist(estpar,'patternpos',patternpos,'L',L,'probecenter',probecenter);
-                        xesth=estf(scanout.phot,estpar{:});
+                        estpar=replaceinlist(estpar,'patternpos',patternpos,'L',L,'probecenter',probecenter,...
+                            'background_est',obj.background_estimated(min(itr,length(obj.background_estimated))),'iteration',itr);
+                        xesth=estf(scanout.photrate,estpar{:});
                         xest(estimator.dim)=xesth(estimator.dim);
+                        obj.time=obj.time+deadtimes.estimator;
 
                         % xest=estimators(estimator.estimator,scanout.phot,patternpos,L,estimator.parameters{:});
                         xesttot=xest+obj.posgalvo+obj.posEOD;
@@ -151,6 +179,7 @@ classdef SimSequencefile<Simulator
                             xold=obj.posgalvo;
                             obj.posgalvo=(1-dampf)*obj.posgalvo+dampf*(xesttot);
                             obj.posEOD=obj.posEOD+xold-obj.posgalvo+xest;
+                            obj.time=obj.time+deadtimes.positionupdate;
                         else
                             obj.posEOD=obj.posEOD+xest;
                         end
@@ -158,18 +187,19 @@ classdef SimSequencefile<Simulator
                         xesttot=[0,0,0];
                     end
     
-                    
-                    
-                    if itrs(itr).ccrLimit>-1
+                    if itrs(itr).ccrLimit>-1 %probe center
                         out.loc.eco(loccounter,1)=sum(scanout.phot(1:end-1));
                         out.loc.ecc(loccounter,1)=sum(scanout.phot(end));
                         
-                        orbittime=scanout.patterntotaltime/(1+probecenter*obj.sequence.ctrDwellFactor);
-                        out.loc.efo=out.loc.eco/(orbittime)*1e6;
-                        out.loc.efc=out.loc.ecc/(scanout.patterntotaltime-orbittime)*1e6;
+                        % orbittime=scanout.patterntotaltime/(1+probecenter*obj.sequence.ctrDwellFactor);
+                        % out.loc.efo=out.loc.eco/(orbittime)*1e6;
+                        out.loc.efo=out.loc.eco/(sum(scanout.par.pattern.pointdwelltime(1:end-1)))*1e6;
+                        % out.loc.efc=out.loc.ecc/(scanout.patterntotaltime-orbittime)*1e6;
+                        out.loc.efc=out.loc.ecc/(scanout.par.pattern.pointdwelltime(end))*1e6;
                     else
                         out.loc.eco(loccounter,1)=sum(scanout.phot);
-                        out.loc.efo=out.loc.eco/(scanout.patterntotaltime);
+                        out.loc.efo=out.loc.eco/(sum(scanout.par.pattern.pointdwelltime));
+                        % out.loc.efo=out.loc.eco/(scanout.patterntotaltime);
                         out.loc.ecc(loccounter,1)=-1;
                         out.loc.efc(loccounter,1)=-1;
                         cfr=-1;
@@ -177,7 +207,7 @@ classdef SimSequencefile<Simulator
     
                     out.loc.xnm(loccounter,1)=xesttot(1);out.loc.ynm(loccounter,1)=xesttot(2);out.loc.znm(loccounter,1)=xesttot(3);
                     out.loc.xfl1(loccounter,1)=scanout.flpos(1,1)/scanout.counter;out.loc.yfl1(loccounter,1)=scanout.flpos(1,2)/scanout.counter;out.loc.zfl1(loccounter,1)=scanout.flpos(1,3)/scanout.counter;
-                    out.loc.time(loccounter,1)=scanout.averagetime/scanout.counter;
+                    out.loc.time(loccounter,1)=scanout.time.averagetime;
                     out.loc.itr(loccounter,1)=itr;
                     out.loc.numitr(loccounter,1)=numitr;
                     out.loc.loccounter(loccounter,1)=loccounter;
@@ -186,13 +216,16 @@ classdef SimSequencefile<Simulator
                     out.loc.vld(loccounter,1)=stickinesscounter<stickiness;
                     out.loc.abortcondition(loccounter,1)=1*(abortphot) + 2*(abortccr);
                     out.loc.patternrepeat(loccounter,1)=scanout.counter;
-                    out.loc.measuretime(loccounter,1)=scanout.patterntotaltime;           
+                    out.loc.measuretime(loccounter,1)=scanout.time.patterntotaltime;           
                     out.raw(loccounter,1:length(scanout.phot))=scanout.phot;
                     out.fluorophores.pos(loccounter,1:size(scanout.flpos,1),:)=scanout.flpos/scanout.counter;
                     out.fluorophores.int(loccounter,1:size(scanout.flpos,1))=scanout.flint;
-                    out.bg_photons(loccounter)=photbg; 
+                    out.bg_photons_gt(loccounter)=photbg; 
                     
                     loccounter=loccounter+1;
+                    if isempty(par{itr})
+                        par{itr}=scanout.par;
+                    end
                 end
 
                 itr=itr+1;
@@ -203,20 +236,28 @@ classdef SimSequencefile<Simulator
             end
             if ~isempty(out)
                 out.sequence="itr"+max(out.loc.itr);
+                out.par=par;
             end
+            obj.time=obj.time+deadtimes.localization;
+            out.duration=obj.time-starttime;
         end
         function out=runSequence(obj,args)
             arguments
                 obj
                 % args.maxlocs=10;
                 args.repetitions=1;
+                args.resetfluorophores=false;
             end
+            starttime=obj.time;
             out=[];
             for k=1:args.repetitions
-                obj.fluorophores(1).reset;
+                if args.resetfluorophores
+                    obj.fluorophores(1).reset;
+                end
                 out2=obj.runSequenceintern;
                 out=obj.appendout(out,out2);
             end
+            out.duration=obj.time-starttime;
         end
         function makescoutingpattern(obj,fov,args)
             %fov=[x,y;x2,y2]
@@ -238,8 +279,10 @@ classdef SimSequencefile<Simulator
         function out=scoutingSequence(obj,args)
             arguments
                 obj
-                args.maxrep=2;
+                args.maxrep=100000;
+                args.maxtime=1e6;
             end
+            timestart=obj.time;
             %reset fluorophore?
             % obj.posgalvo(1:2)=obj.scoutingcoordinates(1,:);
             % obj.posEOD=[0 0 0];
@@ -248,7 +291,11 @@ classdef SimSequencefile<Simulator
             % fprintf(1,'Computation Progress: %3d%%\n',0);
             fprintf(1,"scouting, progress: %3d%%\n",0)
             for reps=1:args.maxrep
+                if obj.time>timestart+args.maxtime
+                    break
+                end
                 prog=reps/args.maxrep*100;
+                prog=max(prog, (obj.time-timestart)/args.maxtime*100);
                 fprintf(1,'\b\b\b\b%3.0f%%',prog)
                 % fprintf(num2str(reps,"%2.0f,"))
                 for pind=1:size(obj.scoutingcoordinates,1)
@@ -265,6 +312,7 @@ classdef SimSequencefile<Simulator
                     break
                 end
             end
+            out.duration=obj.time-timestart;
         end
         % function displayresults(obj)
         %     keys=obj.patterns.keys;
@@ -317,6 +365,16 @@ classdef SimSequencefile<Simulator
             legend(ax,'estimated', 'fluorophore','xgalvo','EOD')
 
         end
+        % function so=subtractbackground(obj,si)
+        %     bg=obj.bgcSenseValue;
+        %     so=si;
+        %     if bg>0
+        %         pointtime=si.par.pointdwelltime;
+        %         so.phot=so.phot-bg*pointtime;
+        %         % so.photbg=so.photbg+bg*pointtime; % this is explicitely used in some
+        %         % estimators... not consistent
+        %     end
+        % end
     end
 end
 

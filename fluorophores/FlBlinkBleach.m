@@ -12,6 +12,9 @@ classdef FlBlinkBleach<Fluorophore
 
     end
     methods
+        function obj=FlBlinkBleach(varargin)
+            obj@Fluorophore(varargin{:})
+        end        
         function Io=intensity(obj,I0,dwelltime,time,phfac,varargin)
 
             fraction=obj.measure(dwelltime,time);

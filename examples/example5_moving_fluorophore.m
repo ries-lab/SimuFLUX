@@ -9,7 +9,7 @@ fname2='PSFvectorial2D.json'; %use a PSF that is defined via a json file
 sim.loadsequence(fname,fname2);
 sim.makepatterns;
 
-%% make diffusing, bleaching
+%% make diffusing, bleaching fluorophores
 sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;
 fl=FlMoveBleach;
 fl.photonbudget=100000;
@@ -18,23 +18,31 @@ D=0.5; %um^2/s
 fl.makediffusion(D,updatetime)
 %diffusion coefficient, update time args.startpos,dim, numpoints, buondarybox
 sim.fluorophores=fl;
-
-
 out=sim.runSequence("repetitions",1);
-
-sim.plotpositions(out,figure=211,xvalues="time");
+sim.plotpositions(out,figure=250);
 
 %% make stepping fluorophore
-sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;
 fl2=FlMoveBleach;
 fl2.photonbudget=20000;
+fl2.brightness=200;
 updatetime=0.01; %us
 stepsize=16; %nm
-dwelltime=5; %ms
+dwelltime=28; %ms
 fl2.makesteps(stepsize,dwelltime, updatetime,angle=45)
       % args.startpos, dim, numpoints,angle (degree);
 
 sim.fluorophores=fl2;sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;
 out=sim.runSequence("repetitions",1);
-sim.plotpositions(out,figure=212);
+sim.plotpositions(out,figure=251,xvalues="time");
 
+%% instabilities: vibrations
+fl3=FlMoving(brightness=10000);
+fl3.posmode='function';
+frequency=.1; %kHz
+amplitude=5; %nm
+posfl=[0 0 0];
+fl3.posfunction={@(t) amplitude*sin(frequency*t)+posfl(1), @(t) 0*t+posfl(2), @(t) 0*t+posfl(3)};
+
+sim.fluorophores=fl3;sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;
+out=sim.runSequence("repetitions",1);
+sim.summarize_results(out);

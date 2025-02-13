@@ -38,10 +38,15 @@
             out=[];
         end
         function out=remainingphotons(obj)
-            out=sum([obj.flall.remainingphotons]);
+            out=0;
+            for k=1:length(obj.flall)
+                out=out+(obj.flall{k}.remainingphotons);
+            end
         end
         function out=brightness(obj)
-            out=[obj.flall.brightness];
+            for k=length(obj.flall):-1:1
+                out(k)=(obj.flall{k}.brightness);
+            end
         end
     end
 end

@@ -9,16 +9,18 @@ end
 psf_vec.setpinhole("AU",1);
 
 fc=FlCollection;
-fc.add([fl1, fl2])
+fc.add({fl1, fl2})
 
-sim=Simulator(fc); %make a simulator and attach fluorophore
+sim=Simulator(fluorophores=fc); %make a simulator and attach fluorophore
 
 numberOfLocalizations=1000;
-
+orbitpoints=4;
+probecenter=true;
 L=75;
-sim.definePattern("donut", psf_vec, phasemask="vortex", makepattern="orbitscan", orbitpoints=4, ...
-    probecenter=false,orbitL=L,laserpower=100)
-sim.defineComponent("estdonut","estimator",@est_donut2d,parameters={sim.patterns("donut").pos,L,360},dim=1:2);
+sim.definePattern("donut", psf_vec, phasemask="vortex", makepattern="orbitscan", orbitpoints=orbitpoints, ...
+    probecenter=probecenter,orbitL=L,laserpower=100)
+% sim.defineComponent("estdonut","estimator",@est_donut2d,parameters={sim.patterns("donut").pos,L,360},dim=1:2);
+sim.defineComponent("estdonut","estimator",@est_quad2Diter,parameters={L,probecenter},dim=1:2);
 
 
 seq={"donut","estdonut"};
@@ -27,16 +29,16 @@ stats=sim.summarize_results(out);
 
 x=0:20:750;
 
-figure(144)
-sim.scan_fov(seq,x,dimplot=1,dimscan=1,fluorophorenumber=2,ax1=["std","rmse","sCRB"],ax2="bias");
+figure(260)
+sim.scan_fov(seq,x,dimplot=1,dimscan=1,fluorophorenumber=2,ax1=["std","rmse","sCRB","bias"],title="scan second fluorophore in x", tag="x");
 
 
 
 % now z-dependence
 fl1.pos=[0 0 0]; fl2.pos=[100 0 0];
 z=0:50:1000;
-figure(145)
-sim.scan_fov(seq,z,dimplot=1,dimscan=3,fluorophorenumber=2,ax1=["std","rmse","sCRB"],ax2="bias");
+figure(261)
+sim.scan_fov(seq,z,dimplot=1,dimscan=3,fluorophorenumber=2,ax1=["std","rmse","sCRB","bias"],title="scan second fluorophore in z",tag="z");
 
 
 
@@ -49,7 +51,7 @@ else
 end
 fname='Imaging_2D.json';
 sim.loadsequence(fname); %only sequence file, then simple gauss and donut PSFs are used (fast)
-sim.makepatterns;
+% sim.makepatterns;
 sim.makescoutingpattern([-100 -100; 400 250 ]) %for imaging
 
 % make fake NPCs
@@ -82,12 +84,12 @@ out=sim.scoutingSequence(maxrep=1000);
 %plot results
 vld=out.loc.vld==1 & out.loc.itr==max(out.loc.itr) ;
 vldcfr=vld & out.loc.cfr<0.1;
-figure(89); hold off;
+figure(262); hold off;
 plot(sim.scoutingcoordinates(:,1),sim.scoutingcoordinates(:,2),'k+')
 hold on
 plot(out.loc.xnm(vld),out.loc.ynm(vld),'r.')
 plot(out.loc.xnm(vldcfr),out.loc.ynm(vldcfr),'bx')
-posfl=vertcat(fc.flall.pos);
+posfl=squeeze(out.fluorophores.pos(end,:,:));
 plot(posfl(:,1),posfl(:,2),'mo')
 axis equal
 legend('scouting','last itr vld','last itr vld +cfr', 'fluorophore')

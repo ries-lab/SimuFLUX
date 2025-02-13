@@ -1,6 +1,9 @@
-function [psfs, phasemasks]=psf_sequence(sq,psfvec)
+function [psfs, phasemasks]=psf_sequence(sq,psfvec,seq)
 % if vectorial in global: use only one PSF object, if also in Itr. other
 % parameters are ignored
+if nargin>2 %abberior iteration: extrac pinhole from iterations, overwrite default.
+    sq.global.addpar.pinhole={'AU',seq.Itr(end).Mode.phDiaAU};
+end
 if isfield(sq,'global') && isfield(sq.global,'Mode') && strcmp(sq.global.Mode,'PSF_vectorial')
     if nargin <2
         psfvec=PSF_vectorial;

@@ -8,6 +8,14 @@ classdef Fluorophore<handle
         allbleached=false;
     end
     methods
+        function obj=Fluorophore(args)
+            arguments
+                args.pos=[0,0,0];
+                args.brightness=1000;
+            end
+            obj.pos=args.pos;
+            obj.brightness=args.brightness;
+        end
         function Io=intensity(obj,I0,dwelltime, time,phfac,props)
             if nargin>=6 && ~isempty(props) %for performance: avoid property access
                 brightness=props.brightness;
