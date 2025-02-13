@@ -252,12 +252,12 @@ class Psf():
         pupil = self.aperture*apoid
         self.pupil = np.asarray(pupil, dtype=np.complex64)
         if fieldtype=='scalar':
-            psfA = im.cztfunc1(self.pupil.T,self.paramxy)
+            psfA = im.cztfunc1(self.pupil,self.paramxy)
             self.normf = 1/np.sum((psfA*np.conj(psfA)).real)
         else:
             I_res = np.zeros(pupil.shape, dtype=np.float32)
             for h in self.dipole_field:
-                PupilFunction = (self.pupil*h).T
+                PupilFunction = self.pupil*h
                 psfA = im.cztfunc1(PupilFunction,self.paramxy)     
                 I_res += (psfA*np.conj(psfA)).real
             self.normf = 1/np.sum(I_res)
@@ -286,7 +286,7 @@ class Psf():
         self.kzv = (np.linspace(-Lz/2+0.5,Lz/2-0.5,Lz,dtype=np.float32).reshape(Lz,1,1))/Lz
 
     def calnorm(self,pupil):
-        psfA = im.cztfunc1(pupil.T,self.paramxy)   
+        psfA = im.cztfunc1(pupil,self.paramxy)   
         normf = np.sum((psfA * np.conj(psfA)).real)
         return normf
 

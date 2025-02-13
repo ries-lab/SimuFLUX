@@ -6,9 +6,10 @@ All rights reserved     Heintzmann Lab, Friedrich-Schiller-University Jena, Germ
 @author: Rainer Heintzmann, Sheng Liu, Jonas Hellgoth
 """
 
+import os
 import sys
 import ctypes
-import time
+import pickle
 import multiprocessing
 from math import factorial
 
@@ -17,6 +18,9 @@ from scipy import signal
 from scipy.fft import next_fast_len
 
 import pyfftw
+
+WISDOMFILE = os.path.join(os.path.split(__file__)[0], 'fftw_wisdom.pkl')
+
 
 NUM_THREADS = multiprocessing.cpu_count()
 PLANNER_FLAGS = ('FFTW_MEASURE',)
@@ -35,6 +39,20 @@ elif sys.platform == 'darwin':
     memcpy = ctypes.CDLL('libSystem.dylib').memcpy
 else: #linux
     memcpy = ctypes.CDLL('libc.so.6').memcpy
+
+def load_wisdom(wisdomfile):
+    if os.path.exists(wisdomfile):
+        try:
+            with open(wisdomfile, 'rb') as f:
+                pyfftw.import_wisdom(pickle.load(f))
+        except Exception:
+            pass
+
+load_wisdom(WISDOMFILE)
+
+def save_wisdom(wisdomfile):
+    with open(wisdomfile, 'wb') as f:
+            pickle.dump(pyfftw.export_wisdom(), f)
 
 def fft3d(tfin):
     a = pyfftw.empty_aligned(tfin.shape, dtype='complex64')
@@ -95,8 +113,8 @@ def prechirpz1(kpixelsize,pixelsize_x,pixelsize_y,N,M):
     [xxR,yyR] = np.meshgrid(xrange,xrange)
     a = 1j*np.pi*kpixelsize
     A = np.exp(a*(pixelsize_x*xxK*xxK+pixelsize_y*yyK*yyK))
-    A = (A / A.shape[0]).T
-    C = np.exp(a*(pixelsize_x*xxR*xxR+pixelsize_y*yyR*yyR)).T
+    A = A / A.shape[0]
+    C = np.exp(a*(pixelsize_x*xxR*xxR+pixelsize_y*yyR*yyR))
 
     brange = np.linspace(-(N+M)/2+1,(N+M)/2-1,N+M-1,dtype=np.float32)
     [xxB,yyB] = np.meshgrid(brange,brange)
@@ -105,7 +123,7 @@ def prechirpz1(kpixelsize,pixelsize_x,pixelsize_y,N,M):
     b = pyfftw.builders.fftn(Bp, axes=(-1,-2))
     Bp[:B.shape[0],:B.shape[1]] = B
     Bh = b()
-    Bh = (Bh / Bh.shape[0]).T
+    Bh = Bh / Bh.shape[0]
     # Bh = np.fft.fft2(B)
 
     return A,Bh,C
@@ -171,6 +189,92 @@ def prechirpz1(kpixelsize,pixelsize_x,pixelsize_y,N,M):
 
 #     return dataout
 
+# def cztfunc1(datain, param):
+#     A = param[0]
+#     Bh = param[1]
+#     C = param[2]
+#     N = A.shape[0]
+#     L = Bh.shape[0]
+#     M = C.shape[0]
+
+#     sh = datain.shape
+#     lsh = len(sh)
+#     ln = L-N
+
+#     if lsh == 2:
+#         # newsh = (sh[0]+ln, sh[1]+ln)
+#         newsh = (sh[0]+ln, sh[1]+ln)
+#     elif lsh == 3:
+#         # newsh = (next_fast_len(sh[0]), sh[1]+ln, sh[2]+ln)
+#         newsh = (sh[0]+ln, sh[1]+ln, next_fast_len(sh[2]))
+
+#     key = str(newsh)
+#     fkey, bkey = key+'forward', key+'backward'
+#     try:
+#         Apad, Ah = PYFFTW_ARRAYS['Apad'], PYFFTW_ARRAYS['Ah']
+#         cztout = PYFFTW_ARRAYS['cztout']
+#         b, d = PYFFTW_BUILDERS[fkey], PYFFTW_BUILDERS[bkey]
+#     except KeyError:
+#         PYFFTW_ARRAYS['Apad'] = pyfftw.zeros_aligned(newsh, dtype='complex64')
+#         PYFFTW_ARRAYS['Ah'] = pyfftw.zeros_aligned(newsh, dtype='complex64')
+#         PYFFTW_ARRAYS['cztout'] = pyfftw.zeros_aligned(newsh, dtype='complex64')
+#         PYFFTW_BUILDERS[fkey] = pyfftw.FFTW(PYFFTW_ARRAYS['Apad'], 
+#                                             PYFFTW_ARRAYS['Ah'], 
+#                                             axes=(0,1), 
+#                                             direction='FFTW_FORWARD',
+#                                             threads=NUM_THREADS,
+#                                             flags=PLANNER_FLAGS)
+#         PYFFTW_BUILDERS[bkey] = pyfftw.FFTW(PYFFTW_ARRAYS['Ah'], 
+#                                             PYFFTW_ARRAYS['cztout'], 
+#                                             axes=(0,1), 
+#                                             direction='FFTW_BACKWARD',
+#                                             threads=NUM_THREADS,
+#                                             flags=PLANNER_FLAGS)
+#         Apad, Ah = PYFFTW_ARRAYS['Apad'], PYFFTW_ARRAYS['Ah']
+#         cztout = PYFFTW_ARRAYS['cztout']
+#         b, d = PYFFTW_BUILDERS[fkey], PYFFTW_BUILDERS[bkey]
+
+#         save_wisdom(WISDOMFILE)
+
+#     if lsh == 2:
+#         Apad[:sh[0],:sh[1]] = A*datain
+
+#         b.execute()
+
+#         Ah *= Bh
+
+#         d.execute()
+
+#         cztout[-M:,-M:] *= C
+#         return cztout[-M:,-M:].T
+
+#     elif lsh == 3:
+#         # Apad[:sh[0],:sh[1],:sh[2]] = datain * A[...,None]
+
+#         # Apad[:sh[0],:sh[1],:sh[2]] = datain
+#         # Apad[:sh[0],:sh[1],:sh[2]] *= A[...,None]
+
+#         # memcpy(Apad[:sh[0],:sh[1],:sh[2]].ctypes.data_as(ctypes.POINTER(ctypes.c_uint8)), 
+#         #        datain.ctypes.data_as(ctypes.POINTER(ctypes.c_uint8)),
+#         #        datain.nbytes)
+
+#         # print(f"A.dtype: {A.dtype} datain.dtype: {datain.dtype} Apad.dtype: {Apad.dtype}")
+
+#         Apadp = datain*A[...,None]
+
+#         Apad[:sh[0],:sh[1],:sh[2]] = Apadp[:]
+
+#         # np.multiply(A[...,None], datain, out=Apad[:sh[0],:sh[1],:sh[2]])
+
+#         b.execute()
+
+#         Ah *= Bh[...,None]
+
+#         d.execute()
+
+#         cztout[-M:,-M:,:] *= C[...,None]
+#         return cztout[-M:,-M:,:].T
+
 def cztfunc1(datain, param):
     A = param[0]
     Bh = param[1]
@@ -184,11 +288,9 @@ def cztfunc1(datain, param):
     ln = L-N
 
     if lsh == 2:
-        # newsh = (sh[0]+ln, sh[1]+ln)
         newsh = (sh[0]+ln, sh[1]+ln)
     elif lsh == 3:
-        # newsh = (next_fast_len(sh[0]), sh[1]+ln, sh[2]+ln)
-        newsh = (sh[0]+ln, sh[1]+ln, next_fast_len(sh[2]))
+        newsh = (next_fast_len(sh[0]), sh[1]+ln, sh[2]+ln)
 
     key = str(newsh)
     fkey, bkey = key+'forward', key+'backward'
@@ -202,16 +304,18 @@ def cztfunc1(datain, param):
         PYFFTW_ARRAYS['cztout'] = pyfftw.zeros_aligned(newsh, dtype='complex64')
         PYFFTW_BUILDERS[fkey] = pyfftw.FFTW(PYFFTW_ARRAYS['Apad'], 
                                             PYFFTW_ARRAYS['Ah'], 
-                                            axes=(0,1), 
+                                            axes=(-2,-1), 
                                             direction='FFTW_FORWARD',
                                             threads=NUM_THREADS,
                                             flags=PLANNER_FLAGS)
         PYFFTW_BUILDERS[bkey] = pyfftw.FFTW(PYFFTW_ARRAYS['Ah'], 
                                             PYFFTW_ARRAYS['cztout'], 
-                                            axes=(0,1), 
+                                            axes=(-2,-1), 
                                             direction='FFTW_BACKWARD',
                                             threads=NUM_THREADS,
                                             flags=PLANNER_FLAGS)
+        
+        save_wisdom(WISDOMFILE)
         Apad, Ah = PYFFTW_ARRAYS['Apad'], PYFFTW_ARRAYS['Ah']
         cztout = PYFFTW_ARRAYS['cztout']
         b, d = PYFFTW_BUILDERS[fkey], PYFFTW_BUILDERS[bkey]
@@ -226,7 +330,7 @@ def cztfunc1(datain, param):
         d.execute()
 
         cztout[-M:,-M:] *= C
-        return cztout[-M:,-M:].T
+        return cztout[-M:,-M:]
 
     elif lsh == 3:
         # Apad[:sh[0],:sh[1],:sh[2]] = datain * A[...,None]
@@ -239,16 +343,19 @@ def cztfunc1(datain, param):
         #        datain.nbytes)
 
 
-        np.multiply(A[...,None], datain, out=Apad[:sh[0],:sh[1],:sh[2]])
+        for i in range(sh[0]):
+            Apad[i, :sh[1], :sh[2]] = A*datain[i,...]
+
+        # np.multiply(A[...,None], datain, out=Apad[:sh[0],:sh[1],:sh[2]])
 
         b.execute()
 
-        Ah *= Bh[...,None]
+        Ah *= Bh
 
         d.execute()
 
-        cztout[-M:,-M:,:] *= C[...,None]
-        return cztout[-M:,-M:,:].T
+        cztout[...,-M:,-M:] *= C
+        return cztout[...,-M:,-M:]
 
 def noll2nl(j):
     n = np.ceil((-3 + np.sqrt(1 + 8*j)) / 2)

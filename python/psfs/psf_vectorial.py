@@ -60,18 +60,18 @@ class PsfVectorial(Psf):
         # PupilFunction = phiz[None,...]*pupil[None,None,...]*self.dipole_field[:,None,...]
         if self.psftype == 'vector':
             I_res = np.zeros(phiz.shape, dtype=np.float32)
-            PupilFunction = (phiz[None,...]*pupil[None,None,...]*self.dipole_field[:,None,...]).T
+            PupilFunction = phiz[None,...]*pupil[None,None,...]*self.dipole_field[:,None,...]
             print(f"self.dipole_field dtype: {self.dipole_field.dtype} shape: {self.dipole_field.shape} strides: {self.dipole_field.strides}")
             for h in range(self.dipole_field.shape[0]):
                 start = time.time()
-                psfA = im.cztfunc1(PupilFunction[...,h],self.paramxy)
+                psfA = im.cztfunc1(PupilFunction[h,...],self.paramxy)
                 stop = time.time()
                 duration = stop-start
                 print(f"psfA calculation took {duration:.2f} s. Dtype is {psfA.dtype}")
                 I_res += (psfA*np.conj(psfA)).real #*self.normf
             print(f"I_res shape {I_res.shape} dtype: {I_res.dtype}")
         else:
-            PupilFunction = (pupil*phiz).T
+            PupilFunction = pupil*phiz
             I_res = im.cztfunc1(PupilFunction,self.paramxy)      
             I_res = (I_res*np.conj(I_res)).real #*self.normf
 
