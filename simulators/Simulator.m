@@ -1,14 +1,14 @@
 classdef Simulator<handle
     properties
-        patterns=dictionary;
-        sequences=dictionary;
-        fluorophores
+        patterns=dictionary; %patterns that are defined
+        % sequences=dictionary;
+        fluorophores % Fluorophore or FlCollection 
         background=0; %kHz from AF, does not count towards photon budget. Should scale with PSF.normfact and laser intensity?
         posgalvo=[0 0 0]; %nm, position of pattern center
         posEOD=[0 0 0]; %nm, not descanned, with respect to posgalvo.
-        time=0;
-        background_estimated=0;
-        deadtimes=struct('point',0,'pattern',0,'estimator',0,'positionupdate',0,'localization',0)
+        time=0;  % that is the master time
+        background_estimated=0; %estimated background, used for estimators
+        deadtimes=struct('point',0,'pattern',0,'estimator',0,'positionupdate',0,'localization',0); % dead times added to time after each point, pattern, estimation, position update or localization (sequence)
     end
     methods
         function obj=Simulator(args)
