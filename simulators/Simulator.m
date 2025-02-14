@@ -333,7 +333,7 @@ classdef Simulator<handle
         function lp=locprec(obj,photons,L)
             lp=L./sqrt(8*(photons));
         end
-        function [locprec,intensity]=calculateCRBpatterndirect(obj,patternnames,args)
+        function locprec=calculateCRBpatterndirect(obj,patternnames,args)
             arguments
                 obj
                 patternnames
@@ -387,7 +387,7 @@ classdef Simulator<handle
         end
 
 
-        function [locprec,intensity]=calculateCRBpattern(obj,patternnames,args)
+        function locprec=calculateCRBpattern(obj,patternnames,args)
             arguments
                 obj
                 patternnames
@@ -435,7 +435,7 @@ classdef Simulator<handle
             locprech=diag(sqrt(crlb))';
             locprec=[0 0 0];
             locprec(dim)=locprech;%(dim);
-            intensity=sum(out0.intensity);
+            % intensity=sum(out0.intensity);
         end
 
         function [sigmaCRB,sigmaCRB1, locprecL]=calculateCRB(obj,out,filter)
