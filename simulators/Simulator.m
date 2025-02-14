@@ -333,7 +333,7 @@ classdef Simulator<handle
         function lp=locprec(obj,photons,L)
             lp=L./sqrt(8*(photons));
         end
-        function locprec=calculateCRBpatterndirect(obj,patternnames,args)
+        function locprec=calculateCRBdirect(obj,patternnames,args)
             arguments
                 obj
                 patternnames
