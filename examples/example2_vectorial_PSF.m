@@ -42,57 +42,6 @@ sim.summarize_results(out); %display summary of simulation
 
 psf0=psf_vec.imagestack("vortex");
 
-%% Zero offset
-%now let's add an offset to the PSF to make the minium non-zero
-psf_vec.zerooffset=0.005;
-out=sim.runSequence(seq);
-disp("zero offset = " + psf_vec.zerooffset + ":")
-sim.summarize_results(out);
-
-%% Aberrations
-% let us change the PSF by adding aberrations. Note, in this case we have
-% to define the pattern again to calculate the PSFs anew. Instead here, we
-% create a second PSF object.
-
-if ~exist("psf_vec2","var") %if PSF is already defined, we need not recalculate it if no parameters are changed
-    psf_vec2=PsfVectorial; %simple 2D donut PSF
-end
-%Add Zernike:
-% Zr(k,1): n, Zr(k,2): m, Zr(k,3): amplitude as fraction of wavelength
-sys_aberr.Zr(1,1)=4;sys_aberr.Zr(1,2)=0;sys_aberr.Zr(1,3)=0.1; %spherical aberrations 
-sys_aberr.Zr(2,1)=2;sys_aberr.Zr(2,2)=2;sys_aberr.Zr(2,3)=0.05; %astigmatism 
-psf_vec2.setpar(sys_aberr)
-sim.definePattern("donut_aber", psf_vec2, phasemask="vortex", makepattern="orbitscan", orbitpoints=4, ...
-    probecenter=probecenter,orbitL=L,pointdwelltime=pointdwelltime,laserpower=laserpower,repetitions=repetitions)
-seq={"donut_aber","estdonut"};
-out=sim.runSequence(seq);
-
-disp("aberrations:")
-sim.summarize_results(out);
-psfab=psf_vec2.imagestack("vortex");
-imx(horzcat(psf0,psfab),'Parent',figure(220),'Title',"Aberrations"); %compare the two PSFs
-
-%% Misaligned phase plate
-if ~exist("psf_vec2","var") %if PSF is already defined, we need not recalculate it if no parameters are changed
-    psf_vec2=PsfVectorial; %simple 2D donut PSF
-end
-%Add Zernike:
-% Zr(k,1): n, Zr(k,2): m, Zr(k,3): amplitude as fraction of wavelength
-sys_mis.Zr(1,1)=4;sys_mis.Zr(1,2)=0;sys_mis.Zr(1,3)=0.0; %spherical aberrations 
-sys_mis.Zr(2,1)=2;sys_mis.Zr(2,2)=2;sys_mis.Zr(2,3)=0.0; %astigmatism 
-sys_mis.maskshift=[0.2,0]; % radius of pupil function is 1
-psf_vec2.setpar(sys_mis)
-sim.definePattern("donut_misaligned", psf_vec2, phasemask="vortex", makepattern="orbitscan", orbitpoints=orbitpoints, ...
-    probecenter=probecenter,orbitL=L,pointdwelltime=pointdwelltime,laserpower=laserpower,repetitions=repetitions)
-seq={"donut_misaligned","estdonut"};
-out=sim.runSequence(seq);
-
-disp("misaligned phase plate:")
-sim.summarize_results(out);
-psfab=psf_vec2.imagestack("vortex");
-imx(horzcat(psf0,psfab),'Parent',figure(221),'Title',"Misaligned phase plate"); %compare the two PSFs
-
-
 %% Pinhole
 % We simulate a pinhole in the detection channel
 if ~exist("psf_vecph","var") %if PSF is already defined, we need not recalculate it if no parameters are changed
@@ -122,23 +71,75 @@ sim.summarize_results(out);
 psfph=psf_vecph2.imagestack("vortex");
 imx(horzcat(psf0,psfph),'Parent',figure(222),'Title',"Misaligned pinhole"); %compare the two PSFs
 
+%% Zero offset
+%now let's add an offset to the PSF to make the minium non-zero
+psf_vec.zerooffset=0.005;
+out=sim.runSequence(seq);
+disp("zero offset = " + psf_vec.zerooffset + ":")
+sim.summarize_results(out);
+
+%% Aberrations
+% let us change the PSF by adding aberrations. Note, in this case we have
+% to define the pattern again to calculate the PSFs anew. Instead here, we
+% create a second PSF object.
+
+if ~exist("psf_vec2","var") %if PSF is already defined, we need not recalculate it if no parameters are changed
+    psf_vec2=PsfVectorial; %simple 2D donut PSF
+end
+psf_vec2.setpinhole("AU",1);
+%Add Zernike:
+% Zr(k,1): n, Zr(k,2): m, Zr(k,3): amplitude as fraction of wavelength
+sys_aberr.Zr(1,1)=4;sys_aberr.Zr(1,2)=0;sys_aberr.Zr(1,3)=0.3; %spherical aberrations 
+sys_aberr.Zr(2,1)=2;sys_aberr.Zr(2,2)=2;sys_aberr.Zr(2,3)=0.05; %astigmatism 
+sys_aberr.maskshift=[0,0];
+psf_vec2.setpar(sys_aberr)
+sim.definePattern("donut_aber", psf_vec2, phasemask="vortex", makepattern="orbitscan", orbitpoints=4, ...
+    probecenter=probecenter,orbitL=L,pointdwelltime=pointdwelltime,laserpower=laserpower,repetitions=repetitions)
+seq={"donut_aber","estdonut"};
+out=sim.runSequence(seq);
+
+disp("aberrations:")
+sim.summarize_results(out);
+psfab=psf_vec2.imagestack("vortex");
+imx(horzcat(psf0,psfab),'Parent',figure(220),'Title',"Aberrations"); %compare the two PSFs
+
+%% Misaligned phase plate
+if ~exist("psf_vec2","var") %if PSF is already defined, we need not recalculate it if no parameters are changed
+    psf_vec2=PsfVectorial; %simple 2D donut PSF
+end
+psf_vec2.setpinhole("AU",1);
+%Add Zernike:
+% Zr(k,1): n, Zr(k,2): m, Zr(k,3): amplitude as fraction of wavelength
+sys_mis.Zr(1,1)=4;sys_mis.Zr(1,2)=0;sys_mis.Zr(1,3)=0.0; %spherical aberrations 
+sys_mis.Zr(2,1)=2;sys_mis.Zr(2,2)=2;sys_mis.Zr(2,3)=0.0; %astigmatism 
+sys_mis.maskshift=[0.2,0]; % radius of pupil function is 1
+psf_vec2.setpar(sys_mis)
+sim.definePattern("donut_misaligned", psf_vec2, phasemask="vortex", makepattern="orbitscan", orbitpoints=orbitpoints, ...
+    probecenter=probecenter,orbitL=L,pointdwelltime=pointdwelltime,laserpower=laserpower,repetitions=repetitions)
+seq={"donut_misaligned","estdonut"};
+out=sim.runSequence(seq);
+
+disp("misaligned phase plate:")
+sim.summarize_results(out);
+psfab=psf_vec2.imagestack("vortex");
+imx(horzcat(psf0,psfab),'Parent',figure(221),'Title',"Misaligned phase plate"); %compare the two PSFs
+
+
+
 
 %% 3D with tophat
-sim.fluorophores.pos=[0,0, 50];
+sim.fluorophores.pos=[0,0, 00];
 if ~exist("psf_vecth","var") %if PSF is already defined, we need not recalculate it if no parameters are changed
     psf_vecth=PsfVectorial; %simple 2D donut PSF
 end
 psf_vecth.setpinhole("AU",1);
-sys_th.Zr(1,1)=4;sys_th.Zr(1,2)=0;sys_th.Zr(1,3)=0.0; %spherical aberrations 
-sys_th.Zr(2,1)=2;sys_th.Zr(2,2)=2;sys_th.Zr(2,3)=0.0; %astigmatism 
-psf_vecth.setpar(sys_th)
 
 orbitpoints=4;
 probecenterxy=true;
 probecenterz=true;
 L=75;
 Lz=150;
-% sigmaz=200;
+
 laserpower=30;
 
 sim.definePattern("tophat_xy", psf_vecth, phasemask="tophat", makepattern="orbitscan", orbitpoints=orbitpoints, ...
@@ -156,6 +157,7 @@ disp("3D with tophat:")
 sim.summarize_results(out);
 
 % 3D with tophat and vortex
+laserpower=10;
 sim.definePattern("donut_xy", psf_vecth, phasemask="vortex", makepattern="orbitscan", orbitpoints=orbitpoints, ...
     probecenter=probecenter,orbitL=L,pointdwelltime=pointdwelltime,laserpower=laserpower,repetitions=repetitions)
 
@@ -167,7 +169,7 @@ sim.summarize_results(out);
 
 
 %% PhaseFlux 3D localization
-sim.fluorophores.pos=[20,-10, 50];
+sim.fluorophores.pos=[0,0, 0];
 if ~exist("psf_vecphaseflux","var") %if PSF is already defined, we need not recalculate it if no parameters are changed
     psf_vecphaseflux=PsfVectorial; %simple 2D donut PSF
 end
@@ -178,7 +180,7 @@ L=75;
 Lz=150;
 fwhm=450;
 sigmaz=200;
-laserpower=30;
+laserpower=10;
 zeroposx=[-1;1;0]*L/2;
 zeroposz=[-1;1;0]*Lz/2;
 
@@ -187,7 +189,7 @@ sim.definePattern("pf_x", psf_vecphaseflux, phasemask="halfmoonx", zeropos=zerop
 sim.definePattern("pf_y", psf_vecphaseflux, phasemask="halfmoony", zeropos=zeroposx,...
     pointdwelltime=pointdwelltime,laserpower=laserpower,repetitions=repetitions,dim=2);
 sim.definePattern("pf_z", psf_vecphaseflux, phasemask="tophat", zeropos=zeroposz,...
-    pointdwelltime=pointdwelltime,laserpower=laserpower*10,repetitions=repetitions,dim=3);
+    pointdwelltime=pointdwelltime,laserpower=laserpower,repetitions=repetitions,dim=3);
 
 sim.defineComponent("est_x","estimator",@est_quad1Diter,parameters={L},dim=1);
 sim.defineComponent("est_y","estimator",@est_quad1Diter,parameters={L},dim=2);

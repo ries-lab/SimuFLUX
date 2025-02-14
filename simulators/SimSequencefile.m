@@ -235,7 +235,7 @@ classdef SimSequencefile<Simulator
                 numitr=numitr+1;
             end
             if ~isempty(out)
-                out.sequence="itr"+max(out.loc.itr);
+                out.sequence={"itr"+max(out.loc.itr)};
                 out.duration=obj.time-starttime;
                 out.par=par;
             end

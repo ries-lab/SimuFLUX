@@ -40,7 +40,7 @@ fname='Imaging_2D.json';
 sim2.loadsequence(fname,'PSFvectorial2D.json'); %only sequence file, then simple gauss and donut PSFs are used (fast)
 % sim.makepatterns;
 % sim.scoutingcoordinates=[0 0];
-sim2.makescoutingpattern([-1 -1; 1 1 ]*200) %for imaging
+sim2.makescoutingpattern([-100 -150; 100 100 ]) %for imaging
 sim2.sequence.locLimit=100;% to avoid getting stuck with background fluorophore
 %
 
@@ -63,7 +63,7 @@ fc.add(makeNPC(pos=[0 0 0]));
 % make diffusing molecules, back of the envelope calculations
 % standard sequences: ~1 nM, fast sequences: 0.2 pM
 % 1 M = Na/liter, 1 l= (0.1 m)^3 = (0.1 *1e6 um)^3 =1e15 um^3
-% c1nM= 1e-9* 6e23/1e15 %density of fluorophores, about 1 / um^3
+% density of fluorophores (um^-3) for 1nM: 1e-9* 6e23/1e15=0.6 %density of fluorophores, about 1 / um^3
 % slow sequences, bounding box: 1 um  x 1 um x 2 um: ~ 1 particle
 % fast sequences: 2 um x 2 um x um: ~1 particle
 D=30; %um^2/s
@@ -74,11 +74,10 @@ fc.add(fd)
 
 sim2.fluorophores=fc;
 maxtime=30*1e3; %10 seconds
-% repetitions=[500,100];
+cfrcutoff=0.3;
 brightnesses=[0,1]; %compare without and with background from diffusing fluorophore
 titles=["imaging strands invisible","diffusive imaging strands"];
-% sim.bgcSenseValue=0;
-% brightnesses=1;
+
 for k=1:length(brightnesses)
     sim2.posgalvo=[0 0 0];sim2.posEOD=[0 0 0];sim2.time=0;
     fc.reset; %switch on all fluorophores again
@@ -89,9 +88,9 @@ for k=1:length(brightnesses)
     
     %plot results
     vld=out.loc.vld==1 & out.loc.itr==max(out.loc.itr) ;
-    vldcfr=vld & out.loc.cfr<0.2;
+    vldcfr=vld & out.loc.cfr<cfrcutoff;
     figure(290+k); hold off;
-    plot(sim2.scoutingcoordinates(:,1),sim2.scoutingcoordinates(:,2),'k+')
+    plot(sim2.scoutingcoordinates(:,1),sim2.scoutingcoordinates(:,2),'k*')
     hold on
     plot(out.loc.xnm(vld),out.loc.ynm(vld),'m.')
     plot(out.loc.xnm(vldcfr),out.loc.ynm(vldcfr),'bx')

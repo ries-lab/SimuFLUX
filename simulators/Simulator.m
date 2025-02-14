@@ -221,6 +221,7 @@ classdef Simulator<handle
                             if k==1   %just first localization
                                 par{s}=scanout.par;
                             end
+                            loc.seq(loccounter,1)=s;
                         case "estimator"
                             % replace placeholder names by values
                             component_par=replaceinlist(component.parameters,'patternpos',scanout.par.patternpos,'L',scanout.par.L,...
@@ -250,6 +251,7 @@ classdef Simulator<handle
                         otherwise
                             disp(component.type+ " not defined")
                     end
+                    
                 end
                 % write position estimates for all localizations in sequence together, 9.2.25
                 loc.xnm(loccounter_seq:loccounter)=xesttot(1);loc.ynm(loccounter_seq:loccounter)=xesttot(2);loc.znm(loccounter_seq:loccounter)=xesttot(3);
@@ -331,7 +333,7 @@ classdef Simulator<handle
         function lp=locprec(obj,photons,L)
             lp=L./sqrt(8*(photons));
         end
-        function locprec=calculateCRBdirect(obj,patternnames,args)
+        function [locprec,intensity]=calculateCRBpatterndirect(obj,patternnames,args)
             arguments
                 obj
                 patternnames
@@ -367,6 +369,7 @@ classdef Simulator<handle
                 locprech=diag(sqrt(crlb))';
                 locprec=[0 0 0];
                 locprec(dim)=locprech;%(dim);
+               
 
             function iho=pi(dpos)
                     flposh=flpos;
@@ -384,7 +387,7 @@ classdef Simulator<handle
         end
 
 
-        function locprec=calculateCRB(obj,patternnames,args)
+        function [locprec,intensity]=calculateCRBpattern(obj,patternnames,args)
             arguments
                 obj
                 patternnames
@@ -432,6 +435,29 @@ classdef Simulator<handle
             locprech=diag(sqrt(crlb))';
             locprec=[0 0 0];
             locprec(dim)=locprech;%(dim);
+            intensity=sum(out0.intensity);
+        end
+
+        function [sigmaCRB,sigmaCRB1, locprecL]=calculateCRB(obj,out,filter)
+            locprecL=[0,0,0]; sigmaCRB1=[0,0,0];sigmaCRB=[0,0,0];
+            seq=out.sequence;
+            for k=1:length(seq)
+                
+                pattern=obj.patterns(seq{k});
+                if pattern.type=="pattern"
+                    sh=obj.calculateCRBpattern(seq{k},dim=pattern.dim);
+                    if isfield(out.loc,'seq')
+                        ind=out.loc.seq==k & filter;
+                    else
+                        ind=filter;
+                    end
+                    phot=mean(out.loc.phot(ind));
+                    sigmaCRB1(pattern.dim)=sh(pattern.dim);
+                    sigmaCRB(pattern.dim)=sigmaCRB1(pattern.dim)/sqrt(phot);
+                    Lh=obj.locprec(mean(phot),pattern.L);
+                    locprecL(pattern.dim)=Lh;
+                end
+            end
         end
         
         function st=summarize_results(obj,out,args)%, lpcrb,L)
@@ -454,17 +480,19 @@ classdef Simulator<handle
             flpos=horzcat(out.loc.xfl1(ind),out.loc.yfl1(ind),out.loc.zfl1(ind));
             phot=out.loc.phot(ind);
             
-            seq=out.sequence;
-            lp=[0,0,0]; sigmaCRB=[0,0,0];
-            for k=1:length(seq)
-                pattern=obj.patterns(seq{k});
-                if pattern.type=="pattern"
-                    sh=obj.calculateCRB(seq{k},dim=pattern.dim);
-                    sigmaCRB(pattern.dim)=sh(pattern.dim);
-                    Lh=obj.locprec(mean(phot),pattern.L);
-                    lp(pattern.dim)=Lh;
-                end
-            end
+            % seq=out.sequence;
+            % lp=[0,0,0]; sigmaCRB=[0,0,0];
+            % for k=1:length(seq)
+            %     pattern=obj.patterns(seq{k});
+            %     if pattern.type=="pattern"
+            %         [sh,ph]=obj.calculateCRBpattern(seq{k},dim=pattern.dim);
+            %         sigmaCRB(pattern.dim)=sh(pattern.dim);
+            %         Lh=obj.locprec(mean(phot),pattern.L);
+            %         lp(pattern.dim)=Lh;
+            %     end
+            % end
+
+            [sigmaCRB,sigmaCRB1, locprecL]=calculateCRB(obj,out,ind);
 
             st.photch=photch;
             st.bg_photons=mean(out.bg_photons_gt(ind));
@@ -475,9 +503,9 @@ classdef Simulator<handle
             st.rmse=rmse(xest,flpos,1,'omitnan');
             
             st.bias=mean(xest-flpos,1,'omitnan');
-            st.locp=lp;
-            st.sCRB=sigmaCRB/sqrt(st.phot);
-            st.sCRB1=sigmaCRB;
+            st.locp=locprecL;
+            st.sCRB=sigmaCRB;%/sqrt(st.phot);
+            st.sCRB1=sigmaCRB1;
             st.duration=out.duration;
             
             if args.display
@@ -491,7 +519,7 @@ classdef Simulator<handle
                     ' rmse: ', num2str(st.rmse,ff),...
                     ' pos: ', num2str(st.pos,ff),...
                     ' bias: ', num2str(st.bias,ff)]);
-                disp(['locp: ', num2str(lp,ff),...
+                disp(['locp: ', num2str(locprecL,ff),...
                     ' sCRB: ', num2str(st.sCRB,ff),...
                     ' sCRB*sqrt(phot): ', num2str(st.sCRB1,ff1)])
             end
