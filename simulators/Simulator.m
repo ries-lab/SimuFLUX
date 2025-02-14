@@ -13,10 +13,10 @@ classdef Simulator<handle
     methods
         function obj=Simulator(args)
             arguments
-                args.fluorophores=[];
-                args.background=0;
-                args.background_estimated=0;
-                args.loadfile={};
+                args.fluorophores=[]; % Fluorophore or FlCollection 
+                args.background=0;    % constant autofluorescence background
+                args.background_estimated=0; %estimated background, used for estimators
+                args.loadfile={}; % sequence, only for SimSequencefile objects
             end
             obj.fluorophores=args.fluorophores;
             obj.background=args.background;
@@ -31,11 +31,11 @@ classdef Simulator<handle
             %within a pattern repeat
             arguments 
                 obj
-                key
-                type
-                functionhandle
-                args.parameters={};
-                args.dim=1:3;
+                key % name (key) of the component, used to identify it later
+                type % estimator, positionupdater, background
+                functionhandle % handle to the function of the component (e.g., an estimator)
+                args.parameters={}; % paramters are passed on to the function
+                args.dim=1:3; %for estimators: which dimension is estimated, updated
             end
             component.functionhandle=functionhandle;
             component.type=string(type);
@@ -48,20 +48,20 @@ classdef Simulator<handle
             %parameters
             arguments 
                 obj
-                key
-                psf
+                key % name (key) to describe the pattern and refer to it later
+                psf % a Psf object that describes the PSF
                 args.phasemask=""; %parameter that defines the shape of the phase mask
                 args.zeropos=0; %position of the zero when calculating PSFs (e.g., PhaseFLUX)
                 args.patternpos=[0, 0, 0];% list of 3D positions where the PSF is moved to. Use either zeropos or pos
-                args.makepattern=[];
-                args.orbitpoints=4;
-                args.orbitL=100;
-                args.probecenter=true; 
-                args.orbitorder=[]; %change the order of measurement points
-                args.pointdwelltime=.01; %us
-                args.laserpower=1; %usually we use relative, but can also be absolute.
-                args.repetitions=1;
-                args.dim=1:2;
+                args.makepattern=[]; % orbitscan, zscan, [] (default):no pattern is made
+                args.orbitpoints=4; %  orbitpoints
+                args.orbitL=100; % diameter of scan pattern
+                args.probecenter=true; % if to perform a central measurement (cfr check)
+                args.orbitorder=[]; %change the order of measurement points. Can create problems with some estimators
+                args.pointdwelltime=.01; %us length of a point measurement. Single value, vactor with length of pattern or vector with length 2, then the second value is used for central measurement
+                args.laserpower=1; %usually we use relative, but can also be absolute. This value is multiplied on the fluorophore brightness
+                args.repetitions=1; %repetitions of the pattern scan before position estimation
+                args.dim=1:2; %dimensions in which the scan is performed
             end
             pattern.repetitions=args.repetitions;
             pattern.par=args;
@@ -108,6 +108,7 @@ classdef Simulator<handle
 
         function out=patternscan(obj,key)
             % scans a defined pattern
+            % key: name (key) used when defining the pattern
             pattern=obj.patterns(key);
             fluorophores=obj.fluorophores;
             numpoints=length(pattern.zeropos);
@@ -267,9 +268,9 @@ classdef Simulator<handle
         function out=runSequence(obj,seq,args)
             arguments
                 obj
-                seq
-                args.maxlocs=1000;
-                args.repetitions=1;
+                seq % cell of string with keys of patterns/components
+                args.maxlocs=1000; % how many localizations to perform
+                args.repetitions=1;% how often the sequence is repeated
             end
             out=[];
             timestart=obj.time;
@@ -436,9 +437,9 @@ classdef Simulator<handle
         function st=summarize_results(obj,out,args)%, lpcrb,L)
             arguments
                 obj
-                out
-                args.display=true;
-                args.filter=true(size(out.loc.xnm));
+                out %structure created by seqence
+                args.display=true; %if to print the summary on the console
+                args.filter=true(size(out.loc.xnm)); % which localizations to use for statistics
             end
             ind=args.filter;
             photraw=out.raw;
@@ -496,21 +497,22 @@ classdef Simulator<handle
             end
         end
         function so=scan_fov(obj,seq,xcoords,args)
+            % this function scans the coordinate of a fluorophore and runs
+            % a sequence for each position
             arguments
                 obj
-                seq
-                xcoords
-                args.maxlocs=1000;
-                args.repetitions=1;
-                args.display=true;
-                args.dimplot=1;
-                args.dimscan=1;
-                args.title="FoV scan";
-                args.fluorophorenumber=1;
-                args.ax1="std";
-                % args.ax2="bias";
-                args.clearfigure=true;
-                args.tag="";
+                seq %cell of keys of patterns, elements
+                xcoords % coordinates to scan
+                args.maxlocs=1000; %how often to localize in each position
+                args.repetitions=1; %repetitions in each position
+                args.display=true; % if to plot the results
+                args.dimplot=1; % which dimension is used to calculate statistics
+                args.dimscan=1; % which dimension is scanned 
+                args.title="FoV scan"; %title of the output figure
+                args.fluorophorenumber=1; % which fluorophore is scanned. Use 1 for a FoV scan, use 2 to test effect of close-by fluorophore
+                args.ax1="std"; % std, bias, rmse, sCRB, pos: what to displax in the figure, arrray of strings. 
+                args.clearfigure=true; % overwrite figure. if false: new plots are added
+                args.tag=""; %name of a plot, used in the figure legend
             end
             args.ax1=string(args.ax1);
             % args.ax2=string(args.ax2);
