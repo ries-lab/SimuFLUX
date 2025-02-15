@@ -2,7 +2,7 @@
 addpath(genpath(fileparts(fileparts(mfilename('fullpath'))))); %add all folders to serach path
 
 fl=FlStatic(brightness=1000); %define a static fluorophore
-fl.pos=[10 0 0];
+fl.pos=[0 0 0];
 
 if ~exist("psf_vec","var") %if PSF is already defined, we need not recalculate it if no parameters are changed
     psf_vec=PsfVectorial; %simple 2D donut PSF
@@ -35,7 +35,7 @@ out=sim.runSequence(seq,"maxlocs",numberOfLocalizations);
 % out.raw: photon measurements
 
 %calculate CRB for this fluorophore position and scan pattern:
-sigmaCRB=sim.calculateCRB("donut",dim=1:2)/sqrt(mean(out.loc.phot));
+sigmaCRB=sim.calculateCRBpattern("donut",dim=1:2)/sqrt(mean(out.loc.phot));
 
 disp('vectorial PSF:')
 sim.summarize_results(out); %display summary of simulation

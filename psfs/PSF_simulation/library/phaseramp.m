@@ -15,8 +15,8 @@ function E = phaseramp(sys,E,r,t,p)
 % % %the back aperture of the objective lens.
 % % 
 [xx,yy] = pol2cart(p,r);
-xx=xx+sys.maskshift(1);
-yy=yy+sys.maskshift(2);
+xx=xx+sys.maskshift(2);
+yy=yy+sys.maskshift(1);
 [p,r]=cart2pol(xx,yy);
 % %xx = xx+0;
 % %yy = yy - 2/sys.Da*sys.OY; % Introducing a spatial offset to the phase in y direction. Use this when Ei is { 'gauss', 'offset','phaseramp',  'zernike', 'circular'};

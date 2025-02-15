@@ -360,7 +360,7 @@ classdef Simulator<handle
                     for coord=1:length(dim)
                         for coord2=1:length(dim)
                             % IFisher(dim(coord),dim(coord2))=IFisher(dim(coord),dim(coord2))+dpdc(dim(coord))*dpdc(dim(coord2))/(pi([0 0 0])+1e-5);
-                             IFisher((coord),(coord2))=IFisher((coord),(coord2))+dpdc(dim(coord))*dpdc(dim(coord2))/(pi([0 0 0])+1e-5);
+                             IFisher((coord),(coord2))=IFisher((coord),(coord2))+dpdc(dim(coord))*dpdc(dim(coord2))/(pi([0 0 0])+1e-4);
                              % pi([0 0 0])
                         end
                     end
@@ -424,7 +424,7 @@ classdef Simulator<handle
             end
             for coord=1:length(dim)
                 for coord2=1:length(dim)
-                     fh=dpdc(:,dim(coord)).*dpdc(:,dim(coord2))./(pi0+1e-12);
+                     fh=dpdc(:,dim(coord)).*dpdc(:,dim(coord2))./(pi0+1e-4);
                      IFisher((coord),(coord2))=sum(fh);
                 end
             end

@@ -175,7 +175,7 @@ classdef PsfVectorial<Psf
                     nx=1:size(psfg,1);
                     nx=(nx-mean(nx))*pixelsize;
                     [Xk,Yk]=meshgrid(nx);
-                    kernel=double((Xk-phpos(1)).^2+(Yk-phpos(2)).^2<(phdiameter/2)^2);
+                    kernel=double((Xk-phpos(2)).^2+(Yk-phpos(1)).^2<(phdiameter/2)^2);
                     psfph=conv2fft(psfg,kernel);
                     [psfph,PSFdonut.normalization]=normpsf(psfph);
                     [X,Y,Z]=meshgrid4PSF(psfph,out.dr,out.dz);
@@ -329,7 +329,7 @@ classdef PsfVectorial<Psf
             %uiPSF
             %tiffstack
         end
-        function vout=imagestack(obj,key,args)
+        function [vout,gridvectors]=imagestack(obj,key,args)
             arguments
                 obj
                 key
@@ -344,7 +344,8 @@ classdef PsfVectorial<Psf
                 phpsf=obj.PSFs(obj.PSFph);
                 vout=vout.*phpsf.interp.Values  ; 
             end
-
+            gridvectors=psf.interp.GridVectors;
+            vout=permute(vout,[2 1 3]); %only then imx and imagesc show correct alignment
             if args.show
                 imx(double(vout))
             end
