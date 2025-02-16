@@ -9,6 +9,9 @@ fname2='PSFvectorial2D.json'; %use a PSF that is defined via a json file
 sim.loadsequence(fname,fname2);
 sim.makepatterns;
 
+figure(250)
+tiledlayout(2,2,"TileSpacing","tight")
+nexttile
 %% make diffusing, bleaching fluorophores
 sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;
 fl=FlMoveBleach;
@@ -19,30 +22,72 @@ fl.makediffusion(D,updatetime)
 %diffusion coefficient, update time args.startpos,dim, numpoints, buondarybox
 sim.fluorophores=fl;
 out=sim.runSequence("repetitions",1);
-sim.plotpositions(out,figure=250);
+sim.plotpositions(out,xvalues="time");
+nexttile
+plot(out.loc.xnm,out.loc.ynm)
+axis equal
+xlabel("x (nm)")
+ylabel("y (nm)")
+title("diffusion")
 
 %% make stepping fluorophore
+sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;
 fl2=FlMoveBleach;
 fl2.photonbudget=20000;
 fl2.brightness=200;
 updatetime=0.01; %us
 stepsize=16; %nm
 dwelltime=28; %ms
-fl2.makesteps(stepsize,dwelltime, updatetime,angle=45)
+fl2.makesteps(stepsize,dwelltime, updatetime,angle=0)
       % args.startpos, dim, numpoints,angle (degree);
 
 sim.fluorophores=fl2;sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;
 out=sim.runSequence("repetitions",1);
-sim.plotpositions(out,figure=251,xvalues="time");
+title("diffusion")
+nexttile
+sim.plotpositions(out,xvalues="time");
+title("stepping")
 
 %% instabilities: vibrations
 fl3=FlMoving(brightness=10000);
 fl3.posmode='function';
-frequency=.1; %kHz
-amplitude=5; %nm
-posfl=[0 0 0];
-fl3.posfunction={@(t) amplitude*sin(frequency*t)+posfl(1), @(t) 0*t+posfl(2), @(t) 0*t+posfl(3)};
 
-sim.fluorophores=fl3;sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;
-out=sim.runSequence("repetitions",1);
-sim.summarize_results(out);
+figure(261)
+tiledlayout(1,2); nexttile
+frequencies=[0.05 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100]; %kHz
+amplitude=5; %nm
+
+stdx=0*frequencies;stdxrel=stdx;
+for k=1:length(frequencies)
+    posfl=[0 0 0];
+    fl3.posfunction={@(t) amplitude*sin(frequencies(k)*t)+posfl(1), @(t) 0*t+posfl(2), @(t) 0*t+posfl(3)};    
+    sim.fluorophores=fl3;sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;
+    out=sim.runSequence("repetitions",1);
+    filter=out.loc.itr==max(out.loc.itr)&out.loc.vld==1;
+    sr=sim.summarize_results(out,display=false,filter=filter);
+    stdx(k)=sr.std(1);
+    stdxrel(k)=sr.std(1)/sr.sCRB(1);
+end
+semilogx(frequencies,stdxrel)
+xlabel('frequncy (kHz)')
+ylabel('std(x)/sCRB(x)')
+title("vibrations: frequency")
+
+frequency=0.1;
+amplitudes=0:10;
+stdxa=0*frequencies;stdxrela=stdxa;
+for k=1:length(amplitudes)
+    posfl=[0 0 0];
+    fl3.posfunction={@(t) amplitudes(k)*sin(frequency*t)+posfl(1), @(t) 0*t+posfl(2), @(t) 0*t+posfl(3)};    
+    sim.fluorophores=fl3;sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;
+    out=sim.runSequence("repetitions",1);
+    filter=out.loc.itr==max(out.loc.itr)&out.loc.vld==1;
+    sr=sim.summarize_results(out,display=false,filter=filter);
+    stdxa(k)=sr.std(1);
+    stdxrela(k)=sr.std(1)/sr.sCRB(1);
+end
+nexttile
+plot(amplitudes,stdxrela)
+xlabel('amplitude (nm)')
+ylabel('std(x)/sCRB(x)')
+title("vibrations: amplitude")

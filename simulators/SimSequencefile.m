@@ -341,9 +341,7 @@ classdef SimSequencefile<Simulator
             xen={"xeod","yeod","zeod"};
             
             if isempty(args.axis)
-                if isempty(args.figure)
-                    f=figure;
-                else
+                if ~isempty(args.figure)
                     f=figure(args.figure);
                 end
                 ax=gca;
@@ -360,14 +358,16 @@ classdef SimSequencefile<Simulator
             end
             c=args.coordinate;
             hold(ax,'off')
-            plot(ax,xv, out.loc.(xnmn{c}));
+            plot(ax,xv, out.loc.(xnmn{c}),'k');
             hold(ax,"on")
-            plot(ax,xv,out.loc.(xfln{c}));
-            plot(ax,xv,out.loc.(xgn{c}))
-            plot(ax,xv,out.loc.(xen{c}))
+            plot(ax,xv,out.loc.(xfln{c}),'r');
+            
+            plot(ax,xv,out.loc.(xgn{c}),"Color",[0 0.5 0])
+            plot(ax,xv,out.loc.(xen{c}),'b')
+            
             xlabel(ax,xtxt)
             ylabel(ax,'x position(nm)')
-            legend(ax,'estimated', 'fluorophore','xgalvo','EOD')
+            legend(ax,'Estimated','Fluorophore','Galvo','EOD')
 
         end
         % function so=subtractbackground(obj,si)

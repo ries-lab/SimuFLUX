@@ -30,6 +30,8 @@ stats=sim.summarize_results(out);
 x=0:20:750;
 
 figure(260)
+tiledlayout(1,2,"TileSpacing","tight")
+nexttile
 sim.scan_fov(seq,x,dimplot=1,dimscan=1,fluorophorenumber=2,ax1=["std","rmse","sCRB","bias"],title="scan second fluorophore in x", tag="x");
 
 
@@ -37,7 +39,7 @@ sim.scan_fov(seq,x,dimplot=1,dimscan=1,fluorophorenumber=2,ax1=["std","rmse","sC
 % now z-dependence
 fl1.pos=[0 0 0]; fl2.pos=[100 0 0];
 z=0:50:1000;
-figure(261)
+nexttile
 sim.scan_fov(seq,z,dimplot=1,dimscan=3,fluorophorenumber=2,ax1=["std","rmse","sCRB","bias"],title="scan second fluorophore in z",tag="z");
 
 
