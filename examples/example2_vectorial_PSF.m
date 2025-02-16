@@ -156,8 +156,19 @@ out=sim.runSequence(seq);
 disp("3D with tophat:")
 sim.summarize_results(out);
 
+% figure(220)
+% ax1v=["std"];
+% xcoords=0:5:Lz/2;
+% statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,clearfigure=true,tag="tophat x");
+% 
+% % figure(221)
+% zcoords=0:10:Lz/2;
+% hold on
+% statout=sim.scan_fov(seq,zcoords,"dimscan",3,"dimplot",3,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,tag="tophat z");
+
+
 % 3D with tophat and vortex
-laserpower=10;
+laserpower=5;
 sim.definePattern("donut_xy", psf_vecth, phasemask="vortex", makepattern="orbitscan", orbitpoints=orbitpoints, ...
     probecenter=probecenter,orbitL=L,pointdwelltime=pointdwelltime,laserpower=laserpower,repetitions=repetitions)
 
@@ -166,6 +177,8 @@ out=sim.runSequence(seq);
 
 disp("3D with donut and tophat:")
 sim.summarize_results(out);
+% sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,clearfigure=false,tag="tophat + donut x");
+% sim.scan_fov(seq,zcoords,"dimscan",3,"dimplot",3,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,tag="tophat + donut z");
 
 
 %% PhaseFlux 3D localization
@@ -180,7 +193,8 @@ L=75;
 Lz=150;
 fwhm=450;
 sigmaz=200;
-laserpower=10;
+laserpower=5;
+laserpowerz=30;
 zeroposx=[-1;1;0]*L/2;
 zeroposz=[-1;1;0]*Lz/2;
 
@@ -189,7 +203,7 @@ sim.definePattern("pf_x", psf_vecphaseflux, phasemask="halfmoonx", zeropos=zerop
 sim.definePattern("pf_y", psf_vecphaseflux, phasemask="halfmoony", zeropos=zeroposx,...
     pointdwelltime=pointdwelltime,laserpower=laserpower,repetitions=repetitions,dim=2);
 sim.definePattern("pf_z", psf_vecphaseflux, phasemask="tophat", zeropos=zeroposz,...
-    pointdwelltime=pointdwelltime,laserpower=laserpower,repetitions=repetitions,dim=3);
+    pointdwelltime=pointdwelltime,laserpower=laserpowerz,repetitions=repetitions,dim=3);
 
 sim.defineComponent("est_x","estimator",@est_quad1Diter,parameters={L},dim=1);
 sim.defineComponent("est_y","estimator",@est_quad1Diter,parameters={L},dim=2);
@@ -202,3 +216,5 @@ seq={"pf_x","est_x","pf_y","est_y","pf_z","est_z"};
 out=sim.runSequence(seq);
 disp("PhaseFLUX:")
 sim.summarize_results(out);
+% sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,clearfigure=false,tag="phaseflux x");
+% sim.scan_fov(seq,zcoords,"dimscan",3,"dimplot",3,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,tag="phaseflux z");

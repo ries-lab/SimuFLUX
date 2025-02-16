@@ -438,7 +438,7 @@ classdef Simulator<handle
             % intensity=sum(out0.intensity);
         end
 
-        function [sigmaCRB,sigmaCRB1, locprecL]=calculateCRB(obj,out,filter)
+        function [sigmaCRB,sigmaCRB1, locprecL,phot]=calculateCRB(obj,out,filter)
             locprecL=[0,0,0]; sigmaCRB1=[0,0,0];sigmaCRB=[0,0,0];
             seq=out.sequence;
             for k=1:length(seq)
@@ -469,17 +469,25 @@ classdef Simulator<handle
             end
             ind=args.filter;
             photraw=out.raw;
-            photraw(photraw==-1)=NaN;
-            if length(size(photraw))>3
-                photraw(photraw<0)=NaN;
-                photch=squeeze(mean(mean(photraw(ind,:),1,'omitnan'),2,'omitnan'));
-            else
-                photch=squeeze(mean(photraw(ind,:),1,'omitnan'));  
-            end
+            % photraw(photraw==-1)=NaN;
+            % if length(size(photraw))>3
+            %     photraw(photraw<0)=NaN;
+            %     photch=squeeze(mean(mean(photraw(ind,:),1,'omitnan'),2,'omitnan'));
+            % else
+            %     photch=squeeze(mean(photraw(ind,:),1,'omitnan'));  
+            % end
             xest=horzcat(out.loc.xnm(ind),out.loc.ynm(ind),out.loc.znm(ind));
             flpos=horzcat(out.loc.xfl1(ind),out.loc.yfl1(ind),out.loc.zfl1(ind));
-            phot=out.loc.phot(ind);
-            
+
+            sunique=unique(out.loc.seq(ind));
+            phot=0;
+            photch=[];
+            for k=1:length(sunique) %sum over photons of different patterns
+                indu=out.loc.seq==sunique(k);
+                phot=phot+mean(out.loc.phot(ind&indu));
+                photch=horzcat(photch,mean(photraw(ind&indu,:),1));
+            end
+            photch(photch==-1)=[];
             % seq=out.sequence;
             % lp=[0,0,0]; sigmaCRB=[0,0,0];
             % for k=1:length(seq)
@@ -539,7 +547,7 @@ classdef Simulator<handle
                 args.title="FoV scan"; %title of the output figure
                 args.fluorophorenumber=1; % which fluorophore is scanned. Use 1 for a FoV scan, use 2 to test effect of close-by fluorophore
                 args.ax1="std"; % std, bias, rmse, sCRB, pos: what to displax in the figure, arrray of strings. 
-                args.clearfigure=true; % overwrite figure. if false: new plots are added
+                args.clearfigure=false; % overwrite figure. if false: new plots are added
                 args.tag=""; %name of a plot, used in the figure legend
             end
             args.ax1=string(args.ax1);
@@ -552,7 +560,7 @@ classdef Simulator<handle
                 fl=obj.fluorophores;
             end
             coords=["x","y","z"];
-
+            posold=fl.pos(args.dimscan);
             for k=1:length(xcoords)
                 fl.pos(args.dimscan)=xcoords(k);
                 out=obj.runSequence(seq,maxlocs=args.maxlocs,repetitions=args.repetitions);
@@ -589,6 +597,7 @@ classdef Simulator<handle
                     end
                 end
                 ylabel(ylab + " (nm)")
+                fl.pos(args.dimscan)=posold;
                 % hold off
     
                 % yyaxis right
