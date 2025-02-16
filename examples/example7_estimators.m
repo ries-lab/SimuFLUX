@@ -27,7 +27,7 @@ seq={"donut","estdonut"};
 psf_vec.zerooffset=0;
 
 figure(270); 
-tiledlayout("TileSpacing","tight"); nexttile    
+tiledlayout("TileSpacing","tight"); nexttile; hold off 
 statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,clearfigure=true,tag="simple est");
 
 %iterative
@@ -38,12 +38,15 @@ statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,
 % out=sim.runSequence(seq,maxlocs=1);
 % sim.summarize_results(out);
 
-
 % no background, direct estimator
 sim.defineComponent("estdirect","estimator",@est_quadraticdirect1D,parameters={L},dim=1);
 seq={"donut","estdirect"};
 hold off
 statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,clearfigure=false, tag="direct est");
+
+if ax1v=="pos"
+    plot([0 L],[0 L],'k--')
+end
 
 %% explore impact of background on estimator
 %no background
@@ -54,15 +57,15 @@ sim.defineComponent("estdonut","estimator",@est_quad2Diter,parameters={L,probece
 seq={"donut","estdonut"};
 psf_vec.zerooffset=0;
 % xcoords=0:5:50;
-nexttile
-statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=["bias"],tag="no bg");
+nexttile; hold off
+statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,tag="no bg");
 % out=sim.runSequence(seq,maxlocs=1);
 % sim.summarize_results(out);
 
 %background, 
 sim.background=3000;
 % xcoords=0:2:100;
-statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=["bias"],clearfigure=false,tag="bg");
+statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,clearfigure=false,tag="bg");
 
 %background subtracted,
 bgf=sim.patterns('donut').backgroundfac(1); %background used for simulation
@@ -72,8 +75,11 @@ sim.defineComponent("bg","background",@backgroundsubtractor,parameters={"backgro
 seq={"donut","bg","estdonut"};
 psf_vec.zerooffset=0;
 % xcoords=0:2:100;
-statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=["bias"],clearfigure=false,tag="bg est");
+statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,clearfigure=false,tag="bg est");
 
+if ax1v=="pos"
+    plot([0 L],[0 L],'k--')
+end
 
 % out=sim.runSequence(seq,maxlocs=1);
 % sim.summarize_results(out);
