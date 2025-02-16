@@ -12,14 +12,15 @@ sim=Simulator(fluorophores=fl);
 
 numberOfLocalizations=100;
 L=75;
+orbitpoints=4;
 xcoords=0:2:L;
 probecenter=true;
-sim.definePattern("donut", psf_vec, phasemask="vortex", makepattern="orbitscan", orbitpoints=4, ...
+sim.definePattern("donut", psf_vec, phasemask="vortex", makepattern="orbitscan", orbitpoints=orbitpoints, ...
     probecenter=probecenter,orbitL=L,laserpower=100)
 % sim.calculateCRB("donut")
 % sim.calculateCRBscan("donut")
 
-ax1v="bias"; 
+ax1v="pos"; 
 %% no background, simple estimator
 sim.defineComponent("estdonut","estimator",@est_donut2d,parameters={sim.patterns("donut").pos,L,360},dim=1:2);
 seq={"donut","estdonut"};
