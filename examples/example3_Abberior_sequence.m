@@ -5,17 +5,23 @@ if ~exist('sim','var') || ~isa(sim,"SimSequencefile")
 else
     sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];
 end
-laserpower=50;
+laserpower=1;
 fl=FlBleach; %define a bleaching fluorophore
 fl.photonbudget=20000;
 fl.pos=[200 50 0];
-fl.brightness=200*laserpower; %kHz 
+fl.brightness=300*laserpower; %kHz 
 sim.fluorophores=fl;
-
+sim.background=0; % a background that is not matched with a proper estimate leads to 'tails'
+sim.background_estimated=0; % a similar result is obtained when no background is present but the background is underestimatedd (negative background estimate ). This leads to a bias in the estimator and appearance of "tails"
+            %over-estimation of background leads to instabilities
 
 fname='Tracking_2D.json';
 fname2='PSFvectorial2D.json'; %use a PSF that is defined via a json file
 sim.loadsequence(fname,fname2);
+sim.psfvec.setpar('beadradius',50e-9) %in nm can also lead to tails
+sim.sequence.PSF.Itr(1).estimator.par{3}=80; %wrong parameter for first estimator: this makes tails much more pronounced, as currently the Gaussian estimator seems too good.
+sim.sequence.Itr(1)
+sim.sequence.locLimit=100;
 sim.makepatterns;
 out=sim.runSequence("repetitions",1);
 

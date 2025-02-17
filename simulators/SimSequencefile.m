@@ -121,12 +121,13 @@ classdef SimSequencefile<Simulator
                     % repeat scanning until sufficient photons collected,
                     % or abort condition met
                     scanouth=obj.patternscan(itrname);
-                    % scanouth=obj.subtractbackground(scanouth);
+                    scanouth=backgroundsubtractor(scanouth,obj.background_estimated);
                     scanout=sumstruct(scanout,scanouth);
                     
                     
                     photsum=sum(scanout.phot);
                     photbg=scanout.bg_photons_gt;
+                    bgest=scanout.bgphot_est;
                     
                     if itrs(itr).ccrLimit>-1
                         probecenter=true;
@@ -220,7 +221,8 @@ classdef SimSequencefile<Simulator
                     out.raw(loccounter,1:length(scanout.phot))=scanout.phot;
                     out.fluorophores.pos(loccounter,1:size(scanout.flpos,1),:)=scanout.flpos/scanout.counter;
                     out.fluorophores.int(loccounter,1:size(scanout.flpos,1))=scanout.flint;
-                    out.bg_photons_gt(loccounter)=photbg; 
+                    out.bg_photons_gt(loccounter,1)=photbg; 
+                    out.bg_photons_est(loccounter,1)=sum(bgest);
                     
                     loccounter=loccounter+1;
                     if isempty(par{itr})

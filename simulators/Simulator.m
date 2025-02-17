@@ -262,9 +262,12 @@ classdef Simulator<handle
             out.loc=loc;
             out.raw=photch(1:loccounter,:);
             out.fluorophores=fl;
-            out.bg_photons_gt=photbg(1:loccounter);
+            out.bg_photons_gt=photbg(1:loccounter)';
             out.par=par;
             out.duration=obj.time-timestart;
+            if isfield(scanout,'bgphot_est')
+                out.bg_photons_est=sum(scanout.bgphot_est); %sum over all positions
+            end
             % out.bg_photons_est=
         end
         function out=runSequence(obj,seq,args)
@@ -294,6 +297,8 @@ classdef Simulator<handle
                 out1.loc.rep=1+0*out1.loc.xnm;
                 out1.fluorophores.pos=out2.fluorophores.pos;
                 out1.fluorophores.int=out2.fluorophores.int;
+                out1.bg_photons_gt=out2.bg_photons_gt;
+                out1.bg_photons_est=out2.bg_photons_est;
                 
             else 
                 sr=size(out2.raw);
@@ -306,6 +311,8 @@ classdef Simulator<handle
                 out1.fluorophores.int=cat(1,out1.fluorophores.int,out2.fluorophores.int);
                 out2.loc.rep=size(out1.raw,1)+0*out2.loc.xnm;
                 out1.loc=appendstruct(out1.loc,out2.loc);
+                out1.bg_photons_gt=cat(1,out1.bg_photons_gt,out2.bg_photons_gt);
+                out1.bg_photons_est=cat(1,out1.bg_photons_est,out2.bg_photons_est);
             end
         end
 
@@ -469,43 +476,30 @@ classdef Simulator<handle
             end
             ind=args.filter;
             photraw=out.raw;
-            % photraw(photraw==-1)=NaN;
-            % if length(size(photraw))>3
-            %     photraw(photraw<0)=NaN;
-            %     photch=squeeze(mean(mean(photraw(ind,:),1,'omitnan'),2,'omitnan'));
-            % else
-            %     photch=squeeze(mean(photraw(ind,:),1,'omitnan'));  
-            % end
             xest=horzcat(out.loc.xnm(ind),out.loc.ynm(ind),out.loc.znm(ind));
             flpos=horzcat(out.loc.xfl1(ind),out.loc.yfl1(ind),out.loc.zfl1(ind));
-
-            sunique=unique(out.loc.seq(ind));
-            phot=0;
-            photch=[];
-            for k=1:length(sunique) %sum over photons of different patterns
-                indu=out.loc.seq==sunique(k);
-                phot=phot+mean(out.loc.phot(ind&indu));
-                photch=horzcat(photch,mean(photraw(ind&indu,:),1));
+            
+            if isfield(out.loc,'seq')
+                sunique=unique(out.loc.seq(ind));
+                phot=0;
+                photch=[];
+                for k=1:length(sunique) %sum over photons of different patterns
+                    indu=out.loc.seq==sunique(k);
+                    phot=phot+mean(out.loc.phot(ind&indu));
+                    photch=horzcat(photch,mean(photraw(ind&indu,:),1));
+                end
+                photch(photch==-1)=[];
+            else
+                photch=mean(photraw(ind,:),1);
+                phot=sum(photch);
             end
-            photch(photch==-1)=[];
-            % seq=out.sequence;
-            % lp=[0,0,0]; sigmaCRB=[0,0,0];
-            % for k=1:length(seq)
-            %     pattern=obj.patterns(seq{k});
-            %     if pattern.type=="pattern"
-            %         [sh,ph]=obj.calculateCRBpattern(seq{k},dim=pattern.dim);
-            %         sigmaCRB(pattern.dim)=sh(pattern.dim);
-            %         Lh=obj.locprec(mean(phot),pattern.L);
-            %         lp(pattern.dim)=Lh;
-            %     end
-            % end
 
             [sigmaCRB,sigmaCRB1, locprecL]=calculateCRB(obj,out,ind);
 
             st.photch=photch;
-            st.bg_photons=mean(out.bg_photons_gt(ind));
+            st.bg_photons_gt=mean(out.bg_photons_gt(ind));
             st.phot=mean(phot,'omitnan');
-            st.phot_signal= st.phot-st.bg_photons;    
+            st.phot_signal= st.phot-st.bg_photons_gt;    
             st.pos=mean(xest,1,'omitnan');
             st.std=std(xest,[],1,'omitnan');
             st.rmse=rmse(xest,flpos,1,'omitnan');
@@ -515,12 +509,22 @@ classdef Simulator<handle
             st.sCRB=sigmaCRB;%/sqrt(st.phot);
             st.sCRB1=sigmaCRB1;
             st.duration=out.duration;
+            st.bg_photons_est=mean(out.bg_photons_est,'omitnan');
+
             
             if args.display
                 ff1='%1.1f,';
                 ff='%1.2f,';
+
+                if st.bg_photons_est ~=0
+                    bgtxt= ['bg_est: ', num2str(st.bg_photons_est,ff1)];
+                else
+                    bgtxt='';
+                end
+
                 disp([ 'photch: ', num2str(st.photch,ff1),...
                     ' mean(phot): ', num2str(st.phot,ff1),...
+                    bgtxt,...
                     ' duration ms: ', num2str(st.duration,ff1)]) %, 'signal phot: ', num2str(st.phot_signal,ff1)
                 
                 disp(['std:  ', num2str(st.std,ff),...

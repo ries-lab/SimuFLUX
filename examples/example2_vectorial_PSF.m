@@ -48,6 +48,7 @@ if ~exist("psf_vecph","var") %if PSF is already defined, we need not recalculate
     psf_vecph=PsfVectorial; %simple 2D donut PSF
 end
 psf_vecph.setpinhole("AU",1);
+
 sim.definePattern("donut_ph", psf_vecph, phasemask="vortex", makepattern="orbitscan", orbitpoints=orbitpoints, ...
     probecenter=probecenter,orbitL=L,pointdwelltime=pointdwelltime,laserpower=laserpower,repetitions=repetitions)
 seq={"donut_ph","estdonut"};
@@ -69,14 +70,8 @@ disp("pinhole misaligned:")
 sim.summarize_results(out);
 
 psfph=psf_vecph2.imagestack("vortex");
-imx(horzcat(psf0,psfph),'Parent',figure(222),'Title',"Misaligned pinhole"); %compare the two PSFs
+% imx(horzcat(psf0,psfph),'Parent',figure(222),'Title',"Misaligned pinhole"); %compare the two PSFs
 
-%% Zero offset
-%now let's add an offset to the PSF to make the minium non-zero
-psf_vec.zerooffset=0.005;
-out=sim.runSequence(seq);
-disp("zero offset = " + psf_vec.zerooffset + ":")
-sim.summarize_results(out);
 
 %% Aberrations
 % let us change the PSF by adding aberrations. Note, in this case we have
@@ -101,7 +96,9 @@ out=sim.runSequence(seq);
 disp("aberrations:")
 sim.summarize_results(out);
 psfab=psf_vec2.imagestack("vortex");
-imx(horzcat(psf0,psfab),'Parent',figure(220),'Title',"Aberrations"); %compare the two PSFs
+% uncomment to show PSF:
+% imx(horzcat(psf0,psfab),'Parent',figure(220),'Title',"Aberrations"); %compare the two PSFs
+
 
 %% Misaligned phase plate
 if ~exist("psf_vec2","var") %if PSF is already defined, we need not recalculate it if no parameters are changed
@@ -122,8 +119,31 @@ out=sim.runSequence(seq);
 disp("misaligned phase plate:")
 sim.summarize_results(out);
 psfab=psf_vec2.imagestack("vortex");
-imx(horzcat(psf0,psfab),'Parent',figure(221),'Title',"Misaligned phase plate"); %compare the two PSFs
+% imx(horzcat(psf0,psfab),'Parent',figure(221),'Title',"Misaligned phase plate"); %compare the two PSFs
 
+%% Zero offset
+%now let's add an offset to the PSF to make the minium non-zero
+psf_vec.zerooffset=0.005;
+out=sim.runSequence(seq);
+disp("zero offset = " + psf_vec.zerooffset + ":")
+sim.summarize_results(out);
+
+%% bead size
+psf_vec2.setpinhole("AU",1);
+%Add Zernike:
+sys_b.Zr(1,1)=4;sys_b.Zr(1,2)=0;sys_b.Zr(1,3)=0.0; %spherical aberrations 
+sys_b.Zr(2,1)=2;sys_b.Zr(2,2)=2;sys_b.Zr(2,3)=0.0; %astigmatism 
+sys_b.maskshift=[0.0,0]; 
+sys_b.beadradius=50e-9; %100 nm beads
+psf_vec2.setpar(sys_b)
+sim.definePattern("donut_bead", psf_vec2, phasemask="vortex", makepattern="orbitscan", orbitpoints=orbitpoints, ...
+    probecenter=probecenter,orbitL=L,pointdwelltime=pointdwelltime,laserpower=laserpower,repetitions=repetitions)
+seq={"donut_bead","estdonut"};
+out=sim.runSequence(seq);
+psfbead=psf_vec2.imagestack("vortex");
+disp("bead size:")
+sim.summarize_results(out);
+% imx(horzcat(psf0,psfbead),'Parent',figure(221),'Title',"Bead size"); %compare the two PSFs
 
 
 

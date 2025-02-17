@@ -31,7 +31,9 @@ sim.defineComponent("estdonut","estimator",@est_quad2Diter,parameters={L,probece
 
 %sequence: 
 seq={"donut","estdonut"};
+tic
 out=sim.runSequence(seq,maxlocs=numberOfLocalizations);
+toc
 %args: maxlocs: number of times the pattern is scanned (one trace)
 %       repetitions: number of times the sequence is repeated
 % out.loc: localizations

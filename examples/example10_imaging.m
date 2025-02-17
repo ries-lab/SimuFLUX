@@ -154,7 +154,7 @@ photonbudget=5000;
 reactivations =2;
 brightnesses=100;
 
-toff=[1, 2, 5, 10, 20, 50]*1e3; %ms
+toff=[0.2,0.5,1, 2, 5, 10, 20, 50]*1e3; %ms
 
 for k=1:length(toff)
 sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;
@@ -166,7 +166,7 @@ switchpar.toffsmlm=toff(k); %on-switching time in ms
 switchpar.photonbudget=photonbudget;
 switchpar.tonsmlm=1e4; % ms stays on, only bleached
 switchpar.activations=reactivations; %re activations
-switchpar.starton=0; %fluorophores start in random on / off state, determined by tonsmlm, toffsmlm
+switchpar.starton=-1; %fluorophores start in random on / off state, determined by tonsmlm, toffsmlm
 fc.setpar(switchpar)
 
 %add fake NPCs
