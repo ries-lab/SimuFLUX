@@ -501,7 +501,7 @@ classdef Simulator<handle
             st.phot=mean(phot,'omitnan');
             st.phot_signal= st.phot-st.bg_photons_gt;    
             st.pos=mean(xest,1,'omitnan');
-            st.std=std(xest,[],1,'omitnan');
+            st.std=std(xest-flpos,[],1,'omitnan');
             st.rmse=rmse(xest,flpos,1,'omitnan');
             
             st.bias=mean(xest-flpos,1,'omitnan');
