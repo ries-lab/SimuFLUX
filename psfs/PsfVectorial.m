@@ -66,7 +66,8 @@ classdef PsfVectorial<Psf
             psfint=obj.PSFs(key);
             phkey=obj.PSFph;
             flposrel=flpos-patternpos;
-            iexc=psfint.interp(flposrel)+obj.zerooffset; 
+            zerooffset=obj.zerooffset;%./psfint.normalization;
+            iexc=psfint.interp(flposrel)+zerooffset; 
             iexc=max(iexc,0);
             if isempty(phkey) 
                 phfac=ones(size(iexc));

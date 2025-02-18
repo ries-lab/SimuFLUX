@@ -364,7 +364,7 @@ classdef SimSequencefile<Simulator
             hold(ax,"on")
             plot(ax,xv,out.loc.(xfln{c}),'r');
             
-            plot(ax,xv,out.loc.(xgn{c}),"Color",[0 0.5 0])
+            plot(ax,xv,out.loc.(xgn{c}),"Color",[0 0.7 0])
             plot(ax,xv,out.loc.(xen{c}),'b')
             
             xlabel(ax,xtxt)

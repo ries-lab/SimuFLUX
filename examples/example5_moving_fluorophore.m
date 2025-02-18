@@ -9,10 +9,11 @@ fname2='PSFvectorial2D.json'; %use a PSF that is defined via a json file
 sim.loadsequence(fname,fname2);
 sim.makepatterns;
 
+%% make diffusing, bleaching fluorophores
 figure(250)
 tiledlayout(2,2,"TileSpacing","tight")
 nexttile
-%% make diffusing, bleaching fluorophores
+
 sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;
 fl=FlMoveBleach;
 fl.photonbudget=100000;
@@ -24,7 +25,8 @@ sim.fluorophores=fl;
 out=sim.runSequence("repetitions",1);
 sim.plotpositions(out,xvalues="time");
 nexttile
-plot(out.loc.xnm,out.loc.ynm)
+plot(out.loc.xnm,out.loc.ynm,'k',out.loc.xfl1,out.loc.yfl1,'r',out.loc.xgalvo+out.loc.xeod,out.loc.ygalvo+out.loc.yeod,'g')
+legend('estimated','fluorophore','galvo+EOD')
 axis equal
 xlabel("x (nm)")
 ylabel("y (nm)")
