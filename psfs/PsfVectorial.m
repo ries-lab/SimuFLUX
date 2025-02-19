@@ -114,10 +114,10 @@ classdef PsfVectorial<Psf
                 outc=effIntensity(sys,outc);
                 zmid=ceil(size(outc.I,4)/2);
                 % normfact=sum(sum(outc.I(1,:,:,zmid)));%normalized to integral =1
-                normfact=max(max(outc.I(1,:,:,zmid)));%normalized to max =1
-                obj.normfactgauss=normfact;
+                normfactgauss=max(max(outc.I(1,:,:,zmid)));%normalized to max =1
+                obj.normfactgauss=normfactgauss;
             else
-                normfact=obj.normfactgauss;
+                normfactgauss=obj.normfactgauss;
             end
                 
             % %fit Gaussian:
@@ -132,7 +132,7 @@ classdef PsfVectorial<Psf
                     sys=addzernikeaberrations(sys,out);
                     out=effField(sys,out, opt);      
                     out=effIntensity(sys,out);
-                    PSF=squeeze(out.I(:,:,:,:))/normfact;
+                    PSF=squeeze(out.I(:,:,:,:))/normfactgauss;
                     PSF = obj.beadsize(PSF, sys.beadradius);
                     [PSF,PSFdonut.normalization]=normpsf(PSF);
                     [X,Y,Z]=meshgrid4PSF(PSF,out.dr,out.dz);
@@ -147,7 +147,7 @@ classdef PsfVectorial<Psf
                     sys=addzernikeaberrations(sys,out);
                     out=effField(sys,out, opt);      
                     out=effIntensity(sys,out);
-                    PSF=squeeze(out.I(:,:,:,:))/normfact;
+                    PSF=squeeze(out.I(:,:,:,:))/normfactgauss;
                     PSF = obj.beadsize(PSF, sys.beadradius);
                     [PSF,normalization]=normpsf(PSF);
                     [X,Y,Z]=meshgrid4PSF(PSF,out.dr,out.dz);
@@ -178,7 +178,8 @@ classdef PsfVectorial<Psf
                     [Xk,Yk]=meshgrid(nx);
                     kernel=double((Xk-phpos(2)).^2+(Yk-phpos(1)).^2<(phdiameter/2)^2);
                     psfph=conv2fft(psfg,kernel);
-                    [psfph,PSFdonut.normalization]=normpsf(psfph);
+                    % psfph=psfph/max(psfph(:)); %phfac taken inot a
+                    % [psfph,PSFdonut.normalization]=normpsf(psfph);
                     [X,Y,Z]=meshgrid4PSF(psfph,out.dr,out.dz);
                     PSFdonut.interp = griddedInterpolant(X,Y,Z,psfph,intmethod,extraolation_method);
                     obj.PSFs(key)=PSFdonut;   
@@ -189,7 +190,7 @@ classdef PsfVectorial<Psf
                     sys=addzernikeaberrations(sys,out);
                     out=effField(sys,out, opt);      
                     out=effIntensity(sys,out);
-                    PSF=squeeze(out.I(:,:,:,:))/normfact;
+                    PSF=squeeze(out.I(:,:,:,:))/normfactgauss;
                     PSF = obj.beadsize(PSF, sys.beadradius);
                     [PSF,PSFdonut.normalization]=normpsf(PSF);
                     [X,Y,Z]=meshgrid4PSF(PSF,out.dr,out.dz);
@@ -200,7 +201,7 @@ classdef PsfVectorial<Psf
                     sys=addzernikeaberrations(sys,out);
                     out=effField(sys,out, opt);      
                     out=effIntensity(sys,out);
-                    PSF=squeeze(out.I(:,:,:,:))/normfact;
+                    PSF=squeeze(out.I(:,:,:,:))/normfactgauss;
                     PSF = obj.beadsize(PSF, sys.beadradius);
                     [PSF,PSFdonut.normalization]=normpsf(PSF);
                     [X,Y,Z]=meshgrid4PSF(PSF,out.dr,out.dz);
@@ -369,7 +370,7 @@ end
 
 function [PSF,normf]=normpsf(PSF)
 normf=max(PSF(:));
-PSF=PSF/normf;
+% PSF=PSF/normf;
 end
 
 function [X,Y,Z]=meshgrid4PSF(PSF,dr,dz)

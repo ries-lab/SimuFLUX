@@ -19,9 +19,9 @@ L=75; %size of scan pattern
 zeroposx=[-1;1;0]*L/2;
 probecenter=true; %should we also probe the center?
 orbitpoints=6;
-laserpowerdonut=5; %relative, increases brightness
+laserpowerdonut=10; %relative, increases brightness
 laserpowertophat=80;
-laserpowerpf=8;
+% laserpowerpf=8;
 pointdwelltime=0.1; % ms, measurement time in each point
 repetitions=1; %how often to repeat the pattern scan
 sim.definePattern("donut", psf_vec, phasemask="vortex", makepattern="orbitscan", orbitpoints=orbitpoints, ...
@@ -45,13 +45,13 @@ xs=0:5:35;
 displaywhat="rmse";
 figure(225);
 hold off
-sim.scan_fov(seq,xs,clearfigure=true,tag="donut",ax1=displaywhat);
+sim.scan_fov(seq,xs,clearfigure=true,tag="donut",ax1=displaywhat,linestyle='k');
 
 seqthnoab={"tophat_xy","estdonut"};
 out=sim.runSequence(seqthnoab,"maxlocs",numberOfLocalizations);
 disp('no aberration tophat:')
 sim.summarize_results(out); %display summary of simulation
-sim.scan_fov(seqthnoab,xs, tag="tophat",ax1=displaywhat);
+sim.scan_fov(seqthnoab,xs, tag="tophat",ax1=displaywhat,linestyle='k--');
 
 
 % seqpf={"pf_x","est_x","pf_y","est_y"};
@@ -80,13 +80,13 @@ seqdab={"donuta","estdonut"};
 out=sim.runSequence(seqdab,"maxlocs",numberOfLocalizations);
 % disp('aberration donut:')
 % sim.summarize_results(out); %display summary of simulation
-sim.scan_fov(seqdab,xs,tag="donut ab",ax1=displaywhat);
+sim.scan_fov(seqdab,xs,tag="donut ab",ax1=displaywhat,linestyle='r');
 
 seqthab={"tophat_xya","estdonut"};
 out=sim.runSequence(seqthab,"maxlocs",numberOfLocalizations);
 disp('aberration tophat:')
 % sim.summarize_results(out); %display summary of simulation
-sim.scan_fov(seqthab,xs,tag="tophat ab",ax1=displaywhat);
+sim.scan_fov(seqthab,xs,tag="tophat ab",ax1=displaywhat,linestyle='r--');
 
 % seqpfa={"pf_xa","est_x","pf_ya","est_y"};
 % out=sim.runSequence(seqpfa,"maxlocs",numberOfLocalizations);
@@ -108,17 +108,28 @@ out=sim.runSequence(seq,"maxlocs",numberOfLocalizations);
 disp('fl donut:')
 sim.summarize_results(out); %display summary of simulation
 
-sim.scan_fov(seq,xs,tag="donut fl",ax1=displaywhat);
+sim.scan_fov(seq,xs,tag="donut fl",ax1=displaywhat,linestyle='b');
 seqthnoab={"tophat_xy","estdonut"};
 out=sim.runSequence(seqthnoab,"maxlocs",numberOfLocalizations);
 disp('fl tophat:')
 sim.summarize_results(out); %display summary of simulation
-sim.scan_fov(seqthnoab,xs, tag="tophat fl",ax1=displaywhat);
+sim.scan_fov(seqthnoab,xs, tag="tophat fl",ax1=displaywhat,linestyle='b--');
 
 
-% seqpf={"pf_x","est_x","pf_y","est_y"};
-% out=sim.runSequence(seqpf,"maxlocs",numberOfLocalizations);
-% disp('no aberration phaseflux:')
-% sim.summarize_results(out); %display summary of simulation
-% sim.scan_fov(seqpf,xs, tag="phaseflux fl",ax1=displaywhat);
+%% background
+sim.fluorophores=fl;
+sim.background=5; %will be multiplied also by laser power factor
 
+seq={"donut","estdonut"};
+out=sim.runSequence(seq,"maxlocs",numberOfLocalizations);
+disp('bg donut:')
+sim.summarize_results(out); %display summary of simulation
+mean(out.bg_photons_gt)
+
+sim.scan_fov(seq,xs,tag="donut bg",ax1=displaywhat,linestyle='g');
+seqthnoab={"tophat_xy","estdonut"};
+out=sim.runSequence(seqthnoab,"maxlocs",numberOfLocalizations);
+disp('bg tophat:')
+sim.summarize_results(out); %display summary of simulation
+mean(out.bg_photons_gt)
+sim.scan_fov(seqthnoab,xs, tag="tophat bg",ax1=displaywhat,linestyle='g--');

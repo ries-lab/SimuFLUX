@@ -13,10 +13,11 @@ sim=Simulator(fluorophores=fl);
 numberOfLocalizations=100;
 L=75;
 orbitpoints=4;
+laserpower=100;
 xcoords=0:2:L;
 probecenter=true;
 sim.definePattern("donut", psf_vec, phasemask="vortex", makepattern="orbitscan", orbitpoints=orbitpoints, ...
-    probecenter=probecenter,orbitL=L,laserpower=100)
+    probecenter=probecenter,orbitL=L,laserpower=laserpower)
 % sim.calculateCRB("donut")
 % sim.calculateCRBscan("donut")
 
@@ -42,7 +43,7 @@ statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,
 sim.defineComponent("estdirect","estimator",@est_quadraticdirect1D,parameters={L},dim=1);
 seq={"donut","estdirect"};
 hold off
-statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,clearfigure=false, tag="direct est");
+statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,clearfigure=false, tag="direct est",title="comparison of estimators");
 
 if ax1v=="pos"
     plot([0 L],[0 L],'k--')
@@ -63,19 +64,20 @@ statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,
 % sim.summarize_results(out);
 
 %background, 
-sim.background=3000;
+sim.background=50;
 % xcoords=0:2:100;
 statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,clearfigure=false,tag="bg");
 
 %background subtracted,
-bgf=sim.patterns('donut').backgroundfac(1); %background used for simulation
-sim.background_estimated=sim.background*bgf; %in general, the GT background is not known but needs to be calibrated 
+% bgf=sim.patterns('donut').backgroundfac(1); %background used for simulation
+sim.background_estimated=sim.background*laserpower; %in general, the GT background is not known but needs to be calibrated 
+
 sim.defineComponent("estdonut","estimator",@est_quad2Diter,parameters={L,probecenter},dim=1:2);
 sim.defineComponent("bg","background",@backgroundsubtractor,parameters={"background_estimated"});
 seq={"donut","bg","estdonut"};
 psf_vec.zerooffset=0;
 % xcoords=0:2:100;
-statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,clearfigure=false,tag="bg est");
+statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,clearfigure=false,tag="bg est",title="estimator bias from background");
 
 if ax1v=="pos"
     plot([0 L],[0 L],'k--')

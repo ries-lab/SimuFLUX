@@ -194,9 +194,9 @@ classdef SimSequencefile<Simulator
                         
                         % orbittime=scanout.patterntotaltime/(1+probecenter*obj.sequence.ctrDwellFactor);
                         % out.loc.efo=out.loc.eco/(orbittime)*1e6;
-                        out.loc.efo=out.loc.eco/(sum(scanout.par.pattern.pointdwelltime(1:end-1)))*1e6;
+                        out.loc.efo=out.loc.eco/(sum(scanout.par.pattern.pointdwelltime(1:end-1)));
                         % out.loc.efc=out.loc.ecc/(scanout.patterntotaltime-orbittime)*1e6;
-                        out.loc.efc=out.loc.ecc/(scanout.par.pattern.pointdwelltime(end))*1e6;
+                        out.loc.efc=out.loc.ecc/(scanout.par.pattern.pointdwelltime(end));
                     else
                         out.loc.eco(loccounter,1)=sum(scanout.phot);
                         out.loc.efo=out.loc.eco/(sum(scanout.par.pattern.pointdwelltime));

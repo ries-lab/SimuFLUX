@@ -56,6 +56,10 @@ disp("pinhole:")
 out=sim.runSequence(seq);
 sim.summarize_results(out);
 
+psfph=psf_vecph.imagestack("vortex");
+imx(horzcat(psf0,psfph),'Parent',figure(222),'Title',"Misaligned pinhole"); %compare the two PSFs
+
+
 %% Misaligned pinhole
 % now lets move the pinhole (misalignment)
 if ~exist("psf_vecph2","var") %if PSF is already defined, we need not recalculate it if no parameters are changed
@@ -148,7 +152,7 @@ sim.summarize_results(out);
 
 
 %% 3D with tophat
-sim.fluorophores.pos=[0,0, 00];
+sim.fluorophores.pos=[10,0, 20];
 if ~exist("psf_vecth","var") %if PSF is already defined, we need not recalculate it if no parameters are changed
     psf_vecth=PsfVectorial; %simple 2D donut PSF
 end

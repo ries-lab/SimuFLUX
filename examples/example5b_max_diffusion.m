@@ -15,7 +15,7 @@ sim.sequence.Itr(4).phtLimit=20;
 sim.sequence.Itr(4).patGeoFactor=0.5;
 % sim.deadtimes.point=0; sim.deadtimes.estelimator=0;
 sim.makepatterns;
-laserpower=.4;
+laserpower=.8;
 %% make diffusing, bleaching fluorophores
 Ds=0.5:0.1:1.5;
 repetitions=5;
@@ -48,18 +48,21 @@ rmsecm=mean(rmsec,2,'omitnan');
 
 figure(255)
 subplot(1,3,1)
+hold off
 plot(Ds,mean(fconverged(:,1:2),2))
 hold on
 ylabel("fraction tracked")
 xlabel('Diffusion coefficient um^2/s')
 
 subplot(1,3,2)
+hold off
 plot(Ds,mean(efo,2))
 hold on
 xlabel('Diffusion coefficient um^2/s')
 ylabel("efo kHz")
 
 subplot(1,3,3)
+hold off
 plot(Ds,mean(rmsecm(:,1:2),2))
 hold on
 ylabel("RMSE of converged (nm)")

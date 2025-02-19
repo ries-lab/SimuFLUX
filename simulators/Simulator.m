@@ -87,8 +87,8 @@ classdef Simulator<handle
                 pattern.phasemask(k)=string(args.phasemask);
                 pattern.zeropos(k)=string((zeropos(k)));
                 pattern.psf(k).calculatePSFs(args.phasemask,pattern.zeropos(k));
-                pattern.backgroundfac(k)=1/psf.normfactor(args.phasemask,pattern.zeropos(k));
-               
+                % pattern.backgroundfac(k)=1/psf.normfactor(args.phasemask,pattern.zeropos(k));
+                % pattern.backgroundfac(k)=1;
                 pattern.laserpower(k)=args.laserpower;
             end
             if length(args.pointdwelltime)==size(pos,1) %one dwelltime per position
@@ -138,15 +138,16 @@ classdef Simulator<handle
                     flpos(:,:)=flpos(:,:)+flposh;
                     flintall(isactive,:)=flintall(isactive,:)+flint;
                     time=time+pattern.pointdwelltime(k)+deadtimes.point;
-                    bgphoth=pattern.backgroundfac(k)*background*pattern.pointdwelltime(k);
+                    % bgphoth=pattern.backgroundfac(k)*background*pattern.pointdwelltime(k);
+                    bgphoth=background*pattern.pointdwelltime(k)*pattern.laserpower(k); %XXX changed now to multiply the laser power
                     bgphot=bgphoth+bgphot;
                     intall(k)=intall(k)+intensity+bgphoth; %sum over repetitions, fluorophores
                 end
                 time=time+deadtimes.pattern;
                 fluorophores.updateonoff(time); %try moving into loop, how slow it gets
             end
-            out.phot=poissrnd(intall); %later: fl.tophot(intenall): adds bg, multiplies with brightness, does 
-            out.photrate=out.phot./pattern.pointdwelltime';out.photrate=out.photrate/sum(out.photrate)*sum(out.phot); 
+            out.phot=poissrnd(intall); %later: fl.tophot(intenall): adds bg, multiplies with brightness, does
+            out.photrate=out.phot./pattern.pointdwelltime';%out.photrate=out.photrate/sum(out.photrate)*sum(out.phot); 
             out.pointdwelltime=pattern.pointdwelltime';
             out.bg_photons_gt=bgphot;
             out.bgphot_est=0;
@@ -168,7 +169,7 @@ classdef Simulator<handle
             out.par.pattern.pos=pattern.pos;
             out.par.pattern.zeropos=pattern.zeropos;
             out.par.pattern.phasemask=pattern.phasemask;
-            out.par.pattern.backgroundfac=pattern.backgroundfac;
+            % out.par.pattern.backgroundfac=pattern.backgroundfac;
             out.par.pattern.laserpower=pattern.laserpower;
             out.par.pattern.pointdwelltime=pattern.pointdwelltime;
             obj.time=time;
@@ -189,7 +190,7 @@ classdef Simulator<handle
             photbg=zeros(maxlocalizations*numpat,1);
             loc=initlocs(maxlocalizations*numpat,{'xnm','ynm','znm','xfl1',...
                 'yfl1','zfl1','phot','time','abortcondition', 'xgalvo', 'ygalvo', 'zgalvo',...
-                'xeod','yeod','zeod'});
+                'xeod','yeod','zeod','photrate'});
    
             bleached=false;
             loccounter=0;
@@ -211,6 +212,7 @@ classdef Simulator<handle
                             scanout=obj.patternscan(seq{s});
                             loccounter=loccounter+1; % every localization gets a new entry, as in abberior
                             loc.phot(loccounter)=loc.phot(loccounter)+sum(scanout.phot);
+                            loc.photrate(loccounter)=loc.photrate(loccounter)+mean(scanout.photrate);
                             photch(loccounter,1:length(scanout.phot))=scanout.phot;
                             photbg(loccounter)=scanout.bg_photons_gt;
                             loc.time(loccounter)=loc.time(loccounter)+scanout.time.averagetime;
@@ -381,13 +383,14 @@ classdef Simulator<handle
             function iho=pi(dpos)
                     flposh=flpos;
                     flposh(1,:)=flposh(1,:)-dpos;
-                    bgh=bg*pattern.backgroundfac(k);
-                    ih=sum(pattern.psf(k).intensity(flposh-obj.posgalvo,pattern.pos(k,:),pattern.phasemask(k),pattern.zeropos(k))+bgh);
+                    
+                    % bgh=bg*pattern.backgroundfac(k);
+                    ih=sum(pattern.psf(k).intensity(flposh-obj.posgalvo,pattern.pos(k,:),pattern.phasemask(k),pattern.zeropos(k))+bg);
 
                     ihm=0;
                     for m=length(pattern.zeropos):-1:1
-                        bgh=bg*pattern.backgroundfac(m);
-                         ihm=ihm+sum(pattern.psf(m).intensity(flposh-obj.posgalvo,pattern.pos(m,:),pattern.phasemask(m),pattern.zeropos(m))+bgh);
+                        % bgh=bg*pattern.backgroundfac(m);
+                         ihm=ihm+sum(pattern.psf(m).intensity(flposh-obj.posgalvo,pattern.pos(m,:),pattern.phasemask(m),pattern.zeropos(m))+bg);
                     end
                     iho=ih/ihm;
             end
@@ -502,6 +505,7 @@ classdef Simulator<handle
             st.phot_signal= st.phot-st.bg_photons_gt;    
             st.pos=mean(xest,1,'omitnan');
             st.std=std(xest-flpos,[],1,'omitnan');
+            st.stdraw=std(xest,[],1,'omitnan');
             st.rmse=rmse(xest,flpos,1,'omitnan');
             
             st.bias=mean(xest-flpos,1,'omitnan');
@@ -521,10 +525,22 @@ classdef Simulator<handle
                 else
                     bgtxt='';
                 end
+                if st.bg_photons_gt ~=0
+                    bgtxtg= ['bg_gt: ', num2str(st.bg_photons_gt,ff1)];
+                else
+                    bgtxtg='';
+                end
+                if isfield(out.loc,'efo')
+                    st.efo=mean(out.loc.efo);
+                    ratetxt=[' efo: ', num2str(st.efo,ff1)];
+                else
+                    st.photrate=mean(out.loc.photrate);
+                    ratetxt=[' photon rate: ', num2str(st.photrate,ff1)];
+                end
 
                 disp([ 'photch: ', num2str(st.photch,ff1),...
                     ' mean(phot): ', num2str(st.phot,ff1),...
-                    bgtxt,...
+                    bgtxt, bgtxtg, ratetxt, ...
                     ' duration ms: ', num2str(st.duration,ff1)]) %, 'signal phot: ', num2str(st.phot_signal,ff1)
                 
                 disp(['std:  ', num2str(st.std,ff),...
@@ -553,6 +569,7 @@ classdef Simulator<handle
                 args.ax1="std"; % std, bias, rmse, sCRB, pos: what to displax in the figure, arrray of strings. 
                 args.clearfigure=false; % overwrite figure. if false: new plots are added
                 args.tag=""; %name of a plot, used in the figure legend
+                args.linestyle="";
             end
             args.ax1=string(args.ax1);
             % args.ax2=string(args.ax2);
@@ -593,7 +610,7 @@ classdef Simulator<handle
                 ylab=coords(args.dimplot)+": ";
                 for m=1:length(args.ax1)
                     yval=so.(args.ax1(m));
-                    plot(xcoords,yval(:,args.dimplot))
+                    plot(xcoords,yval(:,args.dimplot),args.linestyle)
                     hold on
                     ylab=ylab+args.ax1(m);
                     if m<length(args.ax1)

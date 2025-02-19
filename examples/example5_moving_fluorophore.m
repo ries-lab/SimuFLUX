@@ -4,6 +4,7 @@ addpath(genpath(fileparts(fileparts(mfilename('fullpath'))))); %add all folders 
 if ~exist('sim','var') || ~isa(sim,"SimSequencefile")
     sim=SimSequencefile;
 end
+
 fname='Tracking_2D.json';
 fname2='PSFvectorial2D.json'; %use a PSF that is defined via a json file
 sim.loadsequence(fname,fname2);
@@ -14,7 +15,7 @@ figure(250)
 tiledlayout(2,2,"TileSpacing","tight")
 nexttile
 
-sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;
+sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;sim.background=0;
 fl=FlMoveBleach;
 fl.photonbudget=100000;
 updatetime=0.01; %ms
@@ -51,12 +52,14 @@ sim.plotpositions(out,xvalues="time");
 title("stepping")
 
 %% instabilities: vibrations
-fl3=FlMoving(brightness=10000);
+fl3=FlMoving(brightness=50000); %collect more photons
 fl3.posmode='function';
 
 figure(261)
 tiledlayout(1,2); nexttile
-frequencies=[0.05 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100]; %kHz
+frequencies=[0.05 0.1, 0.2, 0.5, 1, 2, 5, 10]; %kHz
+
+% frequencies=1;
 amplitude=5; %nm
 
 stdx=0*frequencies;stdxrel=stdx;
@@ -67,8 +70,8 @@ for k=1:length(frequencies)
     out=sim.runSequence("repetitions",1);
     filter=out.loc.itr==max(out.loc.itr)&out.loc.vld==1;
     sr=sim.summarize_results(out,display=false,filter=filter);
-    stdx(k)=sr.std(1);
-    stdxrel(k)=sr.std(1)/sr.sCRB(1);
+    stdx(k)=sr.stdraw(1);
+    stdxrel(k)=sr.stdraw(1)/sr.sCRB(1);
 end
 semilogx(frequencies,stdxrel)
 xlabel('frequncy (kHz)')
@@ -76,8 +79,8 @@ ylabel('std(x)/sCRB(x)')
 title("vibrations: frequency")
 
 frequency=0.1;
-amplitudes=0:10;
-stdxa=0*frequencies;stdxrela=stdxa;
+amplitudes=0:2:10;
+stdxa=0*amplitudes;stdxrela=stdxa;
 for k=1:length(amplitudes)
     posfl=[0 0 0];
     fl3.posfunction={@(t) amplitudes(k)*sin(frequency*t)+posfl(1), @(t) 0*t+posfl(2), @(t) 0*t+posfl(3)};    
@@ -85,8 +88,8 @@ for k=1:length(amplitudes)
     out=sim.runSequence("repetitions",1);
     filter=out.loc.itr==max(out.loc.itr)&out.loc.vld==1;
     sr=sim.summarize_results(out,display=false,filter=filter);
-    stdxa(k)=sr.std(1);
-    stdxrela(k)=sr.std(1)/sr.sCRB(1);
+    stdxa(k)=sr.stdraw(1);
+    stdxrela(k)=sr.stdraw(1)/sr.sCRB(1);
 end
 nexttile
 plot(amplitudes,stdxrela)

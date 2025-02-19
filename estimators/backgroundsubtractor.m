@@ -1,5 +1,7 @@
 function out=backgroundsubtractor(out,bg)
-bgpoint=out.pointdwelltime*bg*out.repetitions;
-out.photrate=out.photrate-bgpoint;
+bgtot=bg*out.repetitions;
+bgpoint=out.pointdwelltime*bgtot;
+% out.photrate=out.photrate-bgpoint;
+out.photrate=out.photrate-bgtot;
 out.bgphot_est=bgpoint;
 end

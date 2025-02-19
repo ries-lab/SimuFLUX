@@ -48,9 +48,9 @@ sim2.sequence.locLimit=100;% to avoid getting stuck with background fluorophore
 fc=FlCollectionBlinking;
 
 %set parameterst for caged fluorophore, PAFP or similar
-laserpower=2;
+laserpower=8;
 switchpar.brightness=100*laserpower;
-switchpar.toffsmlm=10*1e3; %on-switching time in ms
+switchpar.toffsmlm=15*1e3; %on-switching time in ms
 switchpar.photonbudget=5000;
 switchpar.tonsmlm=100; % ms 
 switchpar.activations=inf; %re activations
@@ -65,7 +65,7 @@ fc.add(makeNPC(pos=[0 0 0]));
 % 1 M = Na/liter, 1 l= (0.1 m)^3 = (0.1 *1e6 um)^3 =1e15 um^3
 % density of fluorophores (um^-3) for 1nM: 1e-9* 6e23/1e15=0.6 %density of fluorophores, about 1 / um^3
 % slow sequences, bounding box: 1 um  x 1 um x 2 um: ~ 1 particle
-% fast sequences: 2 um x 2 um x um: ~1 particle
+% fast sequences: 2 um x 2 um x 2 um: ~1 particle
 D=30; %um^2/s
 fd=FlMoving;
 
@@ -74,7 +74,7 @@ fc.add(fd)
 
 sim2.fluorophores=fc;
 maxtime=30*1e3; %10 seconds
-cfrcutoff=0.3;
+cfrcutoff=0.5;
 brightnesses=[0,1]; %compare without and with background from diffusing fluorophore
 titles=["imaging strands invisible","diffusive imaging strands"];
 

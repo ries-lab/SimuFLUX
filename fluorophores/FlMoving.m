@@ -72,9 +72,10 @@ classdef FlMoving<Fluorophore
                 if numel(args.boundarybox)==1
                     args.boundarybox=args.boundarybox.*ones(1,args.dim);
                 end
-                pos2=pos+args.boundarybox;
-                pos3=mod(pos2,2*args.boundarybox);
-                pos=pos3-args.boundarybox;
+                boundaryboxpos=args.boundarybox/2;
+                pos2=pos+boundaryboxpos;
+                pos3=mod(pos2,2*boundaryboxpos);
+                pos=pos3-boundaryboxpos;
             end
 
             obj.pos=horzcat(time',pos);

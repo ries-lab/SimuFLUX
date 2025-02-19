@@ -15,13 +15,13 @@ sim.makescoutingpattern([-80 -150; 120 100 ]) %for imaging
 sim.sequence.locLimit=1000;% to avoid getting stuck with background fluorophore
 %
 maxtime=60*1e3; %ms, i.e. 1 min
-cfrcutoff=0.3;
+cfrcutoff=0.5;
 
 % make a fluorophore collection with blinking fluorophores
 fc=FlCollectionBlinking;
 
-%set parameterst for caged fluorophore, PAFP or similar
-laserpower=2;
+
+laserpower=8;
 switchpar.brightness=100*laserpower;
 switchpar.toffsmlm=20*1e3; %on-switching time in ms
 switchpar.photonbudget=8000;
@@ -38,17 +38,20 @@ fc.add(makeNPC(pos=[0 0 0]));
 % 1 M = Na/liter, 1 l= (0.1 m)^3 = (0.1 *1e6 um)^3 =1e15 um^3
 % density of fluorophores (um^-3) for 1nM: 1e-9* 6e23/1e15=0.6 %density of fluorophores, about 1 / um^3
 % slow sequences, bounding box: 1 um  x 1 um x 2 um: ~ 1 particle
-% fast sequences: 2 um x 2 um x um: ~1 particle
+% fast sequences: 2 um x 2 um x 2 um: ~1 particle
+boundingbox=[2000 2000 2000]; %two fluorophores per 2x2x2 um
 D=30; %um^2/s
 fd=FlMoving;
-
-fd.makediffusion(D,0.01,dim=3,boundarybox=[500 500 1000]);
-fc.add(fd)
+fd.makediffusion(D,0.01,dim=3,boundarybox=boundingbox);
+fd2=FlMoving;
+fd2.makediffusion(D,0.01,dim=3,boundarybox=boundingbox);
+fc.add({fd,fd2})
 
 sim.fluorophores=fc;
 brightnesses=[0,1]; %compare without and with background from diffusing fluorophore
 titles=["DNA-PAINT: imaging strands invisible","DNA-PAINT: diffusive imaging strands"];
 
+%
 figure(300)
 tiledlayout("TileSpacing","tight")
 
@@ -56,6 +59,7 @@ for k=1:length(brightnesses)
     sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;
     fc.reset; %switch on all fluorophores again
     fd.brightness=switchpar.brightness*brightnesses(k);
+    fd2.brightness=switchpar.brightness*brightnesses(k);
     
     out=sim.scoutingSequence(maxtime=maxtime);
     % out=sim.scoutingSequence(maxrep=repetitions(k));
@@ -70,7 +74,7 @@ for k=1:length(brightnesses)
     hold off;
     plot(sim.scoutingcoordinates(:,1),sim.scoutingcoordinates(:,2),'k*')
     hold on
-    plot(out.loc.xnm(notvld),out.loc.ynm(notvld),'c.')
+    plot(out.loc.xnm(notvld),out.loc.ynm(notvld),'y.')
     plot(out.loc.xnm(vld),out.loc.ynm(vld),'m.')
     plot(out.loc.xnm(vldcfr),out.loc.ynm(vldcfr),'bx')
     posfl=squeeze(out.fluorophores.pos(end,1:end-1,:)); %last one is diffusing
@@ -100,7 +104,7 @@ for k=1:length(photonbudget)
 sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;
 fc=FlCollectionBlinking;
 %set parameterst for caged fluorophore, PAFP or similar
-laserpower=5;
+% laserpower=5;
 switchpar.brightness=brightnesses(k)*laserpower;
 % switchpar.toffsmlm=20*1e3; %on-switching time in ms
 switchpar.photonbudget=photonbudget(k);
@@ -127,7 +131,7 @@ nexttile
 hold off;
 plot(sim.scoutingcoordinates(:,1),sim.scoutingcoordinates(:,2),'k*')
 hold on
-plot(out.loc.xnm(notvld),out.loc.ynm(notvld),'c.')
+plot(out.loc.xnm(notvld),out.loc.ynm(notvld),'y.')
 plot(out.loc.xnm(vld),out.loc.ynm(vld),'m.')
 plot(out.loc.xnm(vldcfr),out.loc.ynm(vldcfr),'bx')
 posfl=squeeze(out.fluorophores.pos(end,:,:));
@@ -153,14 +157,15 @@ tiledlayout("TileSpacing","tight")
 photonbudget=5000;
 reactivations =2;
 brightnesses=100;
+laserpower=5;
 
-toff=[0.2,0.5,1, 2, 5, 10, 20, 50]*1e3; %ms
+toff=[0.5, 1, 2, 5, 10, 20, 50, 100, 200]*1e3; %ms
 
 for k=1:length(toff)
 sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;
 fc=FlCollectionBlinking;
 %set parameterst for caged fluorophore, PAFP or similar
-laserpower=5;
+
 switchpar.brightness=brightnesses*laserpower;
 switchpar.toffsmlm=toff(k); %on-switching time in ms
 switchpar.photonbudget=photonbudget;
@@ -187,7 +192,7 @@ nexttile
 hold off;
 plot(sim.scoutingcoordinates(:,1),sim.scoutingcoordinates(:,2),'k*')
 hold on
-plot(out.loc.xnm(notvld),out.loc.ynm(notvld),'c.')
+plot(out.loc.xnm(notvld),out.loc.ynm(notvld),'y.')
 plot(out.loc.xnm(vld),out.loc.ynm(vld),'m.')
 plot(out.loc.xnm(vldcfr),out.loc.ynm(vldcfr),'bx')
 posfl=squeeze(out.fluorophores.pos(end,:,:));

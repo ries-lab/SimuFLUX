@@ -49,7 +49,7 @@ sim.scan_fov(seq,z,dimplot=1,dimscan=3,fluorophorenumber=2,ax1=["std","rmse","sC
 if ~exist('sim','var') || ~isa(sim,"SimSequencefile")
     sim=SimSequencefile;
 else
-    sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;
+    sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;sim.background=0;
 end
 fname='Imaging_2D.json';
 sim.loadsequence(fname); %only sequence file, then simple gauss and donut PSFs are used (fast)
