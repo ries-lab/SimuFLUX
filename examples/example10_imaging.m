@@ -77,7 +77,7 @@ for k=1:length(brightnesses)
     plot(out.loc.xnm(notvld),out.loc.ynm(notvld),'y.')
     plot(out.loc.xnm(vld),out.loc.ynm(vld),'m.')
     plot(out.loc.xnm(vldcfr),out.loc.ynm(vldcfr),'bx')
-    posfl=squeeze(out.fluorophores.pos(end,1:end-1,:)); %last one is diffusing
+    posfl=squeeze(out.fluorophores.pos(end,1:end-2,:)); %last one is diffusing
     plot(posfl(:,1),posfl(:,2),'ro')
     axis equal 
     legend('scouting','not vld', 'last itr vld','last itr vld +cfr', 'fluorophore')
