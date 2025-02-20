@@ -1,0 +1,60 @@
+addpar:
+  dr: 1.0e-08
+  dz: 1.0e-08
+opt:
+  Ef: 0
+  Et: 0
+  calbar: 0
+  depthCanvas: 8.0e-07
+  intImage: false
+  mem: 50000
+  phaseImage: false
+  pixSize: 1.0e-08
+  polAngle: 0
+  radiusCanvas: 7.0e-07
+sys:
+  Da: 0.0065
+  Ei:
+  - gauss
+  - circular
+  Mt: 100
+  NA: 1.35
+  Na: 200
+  Po: 1.0e-05
+  W:
+    coma: 0
+  Wr:
+    astig: 0
+    defoc: 0
+    dist: 0
+    spher: 0
+    tiltx: 0
+    tilty: 0
+  beadradius: 0
+  eff:
+    hl: 1.0e-06
+    nl: 1.4
+  ft: 0.25
+  intImage: false
+  lo: 6.35e-07
+  loem: 7.0e-07
+  maskshift:
+  - 0
+  - 0
+  nl: 1.518
+  nm: 1.406
+  ns: 1.406
+  ox: 0
+  oy: 0
+  phaseImage: false
+  pl: 0
+  ref:
+    hl: 0
+    nl: 1.518
+  rx: 7.0e-07
+  ry: 7.0e-07
+  rz: 8.0e-07
+  wa: 0.007
+  xo: 0
+  yo: 0
+  zo: 0
