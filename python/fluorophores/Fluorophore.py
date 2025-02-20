@@ -4,9 +4,9 @@ import numpy as np
 Properties = namedtuple("Properties", ["brightness", "pos"])
 
 class Fluorophore:
-    def __init__(self):
-        self.pos = np.array([0, 0, 0])  # nm
-        self.brightness = 1000  # kHz
+    def __init__(self, pos=[0,0,0], brightness=1000):
+        self.pos = np.array(pos)  # nm
+        self.brightness = brightness  # kHz
         self.remainingphotons = np.inf
         # Dummy properties for compatibility with collection
         self.numberOfFluorophores = 1

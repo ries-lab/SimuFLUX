@@ -14,6 +14,7 @@ def appendstruct(sin, sadd):
     # ln = len(sadd[fn[0]])  # Get the length of the first field in sadd
 
     for key in fn:
-        sout[key] = np.concatenate((sout[key], sadd[key]))
+        if key in sadd.keys():
+            sout[key] = np.concatenate((sout[key], sadd[key]))
 
     return SimpleNamespace(**sout)

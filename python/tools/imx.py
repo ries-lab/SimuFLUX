@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class IndexTracker(object):
-    def __init__(self, ax, X):
+    def __init__(self, ax, X, cmap='gray'):
         self.ax = ax
         ax.set_title('use arrow keys to navigate')
 
@@ -10,7 +10,9 @@ class IndexTracker(object):
         rows, cols, self.slices = X.shape
         self.ind = self.slices//2
 
-        self.im = ax.imshow(self.X[:, :, self.ind], cmap='gray')
+        self.cmap = cmap
+
+        self.im = ax.imshow(self.X[:, :, self.ind], cmap=cmap)
         self.update()
 
     def onscroll(self, event):
@@ -36,14 +38,14 @@ def imx(images, fig=None, **kwargs):
 
         tracker = []
         for i, im in enumerate(images):
-            tracker.append(IndexTracker(ax[i], im))
+            tracker.append(IndexTracker(ax[i], im, cmap=kwargs.get('cmap', 'gray')))
             fig.canvas.mpl_connect('key_press_event', tracker[i].onscroll)
     else:
         if fig is None:
             fig, ax = plt.subplots(1, 1)
         else:
             ax = fig.axes[0]
-        tracker = IndexTracker(ax, images)
+        tracker = IndexTracker(ax, images, cmap=kwargs.get('cmap', 'gray'))
 
         fig.canvas.mpl_connect('key_press_event', tracker.onscroll)
     plt.show()

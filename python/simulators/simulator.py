@@ -1,11 +1,11 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from types import FunctionType, SimpleNamespace
 import copy
 
 import numpy as np
 
 from ..tools import replace_in_list, appendstruct
-from ..fluorophores import FlCollection, FlCollectionBlinking, FlBlinkBleach
+from ..fluorophores import FlCollection, FlCollectionBlinking, FlBlinkBleach, FlMoving
 
 @dataclass
 class Component:
@@ -30,18 +30,27 @@ class Pattern:
     type: str = "pattern"
 
 @dataclass
+class Time:
+    averagetime: float = 0
+    patterntotaltime: float = 0
+    patterntime: float = 0
+
+@dataclass
 class PatternScan:
     phot: np.typing.ArrayLike = None
-    photbg: float = None
+    photrate: np.typing.ArrayLike = None
+    pointdwelltime: np.typing.ArrayLike = None
+    bg_photons_gt: float = None
+    bgphot_est: float = None
     intensity: np.typing.ArrayLike = None
     flpos: np.typing.ArrayLike = None
     flint = np.typing.ArrayLike = None
-    averagetime: float = None
-    patterntotaltime: float = None
+    time: Time = field(default_factory=lambda: Time())
     counter: int = None
     repetitions: int = 1
     par: dict  = None
     time: float = 0
+    pattern: Pattern = field(default_factory=lambda: Pattern())
 
 @dataclass
 class Par:
@@ -71,6 +80,15 @@ class Summary:
     locp: np.typing.ArrayLike = None
     sCRB: np.typing.ArrayLike = None
     sCRB1: np.typing.ArrayLike = None
+    duration : float = 0
+
+@dataclass
+class Deadtimes:
+    point: float = 0
+    pattern: float = 0
+    estimator: float = 0
+    positionupdate: float = 0
+    localization: float = 0
 
 def initlocs(maxlocalizations, fields):
     locs = {}
@@ -91,7 +109,7 @@ def removeempty(loc, loccounter):
     
 
 class Simulator:
-    def __init__(self, fluorophores=None):
+    def __init__(self, fluorophores=[], background=0, background_estimated=0, loadfile=[]):
         self.patterns = {}
         self.sequences = {}
         self.fluorophores = fluorophores
@@ -99,6 +117,10 @@ class Simulator:
         self.posgalvo = np.array([0, 0, 0])  # nm, position of pattern center
         self.posEOD = np.array([0, 0, 0])  # nm, not descanned, with respect to posgalvo
         self.time = 0
+        self.background = background
+        self.background_estimated = background_estimated
+        self.loadfile = loadfile
+        self.deadtimes = Deadtimes()
 
     def defineComponent(self, key, type_, functionhandle, parameters=[], dim=(0, 1, 2)):
         self.patterns[key] = Component(functionhandle=functionhandle,
@@ -140,9 +162,19 @@ class Simulator:
             pattern.psf.append(psf)
             pattern.phasemask.append(phasemask)
             pattern.backgroundfac.append(1 / psf.normfactor(phasemask, pattern.zeropos[:,k]))
-            pattern.pointdwelltime.append(kwargs.get("pointdwelltime", 0.01))
             pattern.laserpower.append(kwargs.get("laserpower", 1))
         
+        pdt = kwargs.get("pointdwelltime", [0.01])
+        if not isinstance(pdt, (int, float)) and len(pdt) == pattern.pos.shape[0]:
+            pattern.pointdwelltime = pdt
+        else:
+            try:
+                pattern.pointdwelltime = np.zeros((1,pattern.pos.shape[0]))+pdt[0]
+            except TypeError:
+                pattern.pointdwelltime = np.zeros((1,pattern.pos.shape[0]))+pdt
+        if not isinstance(pdt, (int, float)) and len(pdt) == 2:
+            pattern.pointdwelltime[-1] = pdt[1]
+
         self.patterns[key] = pattern
 
     def patternscan(self, key):
@@ -151,7 +183,8 @@ class Simulator:
         numpoints = pattern.zeropos.shape[1]
         intall = np.zeros((numpoints,1))
         repetitions = pattern.repetitions 
-        timestart = self.time
+        # timestart = self.time
+        deadtimes = self.deadtimes
 
         timep = 0
         posgalvo = self.posgalvo
@@ -168,37 +201,39 @@ class Simulator:
                 timep = timep + time   # for calculating average time point
                 flposh, isactive = fluorophores.position(self.time, flproperties)
                 flposrel = flposh - posgalvo
-                # print(f"flposrel: {flposrel}")
-                # print(f"pattern.pos[k,:] + posEOD: {pattern.pos[k,:] + posEOD}")
-                # print(f"pattern.phasemask[k]: {pattern.phasemask[k]}")
-                # print(f"pattern.zeropos[:,k]: {pattern.zeropos[:,k]}")
-                intensityh, pinholehfac = pattern.psf[k].intensity(flposrel,
+                intensityh, pinholehfac = pattern.psf[k].intensity(flposrel[isactive,:],
                                                                    pattern.pos[k,:] + posEOD,
                                                                    pattern.phasemask[k], 
                                                                    pattern.zeropos[:,k])
-                intensityh = intensityh * pattern.laserpower[k]
+                intensityh *= pattern.laserpower[k]
                 flint = fluorophores.intensity(intensityh,
-                                               pattern.pointdwelltime[k],
+                                               pattern.pointdwelltime[:,k],
                                                time,
                                                pinholehfac,
                                                flproperties)
                 intensity = np.sum(flint, axis=0)
-                flpos[isactive,:] += flposh
+                flpos += flposh
                 flintall[isactive,:] += flint
-                time = time + pattern.pointdwelltime[k]
-                bgphoth = pattern.backgroundfac[k] * background
+                time = time + pattern.pointdwelltime[:,k] + deadtimes.point
+                bgphoth = pattern.backgroundfac[k] * background * pattern.pointdwelltime[:,k]
                 bgphot = bgphoth + bgphot
                 intall[k] += intensity + bgphoth  # sum over repetitions, fluorophores
+            time = time + deadtimes.pattern
             fluorophores.updateonoff(time)
         
         out = PatternScan()
         out.phot = np.random.poisson(intall).squeeze()  # later: fl.tophot(intenall): adds bg, multiplies with brightness, does 
-        out.photbg = bgphot
+        out.photrate = out.phot / pattern.pointdwelltime.T
+        out.pointdwelltime = pattern.pointdwelltime.T
+        out.bg_photons_gt = bgphot
+        out.bgphot_est = 0
         out.intensity = intall 
         out.flpos = flpos/numpoints/repetitions
         out.flint = flintall
-        out.averagetime = timep/numpoints/repetitions
-        out.patterntotaltime = time-timestart
+        out.time = Time()
+        out.time.averagetime = timep/numpoints/repetitions
+        out.time.patterntotaltime = pattern.pointdwelltime.sum()*repetitions
+        out.time.patterntime = pattern.pointdwelltime.sum()
         out.counter = 1
         out.repetitions = repetitions
         out.par = copy.deepcopy(pattern.par)
@@ -206,11 +241,14 @@ class Simulator:
         out.par.patternpos = pattern.pos
         out.par.zeropos = pattern.zeropos
         out.par.dim = pattern.dim
+        out.par.pattern = copy.deepcopy(pattern)
+        
         self.time = time
 
         return out
     
     def runSequenceintern(self, seq, maxlocalizations):
+        timestart = self.time
         numseq = len(seq)
         numpat = 0 
         ls = np.zeros(numseq, dtype=np.int32)
@@ -232,13 +270,16 @@ class Simulator:
         pos = [None]*(maxlocalizations*numpat)
         int = [None]*(maxlocalizations*numpat)
         fl = SimpleNamespace(pos=pos,int=int)
+        par = []
+        deadtimes = self.deadtimes
 
-        for _ in range(maxlocalizations):
+        for k in range(maxlocalizations):
             if self.fluorophores.remainingphotons < 1:
                 bleached = True
                 break
             posgalvo_beforecenter = self.posgalvo
             xest = np.array([0,0,0])
+            loccounter_seq = loccounter + 1
             for s in range(numseq):
                 curr_seq = seq[s]
                 component = self.patterns[curr_seq]
@@ -249,8 +290,8 @@ class Simulator:
                     loccounter += 1  # every localization gets a new entry, as in abberior
                     loc.phot[loccounter] += np.sum(scanout.phot,axis=0)
                     photch[loccounter,:len(scanout.phot)] = scanout.phot
-                    photbg[loccounter] = scanout.photbg
-                    loc.time[loccounter] += scanout.averagetime
+                    photbg[loccounter] = scanout.bg_photons_gt
+                    loc.time[loccounter] += scanout.time.averagetime
                     flpos = scanout.flpos[0,:]
                     loc.xfl1[loccounter] = flpos[0]
                     loc.yfl1[loccounter] = flpos[1]
@@ -259,6 +300,10 @@ class Simulator:
                     fl.pos[loccounter][:scanout.flpos.shape[0],:] = scanout.flpos
                     fl.int[loccounter] = np.zeros((scanout.flpos.shape[0],3))
                     fl.int[loccounter][:scanout.flpos.shape[0],:] = scanout.flint
+                    if k == 1:
+                        while len(par) < (s+1):
+                            par.append([])
+                        par[s] = scanout.par
                 elif type_ == "estimator":
                     # replace placeholder names by values
                     component_par=replace_in_list(component.parameters,
@@ -268,8 +313,12 @@ class Simulator:
                                                   scanout.par.L,
                                                   'probecenter',
                                                   scanout.par.probecenter,
-                                                  'bg_phot',
-                                                  scanout.photbg)
+                                                  'bg_photons_gt',
+                                                  scanout.bg_photons_gt,
+                                                  'background_estimated',
+                                                  self.background_estimated,
+                                                  'iteration',
+                                                  s)
                     xesth=component.functionhandle(scanout.phot,*component_par)
                     if len(xesth)==3:
                         xest[np.array(component.dim)] = xesth[np.array(component.dim)]
@@ -285,6 +334,7 @@ class Simulator:
                     loc.xeod[loccounter] = self.posEOD[0]
                     loc.yeod[loccounter] = self.posEOD[1]
                     loc.zeod[loccounter] = self.posEOD[2]
+                    self.time += deadtimes.estimator
                 elif type_ == "positionupdater":
                     posgalvo, posEOD = component.functionhandle(xest, 
                                                                 self.posgalvo, 
@@ -292,24 +342,47 @@ class Simulator:
                                                                 *component.parameters)
                     self.posgalvo[np.array(component.dim)] = posgalvo[np.array(component.dim)]
                     self.posEOD[np.array(component.dim)] = posEOD[np.array(component.dim)]
+                    self.time += deadtimes.positionupdate
+                elif type_ == "background":
+                    component_par = replace_in_list(component.parameters,
+                                                    'patternpos',
+                                                    scanout.par.patternpos,
+                                                    'L',
+                                                    scanout.par.L,
+                                                    'probecenter',
+                                                    scanout.par.probecenter,
+                                                    'bg_photons_gt',
+                                                    scanout.bg_photons_gt,
+                                                    'background_estimated',
+                                                    self.background_estimated,
+                                                    'iteration',
+                                                    s)
                 else:
                     raise ValueError(f"Unknown component type {type_}.")
+            loc.xnm[loccounter_seq:loccounter] = xesttot[0]
+            loc.ynm[loccounter_seq:loccounter] = xesttot[1]
+            loc.znm[loccounter_seq:loccounter] = xesttot[2]
+            self.time += deadtimes.localization
         loc = removeempty(loc, loccounter)
         loc.abortcondition = np.zeros(loc.phot.shape)
         loc.abortcondition[-1] = 1 + 2*bleached
         out = SimpleNamespace(loc=loc,
                               raw=photch[:loccounter,:],
                               fluorophores = fl,
-                              bg_photons = photbg[:loccounter])
+                              bg_photons_gt = photbg[:loccounter],
+                              par = par,
+                              duration = self.time-timestart)
         return out
     
     def runSequence(self, seq, **kwargs):
         out = None
+        timestart = self.time
         for _ in range(kwargs.get('repetitions', 1)):
             self.fluorophores.reset(self.time)
             out2 = self.runSequenceintern(seq,kwargs.get('maxlocs',1000))
             out = self.appendout(out,out2)
         out.sequence = seq
+        out.duration = self.time-timestart
 
         return out
 
@@ -380,9 +453,9 @@ class Simulator:
             for m in reversed(range(len(pattern.zeropos))):
                 bgh = bg * pattern.backgroundfac[m]
                 ihm += np.sum(pattern.psf[m].intensity(flposh - self.posgalvo, 
-                                                    pattern.pos[m,:], 
-                                                    pattern.phasemask[m], 
-                                                    pattern.zeropos[:,m]) + bgh)
+                                                       pattern.pos[m,:], 
+                                                       pattern.phasemask[m], 
+                                                       pattern.zeropos[:,m]) + bgh)
 
             return ih / ihm
 
@@ -390,10 +463,10 @@ class Simulator:
             dpdc = np.zeros(len(dim))
             for coord in range(len(dim)):
                 dposa = np.zeros(3)
-                dposa[dim[coord] - 1] = eps / 2
+                dposa[dim[coord]] = eps / 2
                 dposa2 = dposa.copy()
-                dposa2[dim[coord] - 1] = -eps / 2
-                dpdc[dim[coord] - 1] = (pi(dposa) - pi(dposa2)) / eps
+                dposa2[dim[coord]] = -eps / 2
+                dpdc[dim[coord]] = (pi(dposa) - pi(dposa2)) / eps
 
             for coord in range(len(dim)):
                 for coord2 in range(len(dim)):
@@ -410,7 +483,7 @@ class Simulator:
         if position is None:
             position, _ = self.fluorophores.position(0)
 
-        if isinstance(self.fluorophores, (FlCollectionBlinking, FlBlinkBleach)):
+        if isinstance(self.fluorophores, (FlCollectionBlinking, FlBlinkBleach, FlMoving)):
             return self.calculateCRBdirect(patternnames, dim=dim, position=position)
 
         if isinstance(self.fluorophores, FlCollection):
@@ -420,6 +493,7 @@ class Simulator:
 
         oldpar = copy.deepcopy(fl1)
         fl1.remainingphotons = np.inf
+        posold, _ = fl1.position(self.time)
         eps = 1
         IFisher = np.zeros((len(dim), len(dim)))
 
@@ -434,9 +508,9 @@ class Simulator:
             dposa2 = dposa.copy()
             dposa2[dim[coord]] = -eps / 2
 
-            fl1.pos = oldpar.pos + dposa
+            fl1.pos = posold + dposa
             out1 = self.patternscan(patternnames)
-            fl1.pos = oldpar.pos + dposa2
+            fl1.pos =  posold + dposa2
             out2 = self.patternscan(patternnames)
             dpdc[:, dim[coord]] = ((out1.intensity / np.sum(out1.intensity, axis=0) - out2.intensity / np.sum(out2.intensity, axis=0)) / eps).squeeze()
 
@@ -490,7 +564,7 @@ class Simulator:
         
         st = Summary()
         st.photch = photch
-        st.bg_photons = np.nanmean(out.bg_photons[ind])
+        st.bg_photons = np.nanmean(out.bg_photons_gt[ind])
         st.phot = np.nanmean(phot)
         st.phot_signal = st.phot - st.bg_photons
         st.pos = np.nanmean(xest, axis=0)
@@ -500,13 +574,12 @@ class Simulator:
         st.locp = lp
         st.sCRB = sigmaCRB / np.sqrt(st.phot)
         st.sCRB1 = sigmaCRB
-
+        st.duration = out.duration
         
         if display:
-            ff1 = '.1f'
-            print(f'photch: {", ".join(list(map("{:.1f}".format, st.photch)))}, mean(phot): {st.phot:{ff1}}, signal phot: {st.phot_signal:{ff1}}')
-            ff = '{:.2f}'
+            ff1, ff = "{:.1f}", "{:.2f}"
+            print(f'photch: {", ".join(list(map(ff1.format, st.photch)))}, mean(phot): {ff1.format(st.phot)}, duration ms: {", ".join(list(map(ff1.format, st.duration)))}')
             print(f'std:  {", ".join(list(map(ff.format, st.std)))}, rmse: {", ".join(list(map(ff.format, st.rmse)))}, pos: {", ".join(list(map(ff.format, st.pos)))}, bias: {", ".join(list(map(ff.format, st.bias)))}')
-            print(f'locp: {", ".join(list(map(ff.format, lp)))}, sCRB: {", ".join(list(map(ff.format, st.sCRB)))}, sCRB*sqrt(phot): {", ".join(list(map("{:.1f}".format, st.sCRB1)))}')
+            print(f'locp: {", ".join(list(map(ff.format, lp)))}, sCRB: {", ".join(list(map(ff.format, st.sCRB)))}, sCRB*sqrt(phot): {", ".join(list(map(ff1.format, st.sCRB1)))}')
         
         return st

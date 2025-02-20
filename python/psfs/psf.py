@@ -11,34 +11,24 @@ import numpy as np
 import scipy.special as spf
 
 from ..tools import utilities as im
+from ..tools.math import pol2cart, cart2pol
 @dataclass
 class ROI:
-    roi_size: list = field(default_factory=lambda: [320,280,280])  # vector of 2 or 3 element, roi size in [y, x] or [z, y, x]
-    gauss_sigma: list = field(default_factory=lambda: [2,2,2])     # blur kernel size, corresponding to dimensions defined in roi_size
-    max_kernel: list = field(default_factory=lambda: [3,3,3])      # maximum filter kernel size, corresponding to dimensions defined in roi_size
-
+    roi_size: list = field(default_factory=lambda: [160,140,140])  # vector of 2 or 3 element, roi size in [y, x] or [z, y, x]
 @dataclass
 class Model:
     zernike_nl: list = None           # set the Zernike terms for PSF learning, e.g. [(2,2),(2,-2)], if empty, all zernike terms defined by n_max will be used 
-    pupilsize: int =  140              # unit: pixel
+    pupilsize: int = 35               # unit: pixel
     n_max: int =  8                   # maximum zernike order
-    blur_sigma: float = 0.5           # unit: pixel
-    var_blur: bool = True             # estimate blurring sigma
+    blur_sigma: float = 0             # unit: pixel
     with_apoid: bool = True           # with theoretical apoidization term
-    const_pupilmag: bool = False      # pupil magnitude is constant and equal to one
-    symmetric_mag: bool = False       # pupil magnitude is circular symmetric
-    with_IMM: bool = False            # only used for agarose bead
-    init_pupil_file: str = ""         # .h file from psf learning
-    estimate_drift: bool = False      # estimate lateral drift between each z slice
-    var_photon: bool = False          # estimate photon variation between each z slice
-    bin: int = 2                      # upsamplling pixel size equal to camera pixel size divided by bin
-    division: int = 40                # number of divisions per lateral dimension for learning field-dependent aberration
+    bin: int = 1                      # upsamplling pixel size equal to camera pixel size divided by bin
 
 @dataclass
 class Ri:
     imm: float = 1.406
     med: float = 1.406
-    cov: float = 1.516
+    cov: float = 1.512
 
 @dataclass
 class Imaging:
@@ -55,13 +45,9 @@ class Option:
 class Parameters:
     roi: ROI = field(default_factory=lambda: ROI())
     option: Option = field(default_factory=lambda: Option())
-    pixelsize_x: float = 0.005        # unit: micron
-    pixelsize_y: float = 0.005
-    pixelsize_z: float = 0.005
-    gain: float = 0.2
-    ccd_offset: float = 398.6
-    peak_height: float = 0.2          # relative to maximum bead intensity, bead intensity below which are rejected
-    max_bead_number: int = 40         # ignored by insitu PSF learning
+    pixelsize_x: float = 0.01        # unit: micron
+    pixelsize_y: float = 0.01
+    pixelsize_z: float = 0.01
     bead_radius: float = 0.0          # unit: micron
     maskshift: list = None
 
@@ -172,7 +158,7 @@ class Psf():
 
         return 
     
-    def calpupilfield(self,fieldtype='vector',Nz=None,datatype='bead'):
+    def calpupilfield(self,fieldtype='vector',Nz=None,datatype='bead',polarization=None, mask=None):
         if Nz is None:
             # Nz = self.bead_kernel.shape[0]
             pixelsize_z = self.parameters.pixelsize_z
@@ -180,8 +166,8 @@ class Psf():
             Nz = Nz = self.parameters.roi.roi_size[-3]+np.int32(bead_radius//pixelsize_z)*2+4
         bin = self.options.model.bin
         Lx = self.parameters.roi.roi_size[-1]*bin 
-        Ly = self.parameters.roi.roi_size[-2]*bin
-        Lz = self.parameters.roi.roi_size[-3]
+        # Ly = self.parameters.roi.roi_size[-2]*bin
+        # Lz = self.parameters.roi.roi_size[-3]
         # xsz = self.options.model.pupilsize
         xsz = self.parameters.roi.roi_size[-1]*bin 
 
@@ -201,7 +187,7 @@ class Psf():
         nmed = self.options.imaging.RI.med
         ncov = self.options.imaging.RI.cov
         n_max = self.options.model.n_max
-        Zk = im.genZern1(n_max,xsz)
+        # Zk = im.genZern1(n_max,xsz)
 
         n1 = np.array(range(-1,n_max,2))
         self.spherical_terms = (n1+1)*(n1+2)//2
@@ -215,7 +201,7 @@ class Psf():
         cos_imm = np.lib.scimath.sqrt(1-(self.kr*NA/nimm)**2)
         cos_med = np.lib.scimath.sqrt(1-(self.kr*NA/nmed)**2)
         cos_cov = np.lib.scimath.sqrt(1-(self.kr*NA/ncov)**2)
-        kz_med = nmed/emission_wavelength*cos_med
+        # kz_med = nmed/emission_wavelength*cos_med
         FresnelPmedcov = 2*nmed*cos_med/(nmed*cos_cov+ncov*cos_med)
         FresnelSmedcov = 2*nmed*cos_med/(nmed*cos_med+ncov*cos_cov)
         FresnelPcovimm = 2*ncov*cos_cov/(ncov*cos_imm+nimm*cos_cov)
@@ -225,17 +211,53 @@ class Psf():
         Tavg = (Tp+Ts)/2
 
         self.phi = np.arctan2(yy,xx)
-        cos_phi = np.cos(self.phi)
-        sin_phi = np.sin(self.phi)
-        sin_med = self.kr*NA/nmed
 
-        pvec = Tp*np.stack([cos_med*cos_phi,cos_med*sin_phi,-sin_med])
-        svec = Ts*np.stack([-sin_phi,cos_phi,np.zeros(cos_phi.shape)])
+        if mask == "phaseramp" and self.parameters.maskshift is not None:
+            print(f"self.parameters.maskshift is {self.parameters.maskshift}")
+            xshift, yshift = self.parameters.maskshift
+            xx,yy = pol2cart(self.phi, self.kr)
+            xx = xx + xshift
+            yy = yy + yshift
+            self.phi, self.kr = cart2pol(xx, yy)
+
+        cos_phi = np.cos(self.phi).astype('complex64')
+        sin_phi = np.sin(self.phi).astype('complex64')
+        sin_med = (self.kr*NA/nmed).astype('complex64')
+
+        px, py, pz = cos_med*cos_phi,cos_med*sin_phi,-sin_med
+        sx, sy, sz = -sin_phi,cos_phi,np.zeros(cos_phi.shape).astype('complex64')
+
+        if polarization == "circular":
+            px = (px/np.sqrt(2) - py*1j/np.sqrt(2)).astype('complex64')
+            py = (px*1j/np.sqrt(2) + py/np.sqrt(2)).astype('complex64')
+            sx = (sx/np.sqrt(2) - sy*1j/np.sqrt(2)).astype('complex64')
+            sy = (sx*1j/np.sqrt(2) + sy/np.sqrt(2)).astype('complex64')
+
+        # if mask == "phaseramp":
+        #     pr = np.exp(1j*self.phi).astype('complex64')
+        #     px *= pr
+        #     py *= pr
+        #     pz *= pr
+        #     sx *= pr
+        #     sy *= pr
+        #     sz *= pr
+
+        pvec = Tp*np.stack([px,py,pz])
+        svec = Ts*np.stack([sx,sy,sz])
 
         hx = cos_phi*pvec-sin_phi*svec
         hy = sin_phi*pvec+cos_phi*svec
-        h = np.concatenate((hx,hy),axis=0)
-        self.dipole_field = np.complex64(h)
+
+        # if polarization == "circular":
+        #     # hx = hx/np.sqrt(2) - hy*1j/np.sqrt(2)
+        #     # hy = hx*1j/np.sqrt(2) + hy/np.sqrt(2)
+        #     hx[0,...] = hx[0,...]/np.sqrt(2) - hx[1,...]*1j/np.sqrt(2)
+        #     hx[1,...] = hx[0,...]*1j/np.sqrt(2) + hx[1,...]/np.sqrt(2)
+        #     hy[0,...] = hy[0,...]/np.sqrt(2) - hy[1,...]*1j/np.sqrt(2)
+        #     hy[1,...] = hy[0,...]*1j/np.sqrt(2) + hy[1,...]/np.sqrt(2)
+
+        self.dipole_field = np.concatenate((hx,hy),axis=0,dtype='complex64')
+
         if self.options.model.with_apoid:
             #apoid = 1/np.lib.scimath.sqrt(cos_med)
             apoid = np.lib.scimath.sqrt(cos_imm)/cos_med
@@ -250,44 +272,55 @@ class Psf():
 
         self.aperture = np.complex64(self.kr<1)
         pupil = self.aperture*apoid
-        self.pupil = np.asarray(pupil, dtype=np.complex64)
-        if fieldtype=='scalar':
-            psfA = im.cztfunc1(self.pupil,self.paramxy)
-            self.normf = 1/np.sum((psfA*np.conj(psfA)).real)
-        else:
-            I_res = np.zeros(pupil.shape, dtype=np.float32)
-            for h in self.dipole_field:
-                PupilFunction = self.pupil*h
-                psfA = im.cztfunc1(PupilFunction,self.paramxy)     
-                I_res += (psfA*np.conj(psfA)).real
-            self.normf = 1/np.sum(I_res)
-        #if datatype == 'bead':
-        #    self.Zrange = -1*np.linspace(-Nz/2+0.5,Nz/2-0.5,Nz,dtype=np.complex64).reshape((Nz,1,1))
-        #elif datatype == 'insitu':
+
         self.Zrange = np.linspace(-Nz/2+0.5,Nz/2-0.5,Nz,dtype=np.complex64).reshape((Nz,1,1))
-        self.kx = np.complex64(xx*NA/emission_wavelength)*pixelsize_x
-        self.ky = np.complex64(yy*NA/emission_wavelength)*pixelsize_y
+        # self.kx = np.complex64(xx*NA/emission_wavelength)*pixelsize_x
+        # self.ky = np.complex64(yy*NA/emission_wavelength)*pixelsize_y
         self.kz = np.complex64(kz)*self.parameters.pixelsize_z
-        self.kz_med = np.complex64(kz_med)*self.parameters.pixelsize_z
-        self.k = np.complex64(nmed/emission_wavelength)*self.parameters.pixelsize_z
-        self.apoid = np.complex64(apoid)
-        self.nimm = nimm
-        self.nmed = nmed
-        self.Zk = np.float32(Zk)
 
-        # only for bead data, precompute phase ramp
-        Lx = self.parameters.roi.roi_size[-1]      
-        Ly = self.parameters.roi.roi_size[-2]
-        Lz = self.parameters.roi.roi_size[-3]
+        self.pupil = np.asarray(pupil, dtype=np.complex64)
 
-        self.zv = np.linspace(0,Lz-1,Lz,dtype=np.float32).reshape(Lz,1,1)-Lz/2
-        self.kxv = np.linspace(-Lx/2+0.5,Lx/2-0.5,Lx,dtype=np.float32)/Lx
-        self.kyv = (np.linspace(-Ly/2+0.5,Ly/2-0.5,Ly,dtype=np.float32).reshape(Ly,1))/Ly
-        self.kzv = (np.linspace(-Lz/2+0.5,Lz/2-0.5,Lz,dtype=np.float32).reshape(Lz,1,1))/Lz
+        if mask == "phaseramp":
+            self.pupil *= np.exp(1j*self.phi)
+
+        self.normf = self.calnorm(self.pupil)
+        
+        # if fieldtype=='scalar':
+        #     psfA = im.cztfunc1(self.pupil,self.paramxy)
+        #     # self.normf = 1/np.sum((psfA*np.conj(psfA)).real)
+        #     self.norm = 1/np.max((psfA*np.conj(psfA)).real)
+        # else:
+        #     I_res = np.zeros(self.paramxy[2].shape, dtype=np.float32)
+        #     for h in self.dipole_field:
+        #         PupilFunction = self.pupil*h
+        #         psfA = im.cztfunc1(PupilFunction,self.paramxy)     
+        #         I_res += (psfA*np.conj(psfA)).real
+        #     # self.normf = 1/np.sum(I_res)
+        #     self.normf = 1/np.max(I_res)
+        # #if datatype == 'bead':
+        # #    self.Zrange = -1*np.linspace(-Nz/2+0.5,Nz/2-0.5,Nz,dtype=np.complex64).reshape((Nz,1,1))
+        # #elif datatype == 'insitu':
+        # self.kz_med = np.complex64(kz_med)*self.parameters.pixelsize_z
+        # self.k = np.complex64(nmed/emission_wavelength)*self.parameters.pixelsize_z
+        # self.apoid = np.complex64(apoid)
+        # self.nimm = nimm
+        # self.nmed = nmed
+        # self.Zk = np.float32(Zk)
+
+        # # only for bead data, precompute phase ramp
+        # Lx = self.parameters.roi.roi_size[-1]      
+        # Ly = self.parameters.roi.roi_size[-2]
+        # Lz = self.parameters.roi.roi_size[-3]
+
+        # self.zv = np.linspace(0,Lz-1,Lz,dtype=np.float32).reshape(Lz,1,1)-Lz/2
+        # self.kxv = np.linspace(-Lx/2+0.5,Lx/2-0.5,Lx,dtype=np.float32)/Lx
+        # self.kyv = (np.linspace(-Ly/2+0.5,Ly/2-0.5,Ly,dtype=np.float32).reshape(Ly,1))/Ly
+        # self.kzv = (np.linspace(-Lz/2+0.5,Lz/2-0.5,Lz,dtype=np.float32).reshape(Lz,1,1))/Lz
 
     def calnorm(self,pupil):
         psfA = im.cztfunc1(pupil,self.paramxy)   
-        normf = np.sum((psfA * np.conj(psfA)).real)
+        # normf = np.sum((psfA * np.conj(psfA)).real)
+        normf = np.max((psfA * np.conj(psfA)).real)
         return normf
 
     def setpinholesimple(self, lambda_nm=600, AU=1, diameter=None, NA=1.5, refractive_index=1.5):

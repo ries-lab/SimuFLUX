@@ -15,6 +15,7 @@ from math import factorial
 
 import numpy as np
 from scipy import signal
+from scipy import ndimage
 from scipy.fft import next_fast_len
 
 import pyfftw
@@ -66,23 +67,36 @@ def ifft3d(tfin):
     a[:] = pyfftw.interfaces.numpy_fft.ifftshift(tfin, axes=(-3, -2, -1))
     return pyfftw.interfaces.numpy_fft.ifftshift(b(), axes=(-3, -2, -1))
 
-def convolve(I_blur, kernel, bin):
-    # replacement for tf.nn.convolution(I_blur,kernel,strides=(1,bin,bin,1),padding='SAME',data_format='NHWC')
+# def convolve(I_blur, kernel, bin):
+#     # replacement for tf.nn.convolution(I_blur,kernel,strides=(1,bin,bin,1),padding='SAME',data_format='NHWC')
     
-    # Calculate padding
-    pad_height = (kernel.shape[0] - 1) // 2
-    pad_width = (kernel.shape[1] - 1) // 2
+#     # Calculate padding
+#     pad_height = (kernel.shape[0] - 1) // 2
+#     pad_width = (kernel.shape[1] - 1) // 2
 
-    # Apply padding
-    I_blur_padded = np.pad(I_blur, ((0, 0), (pad_height, pad_height), (pad_width, pad_width), (0, 0)), mode='constant')
+#     # Apply padding
+#     I_blur_padded = np.pad(I_blur, ((0, 0), (pad_height, pad_height), (pad_width, pad_width), (0, 0)), mode='constant')
 
-    # Perform convolution
-    output = signal.convolve(I_blur_padded, kernel, mode='same', method='fft')
+#     # Perform convolution
+#     output = signal.convolve(I_blur_padded, kernel, mode='same', method='fft')
 
-    # Apply strides
-    output_strided = output[:, ::bin, ::bin, :]
+#     # Apply strides
+#     output_strided = output[:, ::bin, ::bin, :]
 
-    return output_strided
+#     return output_strided
+
+def convolve(I_blur, kernel, bin):
+    # Output shape calculation
+    output_shape = (I_blur.shape[0], I_blur.shape[1] // bin, I_blur.shape[2] // bin, I_blur.shape[3])
+    output = np.zeros(output_shape, dtype=I_blur.dtype)
+    
+    # Perform convolution on each slice
+    for i in range(I_blur.shape[0]):
+        slice_I_blur = I_blur[i, :, :, :]
+        convolved_slice = ndimage.convolve(slice_I_blur, kernel[:, :, :, 0], mode='constant', cval=0.0)
+        output[i, :, :, :] = convolved_slice[::bin, ::bin]
+
+    return output
 
 # def prechirpz1(kpixelsize,pixelsize_x,pixelsize_y,N,M):
 #     krange = np.linspace(-N/2+0.5,N/2-0.5,N,dtype=np.float32)
@@ -290,34 +304,38 @@ def cztfunc1(datain, param):
     if lsh == 2:
         newsh = (sh[0]+ln, sh[1]+ln)
     elif lsh == 3:
-        newsh = (next_fast_len(sh[0]), sh[1]+ln, sh[2]+ln)
+        # newsh = (next_fast_len(sh[0]), sh[1]+ln, sh[2]+ln)
+        newsh = (sh[0], sh[1]+ln, sh[2]+ln)
+
+    # print("sh ", sh)
+    # print("newsh ", newsh)
 
     key = str(newsh)
     fkey, bkey = key+'forward', key+'backward'
     try:
-        Apad, Ah = PYFFTW_ARRAYS['Apad'], PYFFTW_ARRAYS['Ah']
-        cztout = PYFFTW_ARRAYS['cztout']
+        Apad, Ah = PYFFTW_ARRAYS[key+'Apad'], PYFFTW_ARRAYS[key+'Ah']
+        cztout = PYFFTW_ARRAYS[key+'cztout']
         b, d = PYFFTW_BUILDERS[fkey], PYFFTW_BUILDERS[bkey]
     except KeyError:
-        PYFFTW_ARRAYS['Apad'] = pyfftw.zeros_aligned(newsh, dtype='complex64')
-        PYFFTW_ARRAYS['Ah'] = pyfftw.zeros_aligned(newsh, dtype='complex64')
-        PYFFTW_ARRAYS['cztout'] = pyfftw.zeros_aligned(newsh, dtype='complex64')
-        PYFFTW_BUILDERS[fkey] = pyfftw.FFTW(PYFFTW_ARRAYS['Apad'], 
-                                            PYFFTW_ARRAYS['Ah'], 
+        PYFFTW_ARRAYS[key+'Apad'] = pyfftw.zeros_aligned(newsh, dtype='complex64')
+        PYFFTW_ARRAYS[key+'Ah'] = pyfftw.zeros_aligned(newsh, dtype='complex64')
+        PYFFTW_ARRAYS[key+'cztout'] = pyfftw.zeros_aligned(newsh, dtype='complex64')
+        PYFFTW_BUILDERS[fkey] = pyfftw.FFTW(PYFFTW_ARRAYS[key+'Apad'], 
+                                            PYFFTW_ARRAYS[key+'Ah'], 
                                             axes=(-2,-1), 
                                             direction='FFTW_FORWARD',
                                             threads=NUM_THREADS,
                                             flags=PLANNER_FLAGS)
-        PYFFTW_BUILDERS[bkey] = pyfftw.FFTW(PYFFTW_ARRAYS['Ah'], 
-                                            PYFFTW_ARRAYS['cztout'], 
+        PYFFTW_BUILDERS[bkey] = pyfftw.FFTW(PYFFTW_ARRAYS[key+'Ah'], 
+                                            PYFFTW_ARRAYS[key+'cztout'], 
                                             axes=(-2,-1), 
                                             direction='FFTW_BACKWARD',
                                             threads=NUM_THREADS,
                                             flags=PLANNER_FLAGS)
         
         save_wisdom(WISDOMFILE)
-        Apad, Ah = PYFFTW_ARRAYS['Apad'], PYFFTW_ARRAYS['Ah']
-        cztout = PYFFTW_ARRAYS['cztout']
+        Apad, Ah = PYFFTW_ARRAYS[key+'Apad'], PYFFTW_ARRAYS[key+'Ah']
+        cztout = PYFFTW_ARRAYS[key+'cztout']
         b, d = PYFFTW_BUILDERS[fkey], PYFFTW_BUILDERS[bkey]
 
     if lsh == 2:
