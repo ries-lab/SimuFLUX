@@ -12,6 +12,7 @@ classdef PsfVectorial<Psf
         function obj=PsfVectorial(varargin)
             obj@Psf(varargin{:});
             addpath([fileparts(mfilename('fullpath')) '/PSF_simulation/library']);
+            % obj.parameters=obj.loadparameters('settings/defaultsystemparameters_vectorialPSF.m');
             obj.parameters=obj.loadparameters('settings/default_microscope.yaml');
         end
         function setpar(obj,varargin)
@@ -305,6 +306,8 @@ classdef PsfVectorial<Psf
                     % if another file is loaded (maybe with only some of
                     % the parameters) the default should not be
                     % overwritten:
+                    % [sys2,out]=effInit_oil_exc(parin.sys,[],parin.opt);
+                    % parin.sys=copyfields(parin.sys,sys2); 
                     if ~isempty(obj.parameters)
                         if isfield(parin,'sys')
                             par.sys=copyfields(obj.parameters.sys,parin.sys);
@@ -318,6 +321,10 @@ classdef PsfVectorial<Psf
                     else
                         par=parin;
                     end
+            end
+            if ~isfield(par,'addpar')
+                par.addpar.dr = par.opt.pixSize;
+                par.addpar.dz = par.opt.pixSize;
             end
             obj.parameters=par;
         end
@@ -335,7 +342,7 @@ classdef PsfVectorial<Psf
                 nx=1:spsf(1);nx=nx-mean(nx);nx=nx*px;
                 ny=1:spsf(2);ny=ny-mean(ny);ny=ny*px;
                 nz=1:spsf(3);nz=nz-mean(nz);nz=nz*pz;
-                [X,Y,Z] = ndgrid(nx,nx,nz);
+                [X,Y,Z] = ndgrid(nx,ny,nz);
                 intmethod='cubic'; %linear,cubic?
                 PSFexp = griddedInterpolant(X,Y,Z,PSFvol,intmethod);              
                 obj.PSFs(key+"0")=PSFexp;
