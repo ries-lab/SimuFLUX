@@ -20,7 +20,8 @@ for k=1:iter
         break
     end
 end 
-xest=max(min(xest,L),-L); %avoid crazy high numbers
+% xest=max(min(xest,L),-L); %avoid crazy high numbers
+xest(abs(xest)>L)=NaN;
 end
 
 function dro=iteration(p,x0,L)
