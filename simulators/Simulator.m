@@ -1,22 +1,22 @@
 classdef Simulator<handle
     properties
-        patterns=dictionary;
-        sequences=dictionary;
-        fluorophores
+        patterns=dictionary; %patterns that are defined
+        % sequences=dictionary;
+        fluorophores % Fluorophore or FlCollection 
         background=0; %kHz from AF, does not count towards photon budget. Should scale with PSF.normfact and laser intensity?
         posgalvo=[0 0 0]; %nm, position of pattern center
         posEOD=[0 0 0]; %nm, not descanned, with respect to posgalvo.
-        time=0;
-        background_estimated=0;
-        deadtimes=struct('point',0,'pattern',0,'estimator',0,'positionupdate',0,'localization',0)
+        time=0;  % that is the master time
+        background_estimated=0; %estimated background, used for estimators
+        deadtimes=struct('point',0,'pattern',0,'estimator',0,'positionupdate',0,'localization',0); % dead times added to time after each point, pattern, estimation, position update or localization (sequence)
     end
     methods
         function obj=Simulator(args)
             arguments
-                args.fluorophores=[];
-                args.background=0;
-                args.background_estimated=0;
-                args.loadfile={};
+                args.fluorophores=[]; % Fluorophore or FlCollection 
+                args.background=0;    % constant autofluorescence background
+                args.background_estimated=0; %estimated background, used for estimators
+                args.loadfile={}; % sequence, only for SimSequencefile objects
             end
             obj.fluorophores=args.fluorophores;
             obj.background=args.background;
@@ -31,11 +31,11 @@ classdef Simulator<handle
             %within a pattern repeat
             arguments 
                 obj
-                key
-                type
-                functionhandle
-                args.parameters={};
-                args.dim=1:3;
+                key % name (key) of the component, used to identify it later
+                type % estimator, positionupdater, background
+                functionhandle % handle to the function of the component (e.g., an estimator)
+                args.parameters={}; % paramters are passed on to the function
+                args.dim=1:3; %for estimators: which dimension is estimated, updated
             end
             component.functionhandle=functionhandle;
             component.type=string(type);
@@ -48,20 +48,20 @@ classdef Simulator<handle
             %parameters
             arguments 
                 obj
-                key
-                psf
+                key % name (key) to describe the pattern and refer to it later
+                psf % a Psf object that describes the PSF
                 args.phasemask=""; %parameter that defines the shape of the phase mask
                 args.zeropos=0; %position of the zero when calculating PSFs (e.g., PhaseFLUX)
                 args.patternpos=[0, 0, 0];% list of 3D positions where the PSF is moved to. Use either zeropos or pos
-                args.makepattern=[];
-                args.orbitpoints=4;
-                args.orbitL=100;
-                args.probecenter=true; 
-                args.orbitorder=[]; %change the order of measurement points
-                args.pointdwelltime=.01; %us
-                args.laserpower=1; %usually we use relative, but can also be absolute.
-                args.repetitions=1;
-                args.dim=1:2;
+                args.makepattern=[]; % orbitscan, zscan, [] (default):no pattern is made
+                args.orbitpoints=4; %  orbitpoints
+                args.orbitL=100; % diameter of scan pattern
+                args.probecenter=true; % if to perform a central measurement (cfr check)
+                args.orbitorder=[]; %change the order of measurement points. Can create problems with some estimators
+                args.pointdwelltime=.01; %us length of a point measurement. Single value, vactor with length of pattern or vector with length 2, then the second value is used for central measurement
+                args.laserpower=1; %usually we use relative, but can also be absolute. This value is multiplied on the fluorophore brightness
+                args.repetitions=1; %repetitions of the pattern scan before position estimation
+                args.dim=1:2; %dimensions in which the scan is performed
             end
             pattern.repetitions=args.repetitions;
             pattern.par=args;
@@ -87,8 +87,8 @@ classdef Simulator<handle
                 pattern.phasemask(k)=string(args.phasemask);
                 pattern.zeropos(k)=string((zeropos(k)));
                 pattern.psf(k).calculatePSFs(args.phasemask,pattern.zeropos(k));
-                pattern.backgroundfac(k)=1/psf.normfactor(args.phasemask,pattern.zeropos(k));
-               
+                % pattern.backgroundfac(k)=1/psf.normfactor(args.phasemask,pattern.zeropos(k));
+                % pattern.backgroundfac(k)=1;
                 pattern.laserpower(k)=args.laserpower;
             end
             if length(args.pointdwelltime)==size(pos,1) %one dwelltime per position
@@ -108,6 +108,7 @@ classdef Simulator<handle
 
         function out=patternscan(obj,key)
             % scans a defined pattern
+            % key: name (key) used when defining the pattern
             pattern=obj.patterns(key);
             fluorophores=obj.fluorophores;
             numpoints=length(pattern.zeropos);
@@ -137,15 +138,16 @@ classdef Simulator<handle
                     flpos(:,:)=flpos(:,:)+flposh;
                     flintall(isactive,:)=flintall(isactive,:)+flint;
                     time=time+pattern.pointdwelltime(k)+deadtimes.point;
-                    bgphoth=pattern.backgroundfac(k)*background*pattern.pointdwelltime(k);
+                    % bgphoth=pattern.backgroundfac(k)*background*pattern.pointdwelltime(k);
+                    bgphoth=background*pattern.pointdwelltime(k)*pattern.laserpower(k); %XXX changed now to multiply the laser power
                     bgphot=bgphoth+bgphot;
                     intall(k)=intall(k)+intensity+bgphoth; %sum over repetitions, fluorophores
                 end
                 time=time+deadtimes.pattern;
                 fluorophores.updateonoff(time); %try moving into loop, how slow it gets
             end
-            out.phot=poissrnd(intall); %later: fl.tophot(intenall): adds bg, multiplies with brightness, does 
-            out.photrate=out.phot./pattern.pointdwelltime';out.photrate=out.photrate/sum(out.photrate)*sum(out.phot); 
+            out.phot=poissrnd(intall); %later: fl.tophot(intenall): adds bg, multiplies with brightness, does
+            out.photrate=out.phot./pattern.pointdwelltime';%out.photrate=out.photrate/sum(out.photrate)*sum(out.phot); 
             out.pointdwelltime=pattern.pointdwelltime';
             out.bg_photons_gt=bgphot;
             out.bgphot_est=0;
@@ -167,7 +169,7 @@ classdef Simulator<handle
             out.par.pattern.pos=pattern.pos;
             out.par.pattern.zeropos=pattern.zeropos;
             out.par.pattern.phasemask=pattern.phasemask;
-            out.par.pattern.backgroundfac=pattern.backgroundfac;
+            % out.par.pattern.backgroundfac=pattern.backgroundfac;
             out.par.pattern.laserpower=pattern.laserpower;
             out.par.pattern.pointdwelltime=pattern.pointdwelltime;
             obj.time=time;
@@ -188,7 +190,7 @@ classdef Simulator<handle
             photbg=zeros(maxlocalizations*numpat,1);
             loc=initlocs(maxlocalizations*numpat,{'xnm','ynm','znm','xfl1',...
                 'yfl1','zfl1','phot','time','abortcondition', 'xgalvo', 'ygalvo', 'zgalvo',...
-                'xeod','yeod','zeod'});
+                'xeod','yeod','zeod','photrate'});
    
             bleached=false;
             loccounter=0;
@@ -210,6 +212,7 @@ classdef Simulator<handle
                             scanout=obj.patternscan(seq{s});
                             loccounter=loccounter+1; % every localization gets a new entry, as in abberior
                             loc.phot(loccounter)=loc.phot(loccounter)+sum(scanout.phot);
+                            loc.photrate(loccounter)=loc.photrate(loccounter)+mean(scanout.photrate);
                             photch(loccounter,1:length(scanout.phot))=scanout.phot;
                             photbg(loccounter)=scanout.bg_photons_gt;
                             loc.time(loccounter)=loc.time(loccounter)+scanout.time.averagetime;
@@ -220,6 +223,7 @@ classdef Simulator<handle
                             if k==1   %just first localization
                                 par{s}=scanout.par;
                             end
+                            loc.seq(loccounter,1)=s;
                         case "estimator"
                             % replace placeholder names by values
                             component_par=replaceinlist(component.parameters,'patternpos',scanout.par.patternpos,'L',scanout.par.L,...
@@ -249,6 +253,7 @@ classdef Simulator<handle
                         otherwise
                             disp(component.type+ " not defined")
                     end
+                    
                 end
                 % write position estimates for all localizations in sequence together, 9.2.25
                 loc.xnm(loccounter_seq:loccounter)=xesttot(1);loc.ynm(loccounter_seq:loccounter)=xesttot(2);loc.znm(loccounter_seq:loccounter)=xesttot(3);
@@ -259,17 +264,20 @@ classdef Simulator<handle
             out.loc=loc;
             out.raw=photch(1:loccounter,:);
             out.fluorophores=fl;
-            out.bg_photons_gt=photbg(1:loccounter);
+            out.bg_photons_gt=photbg(1:loccounter)';
             out.par=par;
             out.duration=obj.time-timestart;
+            if isfield(scanout,'bgphot_est')
+                out.bg_photons_est=sum(scanout.bgphot_est); %sum over all positions
+            end
             % out.bg_photons_est=
         end
         function out=runSequence(obj,seq,args)
             arguments
                 obj
-                seq
-                args.maxlocs=1000;
-                args.repetitions=1;
+                seq % cell of string with keys of patterns/components
+                args.maxlocs=1000; % how many localizations to perform
+                args.repetitions=1;% how often the sequence is repeated
             end
             out=[];
             timestart=obj.time;
@@ -291,6 +299,8 @@ classdef Simulator<handle
                 out1.loc.rep=1+0*out1.loc.xnm;
                 out1.fluorophores.pos=out2.fluorophores.pos;
                 out1.fluorophores.int=out2.fluorophores.int;
+                out1.bg_photons_gt=out2.bg_photons_gt;
+                out1.bg_photons_est=out2.bg_photons_est;
                 
             else 
                 sr=size(out2.raw);
@@ -303,6 +313,8 @@ classdef Simulator<handle
                 out1.fluorophores.int=cat(1,out1.fluorophores.int,out2.fluorophores.int);
                 out2.loc.rep=size(out1.raw,1)+0*out2.loc.xnm;
                 out1.loc=appendstruct(out1.loc,out2.loc);
+                out1.bg_photons_gt=cat(1,out1.bg_photons_gt,out2.bg_photons_gt);
+                out1.bg_photons_est=cat(1,out1.bg_photons_est,out2.bg_photons_est);
             end
         end
 
@@ -357,7 +369,7 @@ classdef Simulator<handle
                     for coord=1:length(dim)
                         for coord2=1:length(dim)
                             % IFisher(dim(coord),dim(coord2))=IFisher(dim(coord),dim(coord2))+dpdc(dim(coord))*dpdc(dim(coord2))/(pi([0 0 0])+1e-5);
-                             IFisher((coord),(coord2))=IFisher((coord),(coord2))+dpdc(dim(coord))*dpdc(dim(coord2))/(pi([0 0 0])+1e-5);
+                             IFisher((coord),(coord2))=IFisher((coord),(coord2))+dpdc(dim(coord))*dpdc(dim(coord2))/(pi([0 0 0])+1e-4);
                              % pi([0 0 0])
                         end
                     end
@@ -366,24 +378,26 @@ classdef Simulator<handle
                 locprech=diag(sqrt(crlb))';
                 locprec=[0 0 0];
                 locprec(dim)=locprech;%(dim);
+               
 
             function iho=pi(dpos)
                     flposh=flpos;
                     flposh(1,:)=flposh(1,:)-dpos;
-                    bgh=bg*pattern.backgroundfac(k);
-                    ih=sum(pattern.psf(k).intensity(flposh-obj.posgalvo,pattern.pos(k,:),pattern.phasemask(k),pattern.zeropos(k))+bgh);
+                    
+                    % bgh=bg*pattern.backgroundfac(k);
+                    ih=sum(pattern.psf(k).intensity(flposh-obj.posgalvo,pattern.pos(k,:),pattern.phasemask(k),pattern.zeropos(k))+bg);
 
                     ihm=0;
                     for m=length(pattern.zeropos):-1:1
-                        bgh=bg*pattern.backgroundfac(m);
-                         ihm=ihm+sum(pattern.psf(m).intensity(flposh-obj.posgalvo,pattern.pos(m,:),pattern.phasemask(m),pattern.zeropos(m))+bgh);
+                        % bgh=bg*pattern.backgroundfac(m);
+                         ihm=ihm+sum(pattern.psf(m).intensity(flposh-obj.posgalvo,pattern.pos(m,:),pattern.phasemask(m),pattern.zeropos(m))+bg);
                     end
                     iho=ih/ihm;
             end
         end
 
 
-        function locprec=calculateCRB(obj,patternnames,args)
+        function locprec=calculateCRBpattern(obj,patternnames,args)
             arguments
                 obj
                 patternnames
@@ -420,7 +434,7 @@ classdef Simulator<handle
             end
             for coord=1:length(dim)
                 for coord2=1:length(dim)
-                     fh=dpdc(:,dim(coord)).*dpdc(:,dim(coord2))./(pi0+1e-12);
+                     fh=dpdc(:,dim(coord)).*dpdc(:,dim(coord2))./(pi0+1e-4);
                      IFisher((coord),(coord2))=sum(fh);
                 end
             end
@@ -431,86 +445,131 @@ classdef Simulator<handle
             locprech=diag(sqrt(crlb))';
             locprec=[0 0 0];
             locprec(dim)=locprech;%(dim);
+            % intensity=sum(out0.intensity);
+        end
+
+        function [sigmaCRB,sigmaCRB1, locprecL,phot]=calculateCRB(obj,out,filter)
+            locprecL=[0,0,0]; sigmaCRB1=[0,0,0];sigmaCRB=[0,0,0];
+            seq=out.sequence;
+            for k=1:length(seq)
+                
+                pattern=obj.patterns(seq{k});
+                if pattern.type=="pattern"
+                    sh=obj.calculateCRBpattern(seq{k},dim=pattern.dim);
+                    if isfield(out.loc,'seq')
+                        ind=out.loc.seq==k & filter;
+                    else
+                        ind=filter;
+                    end
+                    phot=mean(out.loc.phot(ind));
+                    sigmaCRB1(pattern.dim)=sh(pattern.dim);
+                    sigmaCRB(pattern.dim)=sigmaCRB1(pattern.dim)/sqrt(phot);
+                    Lh=obj.locprec(mean(phot),pattern.L);
+                    locprecL(pattern.dim)=Lh;
+                end
+            end
         end
         
         function st=summarize_results(obj,out,args)%, lpcrb,L)
             arguments
                 obj
-                out
-                args.display=true;
-                args.filter=true(size(out.loc.xnm));
+                out %structure created by seqence
+                args.display=true; %if to print the summary on the console
+                args.filter=true(size(out.loc.xnm)); % which localizations to use for statistics
             end
             ind=args.filter;
             photraw=out.raw;
-            photraw(photraw==-1)=NaN;
-            if length(size(photraw))>3
-                photraw(photraw<0)=NaN;
-                photch=squeeze(mean(mean(photraw(ind,:),1,'omitnan'),2,'omitnan'));
-            else
-                photch=squeeze(mean(photraw(ind,:),1,'omitnan'));  
-            end
             xest=horzcat(out.loc.xnm(ind),out.loc.ynm(ind),out.loc.znm(ind));
             flpos=horzcat(out.loc.xfl1(ind),out.loc.yfl1(ind),out.loc.zfl1(ind));
-            phot=out.loc.phot(ind);
             
-            seq=out.sequence;
-            lp=[0,0,0]; sigmaCRB=[0,0,0];
-            for k=1:length(seq)
-                pattern=obj.patterns(seq{k});
-                if pattern.type=="pattern"
-                    sh=obj.calculateCRB(seq{k},dim=pattern.dim);
-                    sigmaCRB(pattern.dim)=sh(pattern.dim);
-                    Lh=obj.locprec(mean(phot),pattern.L);
-                    lp(pattern.dim)=Lh;
+            if isfield(out.loc,'seq')
+                sunique=unique(out.loc.seq(ind));
+                phot=0;
+                photch=[];
+                for k=1:length(sunique) %sum over photons of different patterns
+                    indu=out.loc.seq==sunique(k);
+                    phot=phot+mean(out.loc.phot(ind&indu));
+                    photch=horzcat(photch,mean(photraw(ind&indu,:),1));
                 end
+                photch(photch==-1)=[];
+            else
+                photch=mean(photraw(ind,:),1);
+                phot=sum(photch);
             end
 
+            [sigmaCRB,sigmaCRB1, locprecL]=calculateCRB(obj,out,ind);
+
             st.photch=photch;
-            st.bg_photons=mean(out.bg_photons_gt(ind));
+            st.bg_photons_gt=mean(out.bg_photons_gt(ind));
             st.phot=mean(phot,'omitnan');
-            st.phot_signal= st.phot-st.bg_photons;    
+            st.phot_signal= st.phot-st.bg_photons_gt;    
             st.pos=mean(xest,1,'omitnan');
-            st.std=std(xest,[],1,'omitnan');
+            st.std=std(xest-flpos,[],1,'omitnan');
+            st.stdraw=std(xest,[],1,'omitnan');
             st.rmse=rmse(xest,flpos,1,'omitnan');
             
             st.bias=mean(xest-flpos,1,'omitnan');
-            st.locp=lp;
-            st.sCRB=sigmaCRB/sqrt(st.phot);
-            st.sCRB1=sigmaCRB;
+            st.locp=locprecL;
+            st.sCRB=sigmaCRB;%/sqrt(st.phot);
+            st.sCRB1=sigmaCRB1;
             st.duration=out.duration;
+            st.bg_photons_est=mean(out.bg_photons_est,'omitnan');
+
             
             if args.display
                 ff1='%1.1f,';
                 ff='%1.2f,';
+
+                if st.bg_photons_est ~=0
+                    bgtxt= ['bg_est: ', num2str(st.bg_photons_est,ff1)];
+                else
+                    bgtxt='';
+                end
+                if st.bg_photons_gt ~=0
+                    bgtxtg= ['bg_gt: ', num2str(st.bg_photons_gt,ff1)];
+                else
+                    bgtxtg='';
+                end
+                if isfield(out.loc,'efo')
+                    st.efo=mean(out.loc.efo);
+                    ratetxt=[' efo: ', num2str(st.efo,ff1)];
+                else
+                    st.photrate=mean(out.loc.photrate);
+                    ratetxt=[' photon rate: ', num2str(st.photrate,ff1)];
+                end
+
                 disp([ 'photch: ', num2str(st.photch,ff1),...
                     ' mean(phot): ', num2str(st.phot,ff1),...
+                    bgtxt, bgtxtg, ratetxt, ...
                     ' duration ms: ', num2str(st.duration,ff1)]) %, 'signal phot: ', num2str(st.phot_signal,ff1)
                 
                 disp(['std:  ', num2str(st.std,ff),...
                     ' rmse: ', num2str(st.rmse,ff),...
                     ' pos: ', num2str(st.pos,ff),...
                     ' bias: ', num2str(st.bias,ff)]);
-                disp(['locp: ', num2str(lp,ff),...
+                disp(['locp: ', num2str(locprecL,ff),...
                     ' sCRB: ', num2str(st.sCRB,ff),...
                     ' sCRB*sqrt(phot): ', num2str(st.sCRB1,ff1)])
             end
         end
         function so=scan_fov(obj,seq,xcoords,args)
+            % this function scans the coordinate of a fluorophore and runs
+            % a sequence for each position
             arguments
                 obj
-                seq
-                xcoords
-                args.maxlocs=1000;
-                args.repetitions=1;
-                args.display=true;
-                args.dimplot=1;
-                args.dimscan=1;
-                args.title="FoV scan";
-                args.fluorophorenumber=1;
-                args.ax1="std";
-                % args.ax2="bias";
-                args.clearfigure=true;
-                args.tag="";
+                seq %cell of keys of patterns, elements
+                xcoords % coordinates to scan
+                args.maxlocs=1000; %how often to localize in each position
+                args.repetitions=1; %repetitions in each position
+                args.display=true; % if to plot the results
+                args.dimplot=1; % which dimension is used to calculate statistics
+                args.dimscan=1; % which dimension is scanned 
+                args.title="FoV scan"; %title of the output figure
+                args.fluorophorenumber=1; % which fluorophore is scanned. Use 1 for a FoV scan, use 2 to test effect of close-by fluorophore
+                args.ax1="std"; % std, bias, rmse, sCRB, pos: what to displax in the figure, arrray of strings. 
+                args.clearfigure=false; % overwrite figure. if false: new plots are added
+                args.tag=""; %name of a plot, used in the figure legend
+                args.linestyle="";
             end
             args.ax1=string(args.ax1);
             % args.ax2=string(args.ax2);
@@ -522,7 +581,7 @@ classdef Simulator<handle
                 fl=obj.fluorophores;
             end
             coords=["x","y","z"];
-
+            posold=fl.pos(args.dimscan);
             for k=1:length(xcoords)
                 fl.pos(args.dimscan)=xcoords(k);
                 out=obj.runSequence(seq,maxlocs=args.maxlocs,repetitions=args.repetitions);
@@ -551,7 +610,7 @@ classdef Simulator<handle
                 ylab=coords(args.dimplot)+": ";
                 for m=1:length(args.ax1)
                     yval=so.(args.ax1(m));
-                    plot(xcoords,yval(:,args.dimplot))
+                    plot(xcoords,yval(:,args.dimplot),args.linestyle)
                     hold on
                     ylab=ylab+args.ax1(m);
                     if m<length(args.ax1)
@@ -559,6 +618,7 @@ classdef Simulator<handle
                     end
                 end
                 ylabel(ylab + " (nm)")
+                fl.pos(args.dimscan)=posold;
                 % hold off
     
                 % yyaxis right

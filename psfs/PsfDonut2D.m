@@ -10,7 +10,9 @@ classdef PsfDonut2D<Psf
             rs2=sum(r2,2)/fwhm^2;
             zerooffset=obj.zerooffset;
             % ioa=0.3*4*exp(1)*log(2)*rs2.*exp(-4*log(2)*rs2)+zerooffset;    %0.3: comparison with calculated PSF 
-            io=2.2610*rs2.*exp(-2.7726*rs2)+zerooffset;
+            % io=2.2610*rs2.*exp(-2.7726*rs2)+zerooffset;
+            % ioa=4*log(2)*rs2.*exp(-4*log(2)*rs2)+zerooffset;    %normalization by Gauss: factor 1/e 
+            io=2.7726*rs2.*exp(-2.7726*rs2)+zerooffset;
             if obj.sigmaz>0
                 phfac=obj.pinholezfac(flposrel);
                 io=io*phfac;

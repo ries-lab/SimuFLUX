@@ -25,7 +25,8 @@ for k=1:iter
         break
     end
 end    
-xest=max(min(xest,L),-L); %avoid crazy high numbers
+% xest=max(min(xest,L),-L); %avoid crazy high numbers
+xest(abs(xest)>L)=NaN;
 end
 
 function dro=it4o(p,xy,L)

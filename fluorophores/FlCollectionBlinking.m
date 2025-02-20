@@ -2,15 +2,12 @@ classdef FlCollectionBlinking<FlCollection
     properties
         flprop %.moving, isactive, nexton, nextoff, remaining_activations, startpos
         switchpar=struct('starton',-1,'tonsmlm',1e3,'toffsmlm',1e5,'photonbudget',1000,'activations',1e6,'brightness',1000) %starton, tonsmlm, toffsmlm, microseconds
-        % posstatic;
     end
     methods
         function [pos,isactive]=position(obj,time,props)
             flall=obj.flall;
             flprop=obj.flprop;
             isactive=flprop.isactive;
-            % fact=find(isactive);
-            % pos=zeros(length(fact),3);
             pos=zeros(length(flall),3);
             fmoving=find(flprop.moving);
 

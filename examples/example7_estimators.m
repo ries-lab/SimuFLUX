@@ -12,35 +12,42 @@ sim=Simulator(fluorophores=fl);
 
 numberOfLocalizations=100;
 L=75;
+orbitpoints=4;
+laserpower=100;
 xcoords=0:2:L;
 probecenter=true;
-sim.definePattern("donut", psf_vec, phasemask="vortex", makepattern="orbitscan", orbitpoints=4, ...
-    probecenter=probecenter,orbitL=L,laserpower=100)
+sim.definePattern("donut", psf_vec, phasemask="vortex", makepattern="orbitscan", orbitpoints=orbitpoints, ...
+    probecenter=probecenter,orbitL=L,laserpower=laserpower)
 % sim.calculateCRB("donut")
 % sim.calculateCRBscan("donut")
 
-ax1v="bias"; 
+ax1v="pos"; 
 %% no background, simple estimator
 sim.defineComponent("estdonut","estimator",@est_donut2d,parameters={sim.patterns("donut").pos,L,360},dim=1:2);
 seq={"donut","estdonut"};
 psf_vec.zerooffset=0;
 
-figure(270); statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,clearfigure=true,tag="simple est");
+figure(270); 
+tiledlayout("TileSpacing","tight"); nexttile; hold off 
+statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,clearfigure=true,tag="simple est");
 
 %iterative
-sim.defineComponent("estiter","estimator",@est_quad2Diter,parameters={L,probecenter,10},dim=1:2);
+sim.defineComponent("estiter","estimator",@est_quad2Diter,parameters={L,probecenter,30},dim=1:2);
 seq={"donut","estiter"};
 % sim.fluorophores.pos=[30 20 0];
 statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true, ax1=ax1v,clearfigure=false,tag="iterative est");
 % out=sim.runSequence(seq,maxlocs=1);
 % sim.summarize_results(out);
 
-
 % no background, direct estimator
 sim.defineComponent("estdirect","estimator",@est_quadraticdirect1D,parameters={L},dim=1);
 seq={"donut","estdirect"};
 hold off
-statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,clearfigure=false, tag="direct est");
+statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,clearfigure=false, tag="direct est",title="comparison of estimators");
+
+if ax1v=="pos"
+    plot([0 L],[0 L],'k--')
+end
 
 %% explore impact of background on estimator
 %no background
@@ -50,26 +57,31 @@ sim.background=0;
 sim.defineComponent("estdonut","estimator",@est_quad2Diter,parameters={L,probecenter},dim=1:2);
 seq={"donut","estdonut"};
 psf_vec.zerooffset=0;
-xcoords=0:5:50;
-figure(271); statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=["bias"],tag="no bg");
+% xcoords=0:5:50;
+nexttile; hold off
+statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,tag="no bg");
 % out=sim.runSequence(seq,maxlocs=1);
 % sim.summarize_results(out);
 
 %background, 
-sim.background=3000;
+sim.background=50;
 % xcoords=0:2:100;
-statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=["bias"],clearfigure=false,tag="bg");
+statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,clearfigure=false,tag="bg");
 
 %background subtracted,
-bgf=sim.patterns('donut').backgroundfac(1); %background used for simulation
-sim.background_estimated=sim.background*bgf; %in general, the GT background is not known but needs to be calibrated 
+% bgf=sim.patterns('donut').backgroundfac(1); %background used for simulation
+sim.background_estimated=sim.background*laserpower; %in general, the GT background is not known but needs to be calibrated 
+
 sim.defineComponent("estdonut","estimator",@est_quad2Diter,parameters={L,probecenter},dim=1:2);
 sim.defineComponent("bg","background",@backgroundsubtractor,parameters={"background_estimated"});
 seq={"donut","bg","estdonut"};
 psf_vec.zerooffset=0;
 % xcoords=0:2:100;
-figure(272); statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=["bias"],clearfigure=false,tag="bg est");
+statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,clearfigure=false,tag="bg est",title="estimator bias from background");
 
+if ax1v=="pos"
+    plot([0 L],[0 L],'k--')
+end
 
 % out=sim.runSequence(seq,maxlocs=1);
 % sim.summarize_results(out);

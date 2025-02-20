@@ -30,6 +30,8 @@ stats=sim.summarize_results(out);
 x=0:20:750;
 
 figure(260)
+tiledlayout(1,2,"TileSpacing","tight")
+nexttile
 sim.scan_fov(seq,x,dimplot=1,dimscan=1,fluorophorenumber=2,ax1=["std","rmse","sCRB","bias"],title="scan second fluorophore in x", tag="x");
 
 
@@ -37,7 +39,7 @@ sim.scan_fov(seq,x,dimplot=1,dimscan=1,fluorophorenumber=2,ax1=["std","rmse","sC
 % now z-dependence
 fl1.pos=[0 0 0]; fl2.pos=[100 0 0];
 z=0:50:1000;
-figure(261)
+nexttile
 sim.scan_fov(seq,z,dimplot=1,dimscan=3,fluorophorenumber=2,ax1=["std","rmse","sCRB","bias"],title="scan second fluorophore in z",tag="z");
 
 
@@ -47,7 +49,7 @@ sim.scan_fov(seq,z,dimplot=1,dimscan=3,fluorophorenumber=2,ax1=["std","rmse","sC
 if ~exist('sim','var') || ~isa(sim,"SimSequencefile")
     sim=SimSequencefile;
 else
-    sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;
+    sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;sim.background=0;
 end
 fname='Imaging_2D.json';
 sim.loadsequence(fname); %only sequence file, then simple gauss and donut PSFs are used (fast)
@@ -55,41 +57,50 @@ sim.loadsequence(fname); %only sequence file, then simple gauss and donut PSFs a
 sim.makescoutingpattern([-100 -100; 400 250 ]) %for imaging
 
 % make fake NPCs
-clear posnpc;
-R=50;dphi=pi/4;
-phi=0:dphi:2*pi-dphi; posnpc(:,1)=R*cos(phi); posnpc(:,2)= R*sin(phi);
 
 % make a fluorophore collection with blinking fluorophores
-fc=FlCollectionBlinking;
 
+
+photonbudget=[800, 5000];
+reactivations =[0 3];
+titles=["PALM","dSTORM"];
+
+for k=1:length(photonbudget)
+fc=FlCollectionBlinking;
 %set parameterst for caged fluorophore, PAFP or similar
 laserpower=5;
 switchpar.brightness=100*laserpower;
-switchpar.toffsmlm=3*1e3; %on-switching time in ms
-switchpar.photonbudget=5000;
-switchpar.tonsmlm=1e5; % ms stays on, only bleached
-switchpar.activations=5; %re activations
+switchpar.toffsmlm=10*1e3; %on-switching time in ms
+switchpar.photonbudget=photonbudget(k);
+switchpar.tonsmlm=1e8; % ms stays on, only bleached
+switchpar.activations=reactivations(k); %re activations
 switchpar.starton=0; %fluorophores start in random on / off state, determined by tonsmlm, toffsmlm
 fc.setpar(switchpar)
 
 %add fake NPCs
-fc.add(posnpc);
+fc.addstatic(makeNPC(pos=[0 0 0]));
 % add more NPCs at positions dpos
-dpos=[250 50 ]; fc.addstatic(posnpc+dpos);
-dpos=[50 150 ]; fc.addstatic(posnpc+dpos);
+fc.addstatic(makeNPC(pos=[250 50 0]));
+fc.addstatic(makeNPC(pos=[50 150 0]));
 
 sim.fluorophores=fc;
-out=sim.scoutingSequence(maxrep=1000);
+out=sim.scoutingSequence(maxrep=5000);
 
 %plot results
+
 vld=out.loc.vld==1 & out.loc.itr==max(out.loc.itr) ;
 vldcfr=vld & out.loc.cfr<0.1;
-figure(262); hold off;
+notvld=~vld & ~vldcfr;
+figure(262+k); hold off;
 plot(sim.scoutingcoordinates(:,1),sim.scoutingcoordinates(:,2),'k+')
 hold on
-plot(out.loc.xnm(vld),out.loc.ynm(vld),'r.')
+plot(out.loc.xnm(notvld),out.loc.ynm(notvld),'c.')
+plot(out.loc.xnm(vld),out.loc.ynm(vld),'m.')
 plot(out.loc.xnm(vldcfr),out.loc.ynm(vldcfr),'bx')
 posfl=squeeze(out.fluorophores.pos(end,:,:));
-plot(posfl(:,1),posfl(:,2),'mo')
+plot(posfl(:,1),posfl(:,2),'ro')
 axis equal
-legend('scouting','last itr vld','last itr vld +cfr', 'fluorophore')
+legend('scouting','not vld', 'last itr vld','last itr vld +cfr', 'fluorophore')
+title(titles(k))
+drawnow
+end

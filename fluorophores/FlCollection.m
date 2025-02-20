@@ -4,11 +4,24 @@
         numberOfFluorophores
     end
     methods
-        function add(obj,fllist)
+        function set(obj,fllist)
+            if ~iscell(fllist)
+                fllist={fllist};
+            end
             obj.flall=fllist;
             obj.numberOfFluorophores=length(fllist);
         end
-
+        function add(obj,fllist)
+            if ~iscell(fllist)
+                fllist={fllist};
+            end
+            if isempty(obj.flall)
+                obj.flall=fllist;
+            else
+            obj.flall(end+1:end+length(fllist))=fllist;
+            end
+            obj.numberOfFluorophores=length(obj.flall);
+        end
         function [pos,isactive]=position(obj,time,props)
             flall=obj.flall;
             % fact=find(isactive);

@@ -23,7 +23,7 @@ classdef Fluorophore<handle
                 brightness=obj.brightness;
             end
             
-            Io=(brightness)*I0*dwelltime.*phfac;
+            Io=(brightness)*I0*dwelltime;%.*phfac;
         end
         function ph=photons(obj,I0,varargin)
             ph=poissrnd(obj.intensity(I0,varargin{:}));

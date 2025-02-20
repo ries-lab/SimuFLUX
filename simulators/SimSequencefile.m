@@ -121,12 +121,13 @@ classdef SimSequencefile<Simulator
                     % repeat scanning until sufficient photons collected,
                     % or abort condition met
                     scanouth=obj.patternscan(itrname);
-                    % scanouth=obj.subtractbackground(scanouth);
+                    scanouth=backgroundsubtractor(scanouth,obj.background_estimated);
                     scanout=sumstruct(scanout,scanouth);
                     
                     
                     photsum=sum(scanout.phot);
                     photbg=scanout.bg_photons_gt;
+                    bgest=scanout.bgphot_est;
                     
                     if itrs(itr).ccrLimit>-1
                         probecenter=true;
@@ -193,9 +194,9 @@ classdef SimSequencefile<Simulator
                         
                         % orbittime=scanout.patterntotaltime/(1+probecenter*obj.sequence.ctrDwellFactor);
                         % out.loc.efo=out.loc.eco/(orbittime)*1e6;
-                        out.loc.efo=out.loc.eco/(sum(scanout.par.pattern.pointdwelltime(1:end-1)))*1e6;
+                        out.loc.efo=out.loc.eco/(sum(scanout.par.pattern.pointdwelltime(1:end-1)));
                         % out.loc.efc=out.loc.ecc/(scanout.patterntotaltime-orbittime)*1e6;
-                        out.loc.efc=out.loc.ecc/(scanout.par.pattern.pointdwelltime(end))*1e6;
+                        out.loc.efc=out.loc.ecc/(scanout.par.pattern.pointdwelltime(end));
                     else
                         out.loc.eco(loccounter,1)=sum(scanout.phot);
                         out.loc.efo=out.loc.eco/(sum(scanout.par.pattern.pointdwelltime));
@@ -220,7 +221,8 @@ classdef SimSequencefile<Simulator
                     out.raw(loccounter,1:length(scanout.phot))=scanout.phot;
                     out.fluorophores.pos(loccounter,1:size(scanout.flpos,1),:)=scanout.flpos/scanout.counter;
                     out.fluorophores.int(loccounter,1:size(scanout.flpos,1))=scanout.flint;
-                    out.bg_photons_gt(loccounter)=photbg; 
+                    out.bg_photons_gt(loccounter,1)=photbg; 
+                    out.bg_photons_est(loccounter,1)=sum(bgest);
                     
                     loccounter=loccounter+1;
                     if isempty(par{itr})
@@ -235,11 +237,12 @@ classdef SimSequencefile<Simulator
                 numitr=numitr+1;
             end
             if ~isempty(out)
-                out.sequence="itr"+max(out.loc.itr);
+                out.sequence={"itr"+max(out.loc.itr)};
+                out.duration=obj.time-starttime;
                 out.par=par;
             end
             obj.time=obj.time+deadtimes.localization;
-            out.duration=obj.time-starttime;
+            
         end
         function out=runSequence(obj,args)
             arguments
@@ -257,7 +260,9 @@ classdef SimSequencefile<Simulator
                 out2=obj.runSequenceintern;
                 out=obj.appendout(out,out2);
             end
-            out.duration=obj.time-starttime;
+            if ~isempty(out)
+                out.duration=obj.time-starttime;
+            end
         end
         function makescoutingpattern(obj,fov,args)
             %fov=[x,y;x2,y2]
@@ -312,7 +317,9 @@ classdef SimSequencefile<Simulator
                     break
                 end
             end
-            out.duration=obj.time-timestart;
+            if ~isempty(out)
+                out.duration=obj.time-timestart;
+            end
         end
         % function displayresults(obj)
         %     keys=obj.patterns.keys;
@@ -336,9 +343,7 @@ classdef SimSequencefile<Simulator
             xen={"xeod","yeod","zeod"};
             
             if isempty(args.axis)
-                if isempty(args.figure)
-                    f=figure;
-                else
+                if ~isempty(args.figure)
                     f=figure(args.figure);
                 end
                 ax=gca;
@@ -355,14 +360,16 @@ classdef SimSequencefile<Simulator
             end
             c=args.coordinate;
             hold(ax,'off')
-            plot(ax,xv, out.loc.(xnmn{c}));
+            plot(ax,xv, out.loc.(xnmn{c}),'k');
             hold(ax,"on")
-            plot(ax,xv,out.loc.(xfln{c}));
-            plot(ax,xv,out.loc.(xgn{c}))
-            plot(ax,xv,out.loc.(xen{c}))
+            plot(ax,xv,out.loc.(xfln{c}),'r');
+            
+            plot(ax,xv,out.loc.(xgn{c}),"Color",[0 0.7 0])
+            plot(ax,xv,out.loc.(xen{c}),'b')
+            
             xlabel(ax,xtxt)
             ylabel(ax,'x position(nm)')
-            legend(ax,'estimated', 'fluorophore','xgalvo','EOD')
+            legend(ax,'Estimated','Fluorophore','Galvo','EOD')
 
         end
         % function so=subtractbackground(obj,si)

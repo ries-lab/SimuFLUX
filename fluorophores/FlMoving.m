@@ -19,11 +19,6 @@ classdef FlMoving<Fluorophore
             posout=[0 0 0];
             posmode=obj.posmode;
             switch posmode
-                case 'function'
-                    posfunction=obj.posfunction;
-                    for k=length(posfunction):-1:1
-                        posh(k)=posfunction{k}(time);
-                    end
                 case 'static'
                     posh=obj.pos;
                 case {'trace','diffusion','steps'}
@@ -46,6 +41,13 @@ classdef FlMoving<Fluorophore
                     end
                 posh=pos(posind,2:end);
                 obj.posind=posind;
+                case 'function'
+                    posfunction=obj.posfunction;
+                    for k=length(posfunction):-1:1
+                        posh(k)=posfunction{k}(time);
+                    end
+                otherwise 
+                    disp("posmode: "+posmode+" not implemented")
             end
             posout(1:length(posh))=posh;
         end
@@ -70,9 +72,10 @@ classdef FlMoving<Fluorophore
                 if numel(args.boundarybox)==1
                     args.boundarybox=args.boundarybox.*ones(1,args.dim);
                 end
-                pos2=pos+args.boundarybox;
-                pos3=mod(pos2,2*args.boundarybox);
-                pos=pos3-args.boundarybox;
+                boundaryboxpos=args.boundarybox/2;
+                pos2=pos+boundaryboxpos;
+                pos3=mod(pos2,2*boundaryboxpos);
+                pos=pos3-boundaryboxpos;
             end
 
             obj.pos=horzcat(time',pos);
@@ -86,7 +89,7 @@ classdef FlMoving<Fluorophore
                 dt %ms
                 args.startpos=[0 0 0]
                 args.dim=2;
-                args.numpoints=1000;
+                args.numpoints=10000;
                 args.angle=0;
             end
             obj.posparameters={stepsize,dwelltime,dt,args};
