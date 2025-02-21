@@ -1,5 +1,5 @@
 %% Vectorial PSF
-addpath(genpath(fileparts(fileparts(mfilename('fullpath'))))); %add all folders to serach path
+% addpath(genpath(fileparts(fileparts(mfilename('fullpath'))))); %add all folders to serach path
 
 fl=FlStatic(brightness=1000); %define a static fluorophore
 fl.pos=[10 0 0];
