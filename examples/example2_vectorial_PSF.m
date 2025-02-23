@@ -1,12 +1,12 @@
 %% Vectorial PSF
-% addpath(genpath(fileparts(fileparts(mfilename('fullpath'))))); %add all folders to serach path
+addpath(genpath(fileparts(fileparts(mfilename('fullpath'))))); %add all folders to serach path
 
 fl=FlStatic(brightness=1000); %define a static fluorophore
 fl.pos=[10 0 0];
 
-% if ~exist("psf_vec","var") %if PSF is already defined, we need not recalculate it if no parameters are changed
+if ~exist("psf_vec","var") %if PSF is already defined, we need not recalculate it if no parameters are changed
     psf_vec=PsfVectorial; %simple 2D donut PSF
-% end
+end
 psf_vec.zerooffset=0.000; %true zero
 
 sim=Simulator(fluorophores=fl); %make a simulator and attach fluorophore

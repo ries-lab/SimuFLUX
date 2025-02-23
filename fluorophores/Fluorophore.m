@@ -17,11 +17,11 @@ classdef Fluorophore<handle
             obj.brightness=args.brightness;
         end
         function Io=intensity(obj,I0,dwelltime, time,phfac,props)
-            if nargin>=6 && ~isempty(props) %for performance: avoid property access
-                brightness=props.brightness;
-            else
+            % if nargin>=6 && ~isempty(props) %for performance: avoid property access
+                % brightness=props.brightness;
+            % else
                 brightness=obj.brightness;
-            end
+            % end
             
             Io=(brightness)*I0*dwelltime;%.*phfac;
         end
