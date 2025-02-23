@@ -10,7 +10,7 @@ fl.brightness=10000; %very bright to look at bias
 fl.pos=[20 0 0];
 sim=Simulator(fluorophores=fl);
 
-numberOfLocalizations=100;
+numberOfLocalizations=1000;
 L=75;
 orbitpoints=4;
 laserpower=100;
@@ -43,7 +43,13 @@ statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,
 sim.defineComponent("estdirect","estimator",@est_quadraticdirect1D,parameters={L},dim=1);
 seq={"donut","estdirect"};
 hold off
-statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,clearfigure=false, tag="direct est",title="comparison of estimators");
+statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,clearfigure=false, tag="direct lsq",title="comparison of estimators");
+
+
+sim.defineComponent("estimator2p","estimator",@est_quadraticdirectnobg1D,parameters={L,probecenter},dim=1);
+seq={"donut","estimator2p"};
+statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,clearfigure=false,tag="direct eq");
+
 
 if ax1v=="pos"
     plot([0 L],[0 L],'k--')
