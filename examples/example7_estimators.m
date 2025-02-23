@@ -14,7 +14,7 @@ numberOfLocalizations=1000;
 L=75;
 orbitpoints=4;
 laserpower=100;
-xcoords=0:2:L;
+xcoords=0:2:L*0.75;
 probecenter=true;
 sim.definePattern("donut", psf_vec, phasemask="vortex", makepattern="orbitscan", orbitpoints=orbitpoints, ...
     probecenter=probecenter,orbitL=L,laserpower=laserpower)
@@ -54,6 +54,7 @@ statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,
 if ax1v=="pos"
     plot([0 L],[0 L],'k--')
 end
+ax=gca; ax.YLim(1)=0;
 
 %% explore impact of background on estimator
 %no background
