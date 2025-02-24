@@ -12,7 +12,8 @@ classdef PsfVectorial<Psf
         function obj=PsfVectorial(varargin)
             obj@Psf(varargin{:});
             addpath([fileparts(mfilename('fullpath')) '/PSF_simulation/library']);
-            obj.parameters=obj.loadparameters('/settings/defaultsystemparameters_vectorialPSF.m');
+            % obj.parameters=obj.loadparameters('settings/defaultsystemparameters_vectorialPSF.m');
+            obj.parameters=obj.loadparameters('settings/default_microscope.yaml');
         end
         function setpar(obj,varargin)
             if nargin >2 %structure passed on
@@ -97,15 +98,10 @@ classdef PsfVectorial<Psf
 
             opt=obj.parameters.opt;
             out=obj.parameters.addpar;
-             sys=obj.parameters.sys;
-            % interpolant:
-            % nx=(-opt.radiusCanvas:out.dr:opt.radiusCanvas)*1e9; %to nm
-            % nz=(-opt.depthCanvas:out.dz:opt.depthCanvas)*1e9; %to nm
-            % [X,Y,Z] = ndgrid(nx,nx,nz);
-            
+            sys=obj.parameters.sys;
            
             % sigma from wavelength, NA
-            fwhm=0.51*sys.loem/sys.NA*1e9;
+            fwhm=0.51*sys.lo/sys.NA*1e9;
             obj.sigma=fwhm/2.35;
             
             if isempty(obj.normfactgauss)
@@ -227,7 +223,6 @@ classdef PsfVectorial<Psf
             circpsf=double((X).^2+(Y).^2+(Z).^2<=R^2);
             circpsf=circpsf/sum(circpsf(:));
             psfo=convnfft(psf,circpsf);
-            % psfo=ifftshift(ifftshift(ifftshift(psfo,1),2),3); %inconsitent use of fftshift, but ok because bead is symmetric
         end
         function setpinhole(obj, args)
             arguments
@@ -297,13 +292,41 @@ classdef PsfVectorial<Psf
                     end
                     [sys,opt,out]=eval(fname);
                     [sys2,out]=effInit_oil_exc(sys,out,opt);
-                    sys=copyfields(sys,sys2);
+                    sys=copyfields(sys2,sys); %XXX rather sys2,sys to overwrite default
                     par.sys=sys;
                     par.opt=opt;
                     par.addpar=out;
                 case '.json'
                     disp('json not implemented yet')
+                    par=[];
+                    return
+                case '.yaml'
+                    basedir=fileparts(fileparts(mfilename('fullpath')));
+                    parin=readyaml([basedir filesep filen]);
+                    % if another file is loaded (maybe with only some of
+                    % the parameters) the default should not be
+                    % overwritten:
+                    % [sys2,out]=effInit_oil_exc(parin.sys,[],parin.opt);
+                    % parin.sys=copyfields(parin.sys,sys2); 
+                    if ~isempty(obj.parameters)
+                        if isfield(parin,'sys')
+                            par.sys=copyfields(obj.parameters.sys,parin.sys);
+                        end
+                        if isfield(parin,'opt')
+                            par.opt=copyfields(obj.parameters.opt,parin.opt);
+                        end
+                        if isfield(parin,'addpar')
+                            par.addpar=copyfields(obj.parameters.addpar,parin.addpar);
+                        end
+                    else
+                        par=parin;
+                    end
             end
+            if ~isfield(par,'addpar')
+                par.addpar.dr = par.opt.pixSize;
+                par.addpar.dz = par.opt.pixSize;
+            end
+            obj.parameters=par;
         end
         % function out=fwhm(obj)
         %      out=obj.sigma*2.35*1.2; %comes from comparison with simple donut
@@ -319,7 +342,7 @@ classdef PsfVectorial<Psf
                 nx=1:spsf(1);nx=nx-mean(nx);nx=nx*px;
                 ny=1:spsf(2);ny=ny-mean(ny);ny=ny*px;
                 nz=1:spsf(3);nz=nz-mean(nz);nz=nz*pz;
-                [X,Y,Z] = ndgrid(nx,nx,nz);
+                [X,Y,Z] = ndgrid(nx,ny,nz);
                 intmethod='cubic'; %linear,cubic?
                 PSFexp = griddedInterpolant(X,Y,Z,PSFvol,intmethod);              
                 obj.PSFs(key+"0")=PSFexp;

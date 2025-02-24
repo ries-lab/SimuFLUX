@@ -1,0 +1,55 @@
+opt:
+  Ef: 0                  # Display Ef during the calculation
+  Et: 0                  # Display Et during the calculation
+  calbar: 0              # Display calculation progress bar
+  depthCanvas: 8.0e-07   # Axial range [m]
+  intImage: false
+  mem: 50000
+  phaseImage: false      # Show the phase image at the back focal plane
+  pixSize: 1.0e-08       # A pixel size of 5e-9 is recommended for fine calculation [m]
+  polAngle: 0            # Linear polarization angle
+  radiusCanvas: 7.0e-07  # Lateral range [m]
+sys:
+  Da: 0.0065             # Aperture diameter [m]
+  Ei:                    # List of field functions to apply
+  - gauss
+  - circular
+  Mt: 100                # Transversal magnification
+  NA: 1.35               # Numerical aperture
+  Na: 200                # Samples across aperture
+  Po: 1.0e-05            # Laser power [W]
+  W:
+    coma: 0
+  Wr:                    # Wavefront aberrations [wavelengths at aperture edge]
+    astig: 0             # Aberrated wavefront (Seidel coefficients).
+    defoc: 0
+    dist: 0
+    spher: 0
+    tiltx: 0
+    tilty: 0
+  beadradius: 0          # convolution with bead [m]
+  eff:                   # Effective situation
+    hl: 1.0e-06          # Thickness of the layers [m]
+    nl: 1.4              # Refraction indices of the layers
+  ref:                   # Reference/design situation
+    hl: 0                # Thickness of the layers [m]
+    nl: 1.518            # Refraction indices of the layers
+  ft: 0.25               # Tube length [m]
+  intImage: false
+  lo: 6.35e-07           # Wavelength in free space [m]
+  loem: 7.0e-07
+  nl: 1.518              # Refraction index of the lens
+  nm: 1.406              # Refraction index of the immersion
+  ns: 1.406              # Refraction index of the sample
+  wa: 0.007              # Beam waist at aperture [m]
+  ox: 0                  # Lateral offset(s) [m]
+  oy: 0                  # Lateral offset(s) [m]
+  maskshift: [0, 0]            # Shift of the phase mask in back aperature of the lens (relative, 0 to 1)
+  phaseImage: false
+  pl: 0                  #  Angle of the linear polarization.
+  rx: 7.0e-07            # Region half axes [m]
+  ry: 7.0e-07            # Region half axes [m]
+  rz: 8.0e-07            # Axial range [m]
+  xo: 0                  # Region center [m]
+  yo: 0
+  zo: 0

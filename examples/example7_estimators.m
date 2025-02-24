@@ -10,11 +10,11 @@ fl.brightness=10000; %very bright to look at bias
 fl.pos=[20 0 0];
 sim=Simulator(fluorophores=fl);
 
-numberOfLocalizations=100;
+numberOfLocalizations=1000;
 L=75;
 orbitpoints=4;
 laserpower=100;
-xcoords=0:2:L;
+xcoords=0:2:L*0.75;
 probecenter=true;
 sim.definePattern("donut", psf_vec, phasemask="vortex", makepattern="orbitscan", orbitpoints=orbitpoints, ...
     probecenter=probecenter,orbitL=L,laserpower=laserpower)
@@ -43,16 +43,23 @@ statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,
 sim.defineComponent("estdirect","estimator",@est_quadraticdirect1D,parameters={L},dim=1);
 seq={"donut","estdirect"};
 hold off
-statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,clearfigure=false, tag="direct est",title="comparison of estimators");
+statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,clearfigure=false, tag="direct lsq",title="comparison of estimators");
+
+
+sim.defineComponent("estimator2p","estimator",@est_quadraticdirectnobg1D,parameters={L,probecenter},dim=1);
+seq={"donut","estimator2p"};
+statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,clearfigure=false,tag="direct eq");
+
 
 if ax1v=="pos"
     plot([0 L],[0 L],'k--')
 end
+ax=gca; ax.YLim(1)=0;
 
 %% explore impact of background on estimator
 %no background
 fl.brightness=1000;
-fl.pos=[30 0 0];
+fl.pos=[30 30 0];
 sim.background=0;
 sim.defineComponent("estdonut","estimator",@est_quad2Diter,parameters={L,probecenter},dim=1:2);
 seq={"donut","estdonut"};
@@ -72,12 +79,19 @@ statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,
 % bgf=sim.patterns('donut').backgroundfac(1); %background used for simulation
 sim.background_estimated=sim.background*laserpower; %in general, the GT background is not known but needs to be calibrated 
 
-sim.defineComponent("estdonut","estimator",@est_quad2Diter,parameters={L,probecenter},dim=1:2);
+%sim.defineComponent("estdonut","estimator",@est_quad2Diter,parameters={L,probecenter},dim=1:2);
 sim.defineComponent("bg","background",@backgroundsubtractor,parameters={"background_estimated"});
 seq={"donut","bg","estdonut"};
 psf_vec.zerooffset=0;
 % xcoords=0:2:100;
 statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,clearfigure=false,tag="bg est",title="estimator bias from background");
+
+
+sim.defineComponent("estimatorbg","estimator",@est_quadraticdirectbg1D,parameters={L},dim=1);
+seq={"donut","estimatorbg"};
+statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,clearfigure=false,tag="bg fit par",title="estimator bias from background");
+
+
 
 if ax1v=="pos"
     plot([0 L],[0 L],'k--')
