@@ -16,7 +16,8 @@ def est_quad2Diter(photonsi, L, probecenter=None, iter=15, eps=0.1):
         xest = itfun(pi, xest, L)
         if np.sum((xest - xo)**2) < eps**2:
             break
-    xest = np.clip(xest, -L, L) # avoid crazy high numbers
+    # xest = np.clip(xest, -L, L) # avoid crazy high numbers
+    xest[np.abs(xest)>L] = np.nan
     return xest
 
 def it4o(p, xy, L):

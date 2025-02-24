@@ -13,12 +13,12 @@ class Fluorophore:
         self.allbleached = False
     
     def intensity(self, I0, dwelltime, time, phfac, props=None):
-        if props is not None:  # For performance: avoid property access
-            brightness = props.brightness
-        else:
-            brightness = self.brightness
+        # if props is not None:  # For performance: avoid property access
+        #     brightness = props.brightness
+        # else:
+        brightness = self.brightness
         
-        return brightness * I0 * dwelltime * phfac
+        return brightness * I0 * dwelltime #* phfac
     
     def photons(self, I0, *args):
         return np.random.poisson(self.intensity(I0, *args))

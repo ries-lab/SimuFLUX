@@ -14,7 +14,8 @@ class PsfDonut2D(Psf):
         fwhm=self.fwhm
         rs2=np.sum(r2,1)/fwhm**2
         zerooffset=self.zerooffset
-        io=2.2610*rs2*np.exp(-2.7726*rs2)+zerooffset
+        # io=2.2610*rs2*np.exp(-2.7726*rs2)+zerooffset
+        io = 2.7726*rs2*np.exp(-2.7726*rs2) + zerooffset
         if self.sigmaz>0:
             phfac=self.pinholezfac(flposrel)
             io=io*phfac

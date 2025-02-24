@@ -175,3 +175,5 @@ cython_debug/
 
 # FFTW wisdom
 *.pkl
+
+.DS_Store

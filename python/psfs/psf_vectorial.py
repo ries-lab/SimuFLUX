@@ -1,23 +1,63 @@
-"""
-Copyright (c) 2022      Ries Lab, EMBL, Heidelberg, Germany
-All rights reserved     
 
-@author: Sheng Liu, Jonas Hellgoth
-"""
 # import time
-from dataclasses import dataclass, field
+import os
+import pathlib
+from dataclasses import dataclass
 
 # import tensorflow as tf
 import numpy as np
 from scipy.interpolate import RegularGridInterpolator
+from scipy.ndimage import convolve
 
-from .psf import Psf, Parameters
-from ..tools import utilities as im
+from .psf import Psf
+from .library import effField, effIntensity
 
 @dataclass
-class System:
-    Zr: np.typing.ArrayLike = field(default_factory=lambda: np.zeros(2,3))
-    maskshift: list = None
+class PSFStruct:
+    normalization : float = None
+    interp : callable = None
+
+def addzernikeaberrations(sys, addpar):
+    if 'Zr' in sys and sys['Zr']:
+        sys['Ei'].append('zernike')
+    elif 'Zr' in addpar and addpar['Zr']:
+        sys['Ei'].append('zernike')
+        sys['Zr'] = addpar['Zr']
+    return sys
+
+def normpsf(psf):
+    return psf, np.max(psf)
+
+def range4PSF(psf,dr,dz):
+    nx = (np.arange(psf.shape[0]) - (psf.shape[0]+1)/2)*dr*1e9
+    nz = (np.arange(psf.shape[2]) - (psf.shape[2]+1)/2)*dz*1e9
+    
+    return nx, nx, nz
+
+def meshgrid4PSF(psf,dr,dz):
+    nx, nz = range4PSF(psf,dr,dz)
+    X, Y, Z = np.meshgrid(nx, nx, nz)
+    
+    return X, Y, Z
+
+def genkey(phasepattern, Lxs=None):
+    if Lxs is None:
+        return f"{phasepattern}"
+    
+    try:
+        if isinstance(Lxs[0], (int, float)):
+            Lx = Lxs
+            Lxs = Lx.astype(str)
+        else:
+            Lx = Lxs.astype(float)
+    except TypeError:
+        if isinstance(Lxs, (int, float)):
+            Lx = [Lxs]
+            Lxs = [str(x) for x in Lx]
+        else:
+            Lx = [float(Lxs)]
+    return f"{phasepattern}" + "".join([str(x) for x in Lxs])
+
 class PsfVectorial(Psf):
     """
     PSF class that uses a 3D volume to describe the PSF.
@@ -25,121 +65,195 @@ class PsfVectorial(Psf):
     """
     def __init__(self, parameters=None) -> None:
         super().__init__()
+        
         if parameters is None:
-            self.parameters = Parameters()
+            import yaml
+
+            base_path = pathlib.Path(__file__).parent.parent
+            param_path = os.path.join(base_path, 'settings/default_microscope.yaml')
+
+            with open(param_path, 'r') as fn:
+                self.parameters = yaml.load(fn, Loader=yaml.FullLoader)
         else:
             self.parameters = parameters
-        self.Zphase = None
-        self.zT = None
-        self.options = self.parameters.option
-        self.initpupil = None
-        self.defocus = np.float32(0)
-        self.psftype = 'vector'
-        self.psfs = {}
-        self.psfph = None
-    
+        self.PSFs = {}
+        self.PSFph = None
+        self.normfactgauss = None
+        self.pinholepar = None
+        self.sigma = 310/2.355
+        self.fwhm = 310
+
+    def setpar(self, **kwargs):
+        # overwrite any of the parameter fields if they exist
+        intersection_keys = list(self.parameters.keys() & kwargs.keys())
+
+        for key in intersection_keys:
+            self.parameters[key].update(kwargs[key])
+
+        # otherwise add to addpar
+        exclusive_keys = list(set(kwargs.keys()) - set(self.parameters.keys()))
+        if len(exclusive_keys) > 0:
+            self.parameters['addpar'] = {}
+            for key in exclusive_keys:
+                self.parameters['addpar'][key] = kwargs[key]
+
+        if len(intersection_keys) > 0:
+            # recalculate
+            self.PSFs = {}
+            self.normfactgauss = None
+            if self.pinholepar is not None:
+                self.setpinhole(**self.pinholepar)
+
     def intensity(self, flpos, patternpos, phasepattern, L=None):
-        key = str(phasepattern)
-        if L is not None:
-            key = f"{phasepattern}{L}"
+        key = genkey(phasepattern, L)
 
         try:
-            psfint = self.psfs[key]
+            psfint = self.PSFs[key]
         except KeyError:
-            psfint = self.calculate_psf(key, phasepattern=phasepattern, Lxs=L)
+            key = self.calculatePSFs(phasepattern, L)
+            psfint = self.PSFs[key]
 
-        phkey=self.psfph
-        flposrel=flpos-patternpos
-        # iexc=psfint.interp(flposrel) + self.zerooffset
-        iexc=psfint(flposrel) + self.zerooffset
-        iexc=np.maximum(iexc,0)
+        flposrel = flpos - patternpos
+        iexc = psfint.interp(flposrel) + self.zerooffset
+        iexc = np.maximum(iexc,0)
         try:
-            psfph=self.psfs[phkey]
-            # phfac=psfph.interp(flpos)
-            phfac=psfph(flpos)
+            phfac = self.PSFs[self.PSFph].interp(flpos)
         except KeyError:
-            phfac=np.ones(iexc.shape)
+            phfac = np.ones(iexc.shape)
         idet = iexc * phfac
 
         return idet, phfac
-
-    def genpsfmodel(self,sigma,pupil,addbead=False):
-        phiz = np.exp(-1j*2*np.pi*self.kz*(self.Zrange+self.defocus))
-        if self.psftype == 'vector':
-            I_res = np.zeros((phiz.shape[0], self.paramxy[2].shape[0], self.paramxy[2].shape[1]), dtype=np.float32)
-            PupilFunction = phiz[None,...]*pupil[None,None,...]*self.dipole_field[:,None,...]
-            for h in range(self.dipole_field.shape[0]):
-                # start = time.time()
-                psfA = im.cztfunc1(PupilFunction[h,...],self.paramxy)
-                # stop = time.time()
-                # duration = stop-start
-                # print(f"psfA calculation took {duration:.2f} s. Dtype is {psfA.dtype}")
-                I_res += (psfA*np.conj(psfA)).real*self.normf
-            # print(f"I_res shape {I_res.shape} dtype: {I_res.dtype}")
-        else:
-            PupilFunction = pupil*phiz
-            I_res = im.cztfunc1(PupilFunction,self.paramxy)      
-            I_res = (I_res*np.conj(I_res)).real*self.normf
-
-        # I_res = I_res/np.max(I_res)#*self.normf
-
-        # filter2 = np.exp(-2*sigma[1]*sigma[1]*self.kspace_x-2*sigma[0]*sigma[0]*self.kspace_y)
-        # filter2 = filter2/np.max(filter2) + 0.0j
-        # if addbead:
-        #     I_blur = np.real(im.ifft3d(im.fft3d(I_res)*filter2*self.bead_kernel))
-        # else:
-        #     I_blur = np.real(im.ifft3d(im.fft3d(I_res)*filter2))
-        # I_blur = np.expand_dims(I_blur,axis=-1)
-        
-        # bin = self.options.model.bin
-        # kernel = np.ones((bin,bin,1,1),dtype=np.float32)
-        # # kernel = np.ones((1,bin,bin,1),dtype=np.float32)
-        # # I_modeltf = tf.nn.convolution(I_blur,kernel,strides=(1,bin,bin,1),padding='SAME',data_format='NHWC')
-        # I_model = im.convolve(I_blur, kernel, bin)
-
-        # # np.testing.assert_allclose(I_modeltf, I_model)
-
-        # return I_model[...,0]
-        return I_res
     
-    def calculate_psf(self, key, phasepattern=None, Lxs=None, force=False):
-        if not force:
-            try:
-                return self.psfs[key]
-            except KeyError:
-                pass
+    def calculatePSFs(self, phasepattern, Lxs=None, forcecalculation=False):
+        # print(phasepattern)
+        key = genkey(phasepattern, Lxs)
+
+        if key in self.PSFs and not forcecalculation:
+            return key
         
-        # Apply phasepattern to pupil
-        if phasepattern == 'vortex':
-            self.calpupilfield(fieldtype=self.psftype,mask="phaseramp")
-                            #    polarization="circular",
-            # self.phase_ramp()
-            # self.circular_polarization()
+        intmethod = 'cubic' # linear,cubic?
+        bounds_error = False
+        extraolation_method = None  # If None, extrapolate
+        
+        print(key, ", ", end="")
+
+        opt = self.parameters['opt']
+        out = self.parameters['addpar']
+        sys = self.parameters['sys']
+
+        fwhm = 0.51*sys['loem']/sys['NA']*1e9
+        self.sigma = fwhm/2.35
+
+        if self.normfactgauss is None:
+            sys['Ei'] = ['circular']
+            outc = effField(sys, out, opt)
+            outc = effIntensity(sys, outc)
+            zmid=int(np.ceil(outc['I'].shape[2]/2))
+            self.normfactgauss=np.max(np.max(outc['I'][...,zmid]))  # normalized to max =1
+
+        if phasepattern == "flat":
+            sys['Ei'] = ['circular']
+            sys = addzernikeaberrations(sys,out)
+            out = effField(sys, out, opt)
+            out = effIntensity(sys,out)
+            PSF = out['I'].squeeze()/self.normfactgauss
+            PSF = self.beadsize(PSF, sys['beadradius'])
+            PSFdonut = PSFStruct()
+            PSF, PSFdonut.normalization = normpsf(PSF)
+            xx, yy, zz = range4PSF(PSF,out['dr'],out['dz'])
+            PSFdonut.interp = RegularGridInterpolator((xx, yy, zz), 
+                                                       PSF, 
+                                                       method = intmethod, 
+                                                       bounds_error = bounds_error,
+                                                       fill_value = extraolation_method)
+            self.PSFs[key] = PSFdonut
+        elif phasepattern == "vortex":
+            sys['Ei'] = ['phaseramp', 'circular']
+            sys = addzernikeaberrations(sys, out)
+            out = effField(sys, out, opt)       
+            out = effIntensity(sys, out)
+            PSF = out['I'].squeeze()/self.normfactgauss
+            PSF = self.beadsize(PSF, sys['beadradius'])
+            PSFdonut = PSFStruct()
+            PSF, PSFdonut.normalization = normpsf(PSF)
+            xx, yy, zz = range4PSF(PSF,out['dr'],out['dz'])
+            # print(xx.shape, yy.shape, zz.shape, PSF.shape, PSF.dtype, np.sum(np.isnan(PSF)))
+            PSFdonut.interp = RegularGridInterpolator((xx, yy, zz), 
+                                                      PSF, 
+                                                      method = intmethod, 
+                                                      bounds_error = bounds_error,
+                                                      fill_value = extraolation_method)
+            self.PSFs[key] = PSFdonut
         else:
-            self.calpupilfield(fieldtype=self.psftype)
+            raise UserWarning(f"{phasepattern} PSF name not defined.")
+        
+        return key
 
-        # Calculate PSF
-        sigma = np.ones((len(self.parameters.roi.roi_size),))*self.options.model.blur_sigma*np.pi
-        I_model = self.genpsfmodel(sigma, self.pupil)
-        I_model = I_model/np.max(I_model[I_model.shape[0]//2,...])  # Normalize
-        xy = (np.arange(I_model.shape[-1])-I_model.shape[-1]//2)*self.parameters.pixelsize_x*1000  # nm
-        z = (np.arange(I_model.shape[0])-I_model.shape[0]//2)*self.parameters.pixelsize_z*1000     # nm
-        # X, Y, Z = np.meshgrid(xy,xy,z)
-        # self.psfs[key] = GriddedInterpolant(xy,xy,z,I_model)
-        # print("Interp shapes", xy.shape, z.shape, I_model.shape)
-        self.psfs[key] = RegularGridInterpolator((xy,xy,z), I_model.T, method='cubic')
 
-        return self.psfs[key]
+    def beadsize(self, psf, R):
+        if R == 0:
+            return psf
+        
+        dr = self.parameters['addpar']['dr']
+        dz = self.parameters['addpar']['dz']
+        
+        nx = np.arange(1, psf.shape[0] + 1)
+        nx = (nx - np.mean(nx)) * dr
+        
+        ny = np.arange(1, psf.shape[1] + 1)
+        ny = (ny - np.mean(ny)) * dr
+        
+        nz = np.arange(1, psf.shape[2] + 1)
+        nz = (nz - np.mean(nz)) * dz
+        
+        X, Y, Z = np.meshgrid(nx, ny, nz, indexing='ij')
+        circpsf = (X**2 + Y**2 + Z**2 <= R**2).astype(float)
+        circpsf /= np.sum(circpsf)
+        
+        psfo = convolve(psf, circpsf, mode='constant')
+        
+        return psfo
+    
+    def setpinhole(self, lambda_nm=600, AU=1, diameter=None, offset=[0,0]):
+        """
+        Sets the pinhole size based on given parameters.
 
-    def imagestack(self, key):
-        try:
-            psf = self.psfs[key]
-        except KeyError:
-            psf = self.calculate_psf(key)
+        Parameters
+        ----------
+        lambda_nm (float): Wavelength in nm (default: 600 nm)
+        AU (float): Airy unit scaling factor (default: 1)
+        diameter (float or None): Pinhole diameter in nm (default: computed if None)
+        NA (float): Numerical aperture (default: 1.5)
+        refractive_index (float): Medium refractive index (default: 1.5)
+        """
+        if len(offset) != 2:
+            raise ValueError('PSF_vectorial.setpinhole: offset needs to have two entries [x,y]')
+        # Compute diameter if not provided
+        if diameter is None:
+            diameter = np.round(AU*1.22*self.parameters['sys']['loem']*1e9/self.parameters['sys']['NA'])
 
-        return psf.values
+        phdefined = self.PSFph is not None and self.pinholepar is not None
+        notchanged = phdefined and (diameter == self.pinholepar['diameter']) and all(offset == self.pinholepar['offset'])
+        calculated = notchanged and f"pinhole{diameter}{offset}" in self.PSFs.keys()
 
+        if not calculated:
+            self.PSFph = self.calculatePSFs('pinhole',[diameter,offset],1)
+
+        self.pinholepar = {}
+        self.pinholepar['offset'] = offset
+        self.pinholepar['diameter'] = diameter
+
+    def imagestack(self, key, show=False):
+        key = self.calculatePSFs(key)
+        psf = self.PSFs[key]
+        vout = psf.interp.values
+
+        if self.PSFph is not None:
+            # Apply pinhole
+            phpsf = self.PSFs[self.PSFph]
+            vout = vout*phpsf.interp.values
+
+        return vout.transpose(1,0,2)
+    
     def normfactor(self, phasemask, number):
-        key =f"{phasemask}{number}"
-        psf = self.calculate_psf(key, phasepattern=phasemask, Lxs=number)
-        return psf.values[...,psf.values.shape[-1]//2].max()
+        return self.PSFs[f"{phasemask}{number}"].normalization

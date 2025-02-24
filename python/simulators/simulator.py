@@ -9,15 +9,15 @@ from ..fluorophores import FlCollection, FlCollectionBlinking, FlBlinkBleach, Fl
 
 @dataclass
 class Component:
-    functionhandle: FunctionType
-    type: str
-    dim: tuple
-    parameters: list
+    functionhandle: FunctionType  # handle to the function of the component (e.g. an estimator)
+    type: str                     # estimator, position updater, background
+    dim: tuple                    # for estimators: which dimension is estimated, updated
+    parameters: list              # parameters are passed on to the function
 
 @dataclass
 class Pattern:
-    repetitions: int = 1
-    par: dict = None
+    repetitions: int = 1 
+    par: dict = None              
     pos: list = None
     psf: list = None
     phasemask: list = None
@@ -40,8 +40,8 @@ class PatternScan:
     phot: np.typing.ArrayLike = None
     photrate: np.typing.ArrayLike = None
     pointdwelltime: np.typing.ArrayLike = None
-    bg_photons_gt: float = None
-    bgphot_est: float = None
+    bg_photons_gt: np.typing.ArrayLike = None
+    bgphot_est: np.typing.ArrayLike = None
     intensity: np.typing.ArrayLike = None
     flpos: np.typing.ArrayLike = None
     flint = np.typing.ArrayLike = None
@@ -55,22 +55,23 @@ class PatternScan:
 @dataclass
 class Par:
     patternpos: list = None  # list of 3D positions where the PSF is moved to. Use either zeropos or pos
-    makepattern: list = None
-    orbitorder: list = None  # change the order of measurement points
+    makepattern: list = None  # orbitscan, zscan, None (default) no pattern is made
+    orbitorder: list = None  # change the order of measurement points. can create problems with some estimators
     phasemask: str = ""  # parameter that defines the shape of the phase mask
     zeropos: float = 0  # position of the zero when calculating PSFs (e.g., PhaseFLUX)
-    orbitpoints: int = 4
-    orbitL: float = 100
-    probecenter: bool = True 
-    pointdwelltime: float = .01  # us
+    orbitpoints: int = 4  # orbitpoints
+    orbitL: float = 100  # diamter of the scan pattern
+    probecenter: bool = True  # If to perform a central measurement (cfr check)
+    pointdwelltime: float = .01  # (us) length of a point measurement. Single value, vector with length of the pattern or vector with length 2, then the second value is used for central measurement
     laserpower: float = 1.0  # usually we use relative, but can also be absolute.
-    repetitions: int = 1
-    dim: tuple = (0,1)
+    repetitions: int = 1  # repetitions of the patern scan before position estimation
+    dim: tuple = (0,1)  # dimensions in which the scan is performed
 
 @dataclass
 class Summary:
     photch: np.typing.ArrayLike = None
-    bg_photons: float = None
+    bg_photons_gt: np.typing.ArrayLike = None
+    bg_photons_est: np.typing.ArrayLike = None
     phot: float = None
     phot_signal: float = None
     pos: np.typing.ArrayLike = None
@@ -81,6 +82,9 @@ class Summary:
     sCRB: np.typing.ArrayLike = None
     sCRB1: np.typing.ArrayLike = None
     duration : float = 0
+    stdraw : np.typing.ArrayLike = None
+    efo : np.typing.ArrayLike = None
+    photrate: np.typing.ArrayLike = None
 
 @dataclass
 class Deadtimes:
@@ -110,26 +114,30 @@ def removeempty(loc, loccounter):
 
 class Simulator:
     def __init__(self, fluorophores=[], background=0, background_estimated=0, loadfile=[]):
-        self.patterns = {}
-        self.sequences = {}
-        self.fluorophores = fluorophores
+        self.patterns = {}  # patterns that are defined
+        # self.sequences = {}
+        self.fluorophores = fluorophores  # Fluorophore or FlCollection
         self.background = 0  # kHz from AF, does not count towards photon budget
         self.posgalvo = np.array([0, 0, 0])  # nm, position of pattern center
-        self.posEOD = np.array([0, 0, 0])  # nm, not descanned, with respect to posgalvo
-        self.time = 0
-        self.background = background
-        self.background_estimated = background_estimated
-        self.loadfile = loadfile
-        self.deadtimes = Deadtimes()
+        self.posEOD = np.array([0, 0, 0])  # nm, not descanned, with respect to 
+                                           # posgalvo
+        self.time = 0  # That is the master time
+        self.background = background  # Constant autofluorescence background
+        self.background_estimated = background_estimated  # Estimated background, 
+                                                          # used for estimators
+        self.loadfile = loadfile  # sequence, only for SimSequencefile
+        self.deadtimes = Deadtimes()  # Dead times added to time after each point, 
+                                      # pattern, estimation, position update or 
+                                      # localization (sequence)
 
     def defineComponent(self, key, type_, functionhandle, parameters=[], dim=(0, 1, 2)):
-        self.patterns[key] = Component(functionhandle=functionhandle,
-                                       type=type_,
-                                       dim=dim,
+        self.patterns[key] = Component(functionhandle=functionhandle,  
+                                       type=type_,  
+                                       dim=dim,  
                                        parameters=parameters)
 
     def definePattern(self, key, psf, **kwargs):
-        pattern = Pattern(repetitions = kwargs.get("repetitions", 1),
+        pattern = Pattern(repetitions = kwargs.get("repetitions", 1),  
                           par = Par(**kwargs),
                           pos = kwargs.get("patternpos", [[0, 0, 0]]),
                           zeropos = kwargs.get("zeropos", [0]),
@@ -161,7 +169,7 @@ class Simulator:
         for k in range(pattern.pos.shape[0]):
             pattern.psf.append(psf)
             pattern.phasemask.append(phasemask)
-            pattern.backgroundfac.append(1 / psf.normfactor(phasemask, pattern.zeropos[:,k]))
+            # pattern.backgroundfac.append(1 / psf.normfactor(phasemask, pattern.zeropos[:,k]))
             pattern.laserpower.append(kwargs.get("laserpower", 1))
         
         pdt = kwargs.get("pointdwelltime", [0.01])
@@ -215,7 +223,8 @@ class Simulator:
                 flpos += flposh
                 flintall[isactive,:] += flint
                 time = time + pattern.pointdwelltime[:,k] + deadtimes.point
-                bgphoth = pattern.backgroundfac[k] * background * pattern.pointdwelltime[:,k]
+                # bgphoth = pattern.backgroundfac[k] * background * pattern.pointdwelltime[:,k]
+                bgphoth = background * pattern.pointdwelltime[:,k] * pattern.laserpower[k]
                 bgphot = bgphoth + bgphot
                 intall[k] += intensity + bgphoth  # sum over repetitions, fluorophores
             time = time + deadtimes.pattern
@@ -225,8 +234,8 @@ class Simulator:
         out.phot = np.random.poisson(intall).squeeze()  # later: fl.tophot(intenall): adds bg, multiplies with brightness, does 
         out.photrate = out.phot / pattern.pointdwelltime.T
         out.pointdwelltime = pattern.pointdwelltime.T
-        out.bg_photons_gt = bgphot
-        out.bgphot_est = 0
+        out.bg_photons_gt = np.array([bgphot])
+        out.bgphot_est = np.array([0])
         out.intensity = intall 
         out.flpos = flpos/numpoints/repetitions
         out.flint = flintall
@@ -262,7 +271,7 @@ class Simulator:
         photbg = np.zeros((maxlocalizations*numpat,1))
         loc = initlocs(maxlocalizations*numpat,['xnm','ynm','znm','xfl1',
             'yfl1','zfl1','phot','time','abortcondition', 'xgalvo', 'ygalvo', 'zgalvo',
-            'xeod','yeod','zeod'])
+            'xeod','yeod','zeod','photrate','seq'])
         
         bleached = False
         loccounter = -1
@@ -289,6 +298,8 @@ class Simulator:
                     scanout = self.patternscan(curr_seq)
                     loccounter += 1  # every localization gets a new entry, as in abberior
                     loc.phot[loccounter] += np.sum(scanout.phot,axis=0)
+                    # print(loc.photrate[loccounter].shape, scanout.photrate.shape)
+                    loc.photrate[loccounter] += np.mean(scanout.photrate)
                     photch[loccounter,:len(scanout.phot)] = scanout.phot
                     photbg[loccounter] = scanout.bg_photons_gt
                     loc.time[loccounter] += scanout.time.averagetime
@@ -304,6 +315,7 @@ class Simulator:
                         while len(par) < (s+1):
                             par.append([])
                         par[s] = scanout.par
+                    loc.seq[loccounter,0] = s
                 elif type_ == "estimator":
                     # replace placeholder names by values
                     component_par=replace_in_list(component.parameters,
@@ -319,7 +331,7 @@ class Simulator:
                                                   self.background_estimated,
                                                   'iteration',
                                                   s)
-                    xesth=component.functionhandle(scanout.phot,*component_par)
+                    xesth = component.functionhandle(scanout.phot,*component_par)
                     if len(xesth)==3:
                         xest[np.array(component.dim)] = xesth[np.array(component.dim)]
                     else:
@@ -369,9 +381,11 @@ class Simulator:
         out = SimpleNamespace(loc=loc,
                               raw=photch[:loccounter,:],
                               fluorophores = fl,
-                              bg_photons_gt = photbg[:loccounter],
+                              bg_photons_gt = photbg[:loccounter].T,
                               par = par,
                               duration = self.time-timestart)
+        if hasattr(scanout, 'bgphot_est'):
+            out.bg_photons_est = np.sum(scanout.bgphot_est, axis=0)
         return out
     
     def runSequence(self, seq, **kwargs):
@@ -395,6 +409,8 @@ class Simulator:
             out1.loc.rep=1+0*out1.loc.xnm
             out1.fluorophores.pos=out2.fluorophores.pos
             out1.fluorophores.int=out2.fluorophores.int
+            out1.bg_photons_gt=out2.bg_photons_gt
+            out1.bg_photons_est=out2.bg_photons_est
         else:
             sr = out2.raw.shape
             if len(sr)==2:  # Abberior
@@ -403,9 +419,11 @@ class Simulator:
                 out1.raw = np.concatenate(out1.raw, np.expand_dims(out2.raw, axis=0), axis=0)
             out1.fluorophores.pos = np.concatenate((out1.fluorophores.pos, out2.fluorophores.pos), axis=0)
             out1.fluorophores.int = np.concatenate((out1.fluorophores.int, out2.fluorophores.int), axis=0)
-            out2['loc']['rep'] = out1['raw'].shape[0] + 0 * out2['loc']['xnm']
-            out1['loc'] = appendstruct(out1.loc, out2.loc)
-        
+            out2.loc.rep = out1.raw.shape[0] + 0*out2.loc.xnm
+            out1.loc = appendstruct(out1.loc, out2.loc)
+            out1.bg_photons_gt = np.concatenate(out1.bg_photons_gt, out2.bg_photons_gt)
+            out1.bg_photons_est = np.concatenate(out1.bg_photons_est, out2.bg_photons_est)
+
         return out1
 
     def make_orbit_pattern(self, pattern_type, orbit_points, use_center, orbit_order=None):
@@ -443,19 +461,19 @@ class Simulator:
         def pi(dpos):
             flposh = flpos.copy()
             flposh[0, :] -= dpos
-            bgh = bg * pattern.backgroundfac[k]
+            # bgh = bg * pattern.backgroundfac[k]
             ih = np.sum(pattern.psf[k].intensity(flposh - self.posgalvo, 
                                                 pattern.pos[k,:], 
                                                 pattern.phasemask[k], 
-                                                pattern.zeropos[:,k]) + bgh)
+                                                pattern.zeropos[:,k]) + bg)
 
             ihm = 0
             for m in reversed(range(len(pattern.zeropos))):
-                bgh = bg * pattern.backgroundfac[m]
+                # bgh = bg * pattern.backgroundfac[m]
                 ihm += np.sum(pattern.psf[m].intensity(flposh - self.posgalvo, 
                                                        pattern.pos[m,:], 
                                                        pattern.phasemask[m], 
-                                                       pattern.zeropos[:,m]) + bgh)
+                                                       pattern.zeropos[:,m]) + bg)
 
             return ih / ihm
 
@@ -470,7 +488,8 @@ class Simulator:
 
             for coord in range(len(dim)):
                 for coord2 in range(len(dim)):
-                    IFisher[coord, coord2] += dpdc[dim[coord] - 1] * dpdc[dim[coord2] - 1] / (pi(np.zeros(3)) + 1e-5)
+                    # IFisher[coord, coord2] += dpdc[dim[coord] - 1] * dpdc[dim[coord2] - 1] / (pi(np.zeros(3)) + 1e-5)
+                    IFisher[coord, coord2] += dpdc[dim[coord]] * dpdc[dim[coord2]] / (pi(np.zeros(3)) + 1e-4)
 
         crlb = np.linalg.inv(IFisher)
         locprech = np.sqrt(np.diag(crlb))
@@ -479,7 +498,7 @@ class Simulator:
 
         return locprec
 
-    def calculateCRB(self, patternnames, dim=(0, 1, 2), position=None):
+    def calculateCRBpattern(self, patternnames, dim=(0, 1, 2), position=None):
         if position is None:
             position, _ = self.fluorophores.position(0)
 
@@ -516,7 +535,7 @@ class Simulator:
 
         for coord in range(len(dim)):
             for coord2 in range(len(dim)):
-                fh = dpdc[:, dim[coord]] * dpdc[:, dim[coord2]] / (pi0 + 1e-12)
+                fh = dpdc[:, dim[coord]] * dpdc[:, dim[coord2]] / (pi0 + 1e-4)
                 IFisher[coord, coord2] = np.sum(fh)
 
         fl1.pos = oldpar.pos
@@ -531,8 +550,42 @@ class Simulator:
         locprec[np.array(dim)] = locprech
 
         return locprec
+    
+    def calculateCRB(self, out, filter):
+        locprecL = np.zeros(3)
+        sigmaCRB1 = np.zeros(3)
+        sigmaCRB = np.zeros(3)
+        phot = 0
+        seq = out.sequence
+
+        for k in range(len(seq)):
+            pattern = self.patterns[seq[k]]
+            if pattern.type == "pattern":
+                sh = self.calculateCRBpattern(seq[k], dim=pattern.dim)
+                if hasattr(out.loc, 'seq'):
+                    ind = (out.loc.seq.squeeze() == k) & filter
+                else:
+                    ind = filter
+                phot = np.mean(out.loc.phot[ind],axis=0)
+                dim = np.array(pattern.dim)
+                sigmaCRB1[dim] = sh[dim]
+                sigmaCRB[dim] = sigmaCRB1[dim]/np.sqrt(phot)
+                Lh = self.locprec(np.mean(phot), pattern.L)
+                locprecL[dim] = Lh
+
+        return sigmaCRB, sigmaCRB1, locprecL, phot
 
     def summarize_results(self, out, display=True, filter=None):
+        """
+        Parameters
+        ----------
+        out : object
+            Structure created by a sequence
+        display : bool
+            If true, print the summary to standard out
+        filter : np.typing.ArrayLike, optional
+            Which localizations to use for statistics
+        """
         if filter is None:
             filter = np.ones(out.loc.xnm.shape, dtype=bool)
             
@@ -548,38 +601,69 @@ class Simulator:
         
         xest = np.column_stack((out.loc.xnm[ind], out.loc.ynm[ind], out.loc.znm[ind]))
         flpos = np.column_stack((out.loc.xfl1[ind], out.loc.yfl1[ind], out.loc.zfl1[ind]))
-        phot = out.loc.phot[ind]
-        
-        seq = out.sequence
-        lp = np.zeros(3)
-        sigmaCRB = np.zeros(3)
-        
-        for k in range(len(seq)):
-            pattern = self.patterns[seq[k]]
-            if pattern.type == "pattern":
-                sh = self.calculateCRB(seq[k], dim=pattern.dim)
-                sigmaCRB[np.array(pattern.dim)] = sh[np.array(pattern.dim)]
-                Lh = self.locprec(np.nanmean(phot), pattern.L)
-                lp[np.array(pattern.dim)] = Lh
+
+        if hasattr(out.loc, 'seq'):
+            sunique = np.unique(out.loc.seq[ind])
+            phot = 0
+            photch = []
+            for k in range(len(sunique)):
+                indu = (out.loc.seq == sunique[k]).squeeze()
+                phot += np.mean(out.loc.phot[ind&indu])
+                photch = np.hstack([photch, np.mean(photraw[ind&indu,:],axis=0)])
+            photch = photch[photch!=-1]
+        else:
+            photch = np.mean(photraw[ind,:],axis=0)
+            phot = np.sum(photch)
+
+        sigmaCRB, sigmaCRB1, locprecL, _ = self.calculateCRB(out, ind)
         
         st = Summary()
         st.photch = photch
-        st.bg_photons = np.nanmean(out.bg_photons_gt[ind])
+        st.bg_photons_gt = np.nanmean(out.bg_photons_gt[:,ind])
         st.phot = np.nanmean(phot)
-        st.phot_signal = st.phot - st.bg_photons
+        st.phot_signal = st.phot - st.bg_photons_gt
         st.pos = np.nanmean(xest, axis=0)
-        st.std = np.nanstd(xest, axis=0)
+        st.std = np.nanstd(xest-flpos, axis=0)
+        st.stdraw = np.nanstd(xest, axis=0)
         st.rmse = np.sqrt(np.nanmean((xest - flpos) ** 2, axis=0))
+
         st.bias = np.nanmean(xest - flpos, axis=0)
-        st.locp = lp
-        st.sCRB = sigmaCRB / np.sqrt(st.phot)
-        st.sCRB1 = sigmaCRB
+        st.locp = locprecL
+        st.sCRB = sigmaCRB #/ np.sqrt(st.phot)
+        st.sCRB1 = sigmaCRB1
         st.duration = out.duration
+        st.bg_photons_est = np.nanmean(out.bg_photons_est)
         
         if display:
             ff1, ff = "{:.1f}", "{:.2f}"
-            print(f'photch: {", ".join(list(map(ff1.format, st.photch)))}, mean(phot): {ff1.format(st.phot)}, duration ms: {", ".join(list(map(ff1.format, st.duration)))}')
-            print(f'std:  {", ".join(list(map(ff.format, st.std)))}, rmse: {", ".join(list(map(ff.format, st.rmse)))}, pos: {", ".join(list(map(ff.format, st.pos)))}, bias: {", ".join(list(map(ff.format, st.bias)))}')
-            print(f'locp: {", ".join(list(map(ff.format, lp)))}, sCRB: {", ".join(list(map(ff.format, st.sCRB)))}, sCRB*sqrt(phot): {", ".join(list(map(ff1.format, st.sCRB1)))}')
+
+            if st.bg_photons_est != 0:
+                bgtxt = f"bg_est: {ff1.format(st.bg_photons_est)}"
+            else:
+                bgtxt = ""
+            
+            if st.bg_photons_gt != 0:
+                bgtxtg = f"bg_gt: {ff1.format(st.bg_photons_gt)}"
+            else:
+                bgtxtg = ""
+
+            if hasattr(out.loc, "efo"):
+                st.efo = np.mean(out.loc.efo)
+                ratetxt = f"efo: {ff1.format(st.efo)}"
+            else:
+                st.photrate = np.mean(out.loc.photrate)
+                ratetxt = f"photon rate: {ff1.format(st.photrate)}"
+
+            print(f'photch: {", ".join(list(map(ff1.format, st.photch)))}',
+                  f'mean(phot): {ff1.format(st.phot)}', 
+                  bgtxt, bgtxtg, ratetxt, 
+                  f'duration ms: {", ".join(list(map(ff1.format, st.duration)))}')
+            print(f'std:  {", ".join(list(map(ff.format, st.std)))}', 
+                  f'rmse: {", ".join(list(map(ff.format, st.rmse)))}', 
+                  f'pos: {", ".join(list(map(ff.format, st.pos)))}',
+                  f'bias: {", ".join(list(map(ff.format, st.bias)))}')
+            print(f'locp: {", ".join(list(map(ff.format, locprecL)))}', 
+                  f'sCRB: {", ".join(list(map(ff.format, st.sCRB)))}',
+                  f'sCRB*sqrt(phot): {", ".join(list(map(ff1.format, st.sCRB1)))}')
         
         return st
