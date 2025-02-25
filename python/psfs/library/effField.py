@@ -109,10 +109,14 @@ def effField(sys, out=None, opt=None):
     Et = Et * cout[None, :, None]
     cisa0 = cis(dk / 2 * ((m-1) * np.arange(nx) - np.arange(nx)**2))
     cisa1 = cis(-dk / 2 * np.arange(n)**2 - dk * out['y'][0] / out['dr'] * np.arange(n))
+    # print("cisa0", cisa0[:3])
+    # print("cisa1", cisa1[:3])
     a = cisa0[:,None]*cisa1[None,:]
     b = cis(dk / 2 * ((n-1) * np.arange(ny) - np.arange(ny)**2))
     v = np.fft.fft(cis(dk / 2 * (np.arange(1 - m, nx)**2)), M)
     w = np.fft.fft(cis(dk / 2 * (np.arange(1 - n, ny)**2)), N)
+    # print(Et.shape, a.shape, b.shape, v.shape, w.shape) # (3, 207, 207) (141, 207) (141,) (384,) (384,)
+    # print(f"Et: {Et[0,0,:3]}, a: {a[0,:3]}, b: {b[:3]}, v: {v[:3]}, w: {w[:3]}")
 
     m = np.arange(m, m + nx)
     n = np.arange(n, n + ny)
@@ -121,9 +125,16 @@ def effField(sys, out=None, opt=None):
 
     for z in range(nz):
         E = np.fft.ifft(np.fft.fft(Et, M, axis=1) * v[None, :, None], M, axis=1)
+        # print("first, ", E[0,0,:3])
+        # print("intermediate", (E[:, m, :] * a[None,...])[0,0,:5])
+        # print("intermediate2", (np.fft.fft(E[:, m, :] * a[None,...], N, axis=2) * w[None, None, :])[0,0,:5])
         E = np.fft.ifft(np.fft.fft(E[:, m, :] * a[None,...], N, axis=2) * w[None, None, :], N, axis=2)
+        # print("second, ", E[0,0,:3])
         E = E[:, :, n] * b[None, None, :]
+        # print("third, ", E[0,0,:3])
         out['E'][:, :, :, z] = E
+
+        # raise UserWarning("test")
 
         Et = Et * kz[None,...]
 

@@ -29,8 +29,8 @@ def normpsf(psf):
     return psf, np.max(psf)
 
 def range4PSF(psf,dr,dz):
-    nx = (np.arange(psf.shape[0]) - (psf.shape[0]+1)/2)*dr*1e9
-    nz = (np.arange(psf.shape[2]) - (psf.shape[2]+1)/2)*dz*1e9
+    nx = (np.arange(psf.shape[0]) - (psf.shape[0]-1)/2)*dr*1e9
+    nz = (np.arange(psf.shape[2]) - (psf.shape[2]-1)/2)*dz*1e9
     
     return nx, nx, nz
 
@@ -135,7 +135,7 @@ class PsfVectorial(Psf):
         bounds_error = False
         extraolation_method = None  # If None, extrapolate
         
-        print(key, ", ", end="")
+        print(f"{key}, ", end="")
 
         opt = self.parameters['opt']
         out = self.parameters['addpar']
@@ -170,7 +170,7 @@ class PsfVectorial(Psf):
         elif phasepattern == "vortex":
             sys['Ei'] = ['phaseramp', 'circular']
             sys = addzernikeaberrations(sys, out)
-            out = effField(sys, out, opt)       
+            out = effField(sys, out, opt)
             out = effIntensity(sys, out)
             PSF = out['I'].squeeze()/self.normfactgauss
             PSF = self.beadsize(PSF, sys['beadradius'])

@@ -95,31 +95,32 @@ class Deadtimes:
     localization: float = 0
 
 def initlocs(maxlocalizations, fields):
-    locs = {}
-    for f in fields:
-        locs[f] = np.zeros((maxlocalizations,1))
+    locs = {f: np.zeros((maxlocalizations,1)) for f in fields}
     return SimpleNamespace(**locs)
 
 def removeempty(loc, loccounter):
-    loco = {}
     try:
         fields = loc.keys()
     except AttributeError:
         fields = loc.__dict__.keys()
-    for f in fields:
-        loco[f] = getattr(loc,f)[:loccounter]
+    
+    loco = {f: getattr(loc,f)[:loccounter] for f in fields}
     
     return SimpleNamespace(**loco)
     
 
 class Simulator:
-    def __init__(self, fluorophores=[], background=0, background_estimated=0, loadfile=[]):
+    def __init__(self, 
+                 fluorophores: np.typing.ArrayLike = None, 
+                 background: float = 0, 
+                 background_estimated: float = 0, 
+                 loadfile: list = None):
         self.patterns = {}  # patterns that are defined
         # self.sequences = {}
         self.fluorophores = fluorophores  # Fluorophore or FlCollection
         self.background = 0  # kHz from AF, does not count towards photon budget
-        self.posgalvo = np.array([0, 0, 0])  # nm, position of pattern center
-        self.posEOD = np.array([0, 0, 0])  # nm, not descanned, with respect to 
+        self.posgalvo = np.array([0, 0, 0], dtype=float)  # nm, position of pattern center
+        self.posEOD = np.array([0, 0, 0], dtype=float)  # nm, not descanned, with respect to 
                                            # posgalvo
         self.time = 0  # That is the master time
         self.background = background  # Constant autofluorescence background
@@ -130,25 +131,29 @@ class Simulator:
                                       # pattern, estimation, position update or 
                                       # localization (sequence)
 
-    def defineComponent(self, key, type_, functionhandle, parameters=[], dim=(0, 1, 2)):
+        if loadfile is not None:
+            self.loadsequence(*loadfile)
+
+    def defineComponent(self, key, type_, functionhandle, parameters=None, dim=(0, 1, 2)):
         self.patterns[key] = Component(functionhandle=functionhandle,  
                                        type=type_,  
                                        dim=dim,  
                                        parameters=parameters)
 
     def definePattern(self, key, psf, **kwargs):
+        orbitL = kwargs.get("orbitL", 100)
         pattern = Pattern(repetitions = kwargs.get("repetitions", 1),  
                           par = Par(**kwargs),
                           pos = kwargs.get("patternpos", [[0, 0, 0]]),
                           zeropos = kwargs.get("zeropos", [0]),
-                          L = kwargs.get("orbitL", 100),
+                          L = orbitL,
                           dim = kwargs.get("dim", (0, 1)),
                           type = "pattern")
 
         if "makepattern" in kwargs and kwargs["makepattern"]:
             pattern.pos = self.make_orbit_pattern(kwargs["makepattern"], kwargs.get("orbitpoints", 4), 
-                                                  kwargs.get("probecenter", True), kwargs.get("orbitorder", []))
-            pattern.pos *= kwargs.get("orbitL", 100) / 2
+                                                  kwargs.get("probecenter", True), kwargs.get("orbitorder", None))
+            pattern.pos *= orbitL / 2
         
         zeropos = kwargs.get("zeropos", [0])
         if (pattern.pos.shape[0] == 1) and (len(zeropos) > 1):
@@ -169,7 +174,7 @@ class Simulator:
         for k in range(pattern.pos.shape[0]):
             pattern.psf.append(psf)
             pattern.phasemask.append(phasemask)
-            # pattern.backgroundfac.append(1 / psf.normfactor(phasemask, pattern.zeropos[:,k]))
+            # pattern.psf[k].calculatePSFs(phasemask,pattern.zeropos[k])
             pattern.laserpower.append(kwargs.get("laserpower", 1))
         
         pdt = kwargs.get("pointdwelltime", [0.01])
@@ -206,7 +211,7 @@ class Simulator:
 
         for _ in range(repetitions):
             for k in range(numpoints):
-                timep = timep + time   # for calculating average time point
+                timep += time   # for calculating average time point
                 flposh, isactive = fluorophores.position(self.time, flproperties)
                 flposrel = flposh - posgalvo
                 intensityh, pinholehfac = pattern.psf[k].intensity(flposrel[isactive,:],
@@ -225,17 +230,17 @@ class Simulator:
                 time = time + pattern.pointdwelltime[:,k] + deadtimes.point
                 # bgphoth = pattern.backgroundfac[k] * background * pattern.pointdwelltime[:,k]
                 bgphoth = background * pattern.pointdwelltime[:,k] * pattern.laserpower[k]
-                bgphot = bgphoth + bgphot
+                bgphot += bgphoth
                 intall[k] += intensity + bgphoth  # sum over repetitions, fluorophores
             time = time + deadtimes.pattern
             fluorophores.updateonoff(time)
         
         out = PatternScan()
-        out.phot = np.random.poisson(intall).squeeze()  # later: fl.tophot(intenall): adds bg, multiplies with brightness, does 
+        out.phot = np.random.poisson(intall)  # later: fl.tophot(intenall): adds bg, multiplies with brightness, does 
         out.photrate = out.phot / pattern.pointdwelltime.T
         out.pointdwelltime = pattern.pointdwelltime.T
-        out.bg_photons_gt = np.array([bgphot])
-        out.bgphot_est = np.array([0])
+        out.bg_photons_gt = np.array([bgphot], dtype=float)
+        out.bgphot_est = np.array([0], dtype=float)
         out.intensity = intall 
         out.flpos = flpos/numpoints/repetitions
         out.flint = flintall
@@ -287,20 +292,19 @@ class Simulator:
                 bleached = True
                 break
             posgalvo_beforecenter = self.posgalvo
-            xest = np.array([0,0,0])
-            loccounter_seq = loccounter + 1
+            xest = np.array([0,0,0], dtype=float)
+            loccounter_seq = loccounter + 1  # XXXX 9.2.25
             for s in range(numseq):
                 curr_seq = seq[s]
                 component = self.patterns[curr_seq]
                 type_ = component.type
                 if type_ == "pattern":
-
                     scanout = self.patternscan(curr_seq)
                     loccounter += 1  # every localization gets a new entry, as in abberior
-                    loc.phot[loccounter] += np.sum(scanout.phot,axis=0)
+                    loc.phot[loccounter] += np.sum(scanout.phot)
                     # print(loc.photrate[loccounter].shape, scanout.photrate.shape)
                     loc.photrate[loccounter] += np.mean(scanout.photrate)
-                    photch[loccounter,:len(scanout.phot)] = scanout.phot
+                    photch[loccounter,:len(scanout.phot)] = scanout.phot.squeeze()
                     photbg[loccounter] = scanout.bg_photons_gt
                     loc.time[loccounter] += scanout.time.averagetime
                     flpos = scanout.flpos[0,:]
@@ -318,28 +322,19 @@ class Simulator:
                     loc.seq[loccounter,0] = s
                 elif type_ == "estimator":
                     # replace placeholder names by values
-                    component_par=replace_in_list(component.parameters,
-                                                  'patternpos',
-                                                  scanout.par.patternpos,
-                                                  'L',
-                                                  scanout.par.L,
-                                                  'probecenter',
-                                                  scanout.par.probecenter,
-                                                  'bg_photons_gt',
-                                                  scanout.bg_photons_gt,
-                                                  'background_estimated',
-                                                  self.background_estimated,
-                                                  'iteration',
-                                                  s)
-                    xesth = component.functionhandle(scanout.phot,*component_par)
+                    component_par=replace_in_list(component.parameters, 
+                                                  'patternpos', scanout.par.patternpos, 
+                                                  'L', scanout.par.L, 
+                                                  'probecenter', scanout.par.probecenter, 
+                                                  'bg_photons_gt', scanout.bg_photons_gt,
+                                                  'background_estimated', self.background_estimated,
+                                                  'iteration', s)
+                    xesth = component.functionhandle(scanout.photrate,*component_par)
                     if len(xesth)==3:
                         xest[np.array(component.dim)] = xesth[np.array(component.dim)]
                     else:
                         xest[np.array(component.dim)] = xesth
                     xesttot = xest + posgalvo_beforecenter
-                    loc.xnm[loccounter] = xesttot[0]
-                    loc.ynm[loccounter] = xesttot[1]
-                    loc.znm[loccounter] = xesttot[2]
                     loc.xgalvo[loccounter] = self.posgalvo[0]
                     loc.ygalvo[loccounter] = self.posgalvo[1]
                     loc.zgalvo[loccounter] = self.posgalvo[2]
@@ -357,23 +352,22 @@ class Simulator:
                     self.time += deadtimes.positionupdate
                 elif type_ == "background":
                     component_par = replace_in_list(component.parameters,
-                                                    'patternpos',
-                                                    scanout.par.patternpos,
-                                                    'L',
-                                                    scanout.par.L,
-                                                    'probecenter',
-                                                    scanout.par.probecenter,
-                                                    'bg_photons_gt',
-                                                    scanout.bg_photons_gt,
-                                                    'background_estimated',
-                                                    self.background_estimated,
-                                                    'iteration',
-                                                    s)
+                                                    'patternpos', scanout.par.patternpos,
+                                                    'L', scanout.par.L,
+                                                    'probecenter', scanout.par.probecenter,
+                                                    'bg_photons_gt', scanout.bg_photons_gt,
+                                                    'background_estimated', self.background_estimated,
+                                                    'iteration', s)
                 else:
                     raise ValueError(f"Unknown component type {type_}.")
-            loc.xnm[loccounter_seq:loccounter] = xesttot[0]
-            loc.ynm[loccounter_seq:loccounter] = xesttot[1]
-            loc.znm[loccounter_seq:loccounter] = xesttot[2]
+            if loccounter_seq == loccounter:
+                loc.xnm[loccounter_seq] = xesttot[0]
+                loc.ynm[loccounter_seq] = xesttot[1]
+                loc.znm[loccounter_seq] = xesttot[2]
+            else:
+                loc.xnm[loccounter_seq:loccounter] = xesttot[0]
+                loc.ynm[loccounter_seq:loccounter] = xesttot[1]
+                loc.znm[loccounter_seq:loccounter] = xesttot[2]
             self.time += deadtimes.localization
         loc = removeempty(loc, loccounter)
         loc.abortcondition = np.zeros(loc.phot.shape)
@@ -393,8 +387,8 @@ class Simulator:
         timestart = self.time
         for _ in range(kwargs.get('repetitions', 1)):
             self.fluorophores.reset(self.time)
-            out2 = self.runSequenceintern(seq,kwargs.get('maxlocs',1000))
-            out = self.appendout(out,out2)
+            out2 = self.runSequenceintern(seq, kwargs.get('maxlocs',1000))
+            out = self.appendout(out, out2)
         out.sequence = seq
         out.duration = self.time-timestart
 
@@ -405,12 +399,12 @@ class Simulator:
             return out1
         if out1 is None:
             out1 = out2
-            out1.raw=out2.raw
-            out1.loc.rep=1+0*out1.loc.xnm
-            out1.fluorophores.pos=out2.fluorophores.pos
-            out1.fluorophores.int=out2.fluorophores.int
-            out1.bg_photons_gt=out2.bg_photons_gt
-            out1.bg_photons_est=out2.bg_photons_est
+            out1.raw = out2.raw
+            out1.loc.rep = 1 + 0*out1.loc.xnm
+            out1.fluorophores.pos = out2.fluorophores.pos
+            out1.fluorophores.int = out2.fluorophores.int
+            out1.bg_photons_gt = out2.bg_photons_gt
+            out1.bg_photons_est = out2.bg_photons_est
         else:
             sr = out2.raw.shape
             if len(sr)==2:  # Abberior
@@ -431,14 +425,14 @@ class Simulator:
             phi = np.linspace(0, 2 * np.pi, orbit_points, endpoint=False)
             pos_pattern = np.column_stack((np.cos(phi), np.sin(phi), np.zeros_like(phi)))
             if use_center:
-                pos_pattern = np.vstack([pos_pattern, [0, 0, 0]])
+                pos_pattern = np.vstack([pos_pattern, [0, 0, 0]], dtype=float)
             if orbit_order:
                 pos_pattern = pos_pattern[orbit_order]
             return pos_pattern
         elif pattern_type == "zscan":
-            pos_pattern = np.array([[-1, 0, 0], [1, 0, 0]])
+            pos_pattern = np.array([[-1, 0, 0], [1, 0, 0]], dtype=float)
             if use_center:
-                pos_pattern = np.vstack([pos_pattern, [0, 0, 0]])
+                pos_pattern = np.vstack([pos_pattern, [0, 0, 0]], dtype=float)
             return pos_pattern
         return np.array([])
     
@@ -452,10 +446,6 @@ class Simulator:
         flpos = position
         brightness = self.fluorophores.brightness
         bg = self.background / brightness[0]  # Hack, to not have to calculate with all fluorophores
-
-        eps = 1
-        IFisher = np.zeros((len(dim), len(dim)))
-        
         pattern = self.patterns[patternnames]
 
         def pi(dpos):
@@ -476,6 +466,9 @@ class Simulator:
                                                        pattern.zeropos[:,m]) + bg)
 
             return ih / ihm
+        
+        eps = 1
+        IFisher = np.zeros((len(dim), len(dim)))
 
         for k in reversed(range(len(pattern.zeropos))):
             dpdc = np.zeros(len(dim))
@@ -492,7 +485,7 @@ class Simulator:
                     IFisher[coord, coord2] += dpdc[dim[coord]] * dpdc[dim[coord2]] / (pi(np.zeros(3)) + 1e-4)
 
         crlb = np.linalg.inv(IFisher)
-        locprech = np.sqrt(np.diag(crlb))
+        locprech = np.sqrt(np.diag(crlb)).T
         locprec = np.zeros(3)
         locprec[np.array(dim)] = locprech
 
@@ -545,7 +538,7 @@ class Simulator:
             crlb = np.linalg.inv(IFisher)
         except np.linalg.LinAlgError:
             crlb = np.ones_like(IFisher)*np.nan
-        locprech = np.sqrt(np.diag(crlb))
+        locprech = np.sqrt(np.diag(crlb)).T
         locprec = np.zeros(3)
         locprec[np.array(dim)] = locprech
 
@@ -558,10 +551,10 @@ class Simulator:
         phot = 0
         seq = out.sequence
 
-        for k in range(len(seq)):
-            pattern = self.patterns[seq[k]]
+        for k, seqk in enumerate(seq):
+            pattern = self.patterns[seqk]
             if pattern.type == "pattern":
-                sh = self.calculateCRBpattern(seq[k], dim=pattern.dim)
+                sh = self.calculateCRBpattern(seqk, dim=pattern.dim)
                 if hasattr(out.loc, 'seq'):
                     ind = (out.loc.seq.squeeze() == k) & filter
                 else:
@@ -588,17 +581,9 @@ class Simulator:
         """
         if filter is None:
             filter = np.ones(out.loc.xnm.shape, dtype=bool)
-            
+        
         ind = filter.squeeze()
         photraw = out.raw.copy()
-        photraw[photraw == -1] = np.nan
-        
-        if len(photraw.shape) > 3:
-            photraw[photraw < 0] = np.nan
-            photch = np.nanmean(np.nanmean(photraw[ind, :], axis=0), axis=0).squeeze()
-        else:
-            photch = np.nanmean(photraw[ind], axis=0).squeeze()
-        
         xest = np.column_stack((out.loc.xnm[ind], out.loc.ynm[ind], out.loc.znm[ind]))
         flpos = np.column_stack((out.loc.xfl1[ind], out.loc.yfl1[ind], out.loc.zfl1[ind]))
 
@@ -626,8 +611,8 @@ class Simulator:
         st.std = np.nanstd(xest-flpos, axis=0)
         st.stdraw = np.nanstd(xest, axis=0)
         st.rmse = np.sqrt(np.nanmean((xest - flpos) ** 2, axis=0))
-
         st.bias = np.nanmean(xest - flpos, axis=0)
+
         st.locp = locprecL
         st.sCRB = sigmaCRB #/ np.sqrt(st.phot)
         st.sCRB1 = sigmaCRB1
@@ -667,3 +652,6 @@ class Simulator:
                   f'sCRB*sqrt(phot): {", ".join(list(map(ff1.format, st.sCRB1)))}')
         
         return st
+
+    def loadsequence(self, *args):
+        raise UserWarning("No sequence loader implemented for Simulator class")
