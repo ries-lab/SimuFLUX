@@ -31,7 +31,11 @@ import numpy as np
 
 # Functions we may need in locals()
 from .phaseramp import phaseramp
+from .linear import linear
 from .circular import circular
+from .zernike import zernike
+from .pishift import pishift
+from .halfmoon import halfmoon
 
 def modifiers(sys, M, N):
     x = sys['NA'] / sys['nm'] / M * np.arange(-int(np.ceil(M+2)), int(np.ceil(M+2))+1)

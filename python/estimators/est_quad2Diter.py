@@ -7,8 +7,8 @@ def est_quad2Diter(photonsi, L, probecenter=None, iter=15, eps=0.1):
     if probecenter is None:
         probecenter = len(photonsi) % 2
     orbitpoints = len(photonsi) - probecenter
-    ct = "c" if probecenter else "o"
-    itfun = globals()["it{}{}".format(orbitpoints, ct)]
+    ct = "c" if probecenter==1 else "o"
+    itfun = globals()[f"it{orbitpoints}{ct}"]
     pi = photonsi / np.sum(photonsi)
     xest = np.array([0.0, 0.0])
     for _ in range(iter):

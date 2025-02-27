@@ -144,8 +144,8 @@ class Simulator:
         orbitL = kwargs.get("orbitL", 100)
         pattern = Pattern(repetitions = kwargs.get("repetitions", 1),  
                           par = Par(**kwargs),
-                          pos = kwargs.get("patternpos", [[0, 0, 0]]),
-                          zeropos = kwargs.get("zeropos", [0]),
+                          pos = kwargs.get("patternpos", np.atleast_2d(np.array([0, 0, 0]))),
+                          zeropos = kwargs.get("zeropos", np.array([[0]])),
                           L = orbitL,
                           dim = kwargs.get("dim", (0, 1)),
                           type = "pattern")
@@ -155,11 +155,12 @@ class Simulator:
                                                   kwargs.get("probecenter", True), kwargs.get("orbitorder", None))
             pattern.pos *= orbitL / 2
         
-        zeropos = kwargs.get("zeropos", [0])
-        if (pattern.pos.shape[0] == 1) and (len(zeropos) > 1):
-            pattern.pos = np.tile(pattern.pos, (len(zeropos),1))
-        if (pattern.pos.shape[0] > 1) and (isinstance(zeropos, int) or (len(zeropos) <= 1)):
-            zeropos = np.tile(zeropos,(1,pattern.pos.shape[0]))
+        zeropos = kwargs.get("zeropos", np.array([[0]]))
+
+        if (pattern.pos.shape[0] == 1) and (zeropos.shape[1] > 1):
+            pattern.pos = np.tile(pattern.pos, (zeropos.shape[1], 1))
+        if (pattern.pos.shape[0] > 1) and (isinstance(zeropos, int) or (zeropos.shape[1] <= 1)):
+            zeropos = np.tile(zeropos, (1, pattern.pos.shape[0]))
         
         phasemask = kwargs.get("phasemask", "")
 
@@ -174,7 +175,7 @@ class Simulator:
         for k in range(pattern.pos.shape[0]):
             pattern.psf.append(psf)
             pattern.phasemask.append(phasemask)
-            # pattern.psf[k].calculatePSFs(phasemask,pattern.zeropos[k])
+            # pattern.psf[k].calculatePSFs(phasemask, pattern.zeropos[:,k])
             pattern.laserpower.append(kwargs.get("laserpower", 1))
         
         pdt = kwargs.get("pointdwelltime", [0.01])
@@ -512,7 +513,8 @@ class Simulator:
         out0 = self.patternscan(patternnames)
         pi0 = (out0.intensity / np.sum(out0.intensity)).squeeze()
 
-        dpdc = np.zeros((len(pi0), len(dim)))
+        # dpdc = np.zeros((len(pi0), len(dim)))
+        dpdc = np.zeros((len(pi0), 3))
 
         for coord in range(len(dim)):
             dposa = np.zeros(3)

@@ -8,19 +8,22 @@ from dataclasses import dataclass
 import numpy as np
 from scipy.interpolate import RegularGridInterpolator
 from scipy.ndimage import convolve
+from scipy.signal import fftconvolve
 
 from .psf import Psf
-from .library import effField, effIntensity
+from .library import effField
+from .library import effIntensity
+from .library import conv2fft
 
 @dataclass
 class PSFStruct:
-    normalization : float = None
+    normalization : float = 1
     interp : callable = None
 
 def addzernikeaberrations(sys, addpar):
-    if 'Zr' in sys and sys['Zr']:
+    if 'Zr' in sys:
         sys['Ei'].append('zernike')
-    elif 'Zr' in addpar and addpar['Zr']:
+    elif 'Zr' in addpar:
         sys['Ei'].append('zernike')
         sys['Zr'] = addpar['Zr']
     return sys
@@ -43,20 +46,17 @@ def meshgrid4PSF(psf,dr,dz):
 def genkey(phasepattern, Lxs=None):
     if Lxs is None:
         return f"{phasepattern}"
-    
-    try:
-        if isinstance(Lxs[0], (int, float)):
-            Lx = Lxs
-            Lxs = Lx.astype(str)
-        else:
-            Lx = Lxs.astype(float)
-    except TypeError:
-        if isinstance(Lxs, (int, float)):
-            Lx = [Lxs]
-            Lxs = [str(x) for x in Lx]
-        else:
-            Lx = [float(Lxs)]
-    return f"{phasepattern}" + "".join([str(x) for x in Lxs])
+    elif not isinstance(Lxs, list):
+        Lx = [Lxs.copy()]
+    else:
+        # list
+        Lx = Lxs.copy()
+        for i, x in enumerate(Lxs):
+            if not isinstance(x , list):
+                Lx[i] = [x]
+
+    # unlist
+    return f"{phasepattern}" + "".join([str(x) for xs in Lx for x in xs])
 
 class PsfVectorial(Psf):
     """
@@ -93,7 +93,8 @@ class PsfVectorial(Psf):
         # otherwise add to addpar
         exclusive_keys = list(set(kwargs.keys()) - set(self.parameters.keys()))
         if len(exclusive_keys) > 0:
-            self.parameters['addpar'] = {}
+            if 'addpar' not in self.parameters.keys():
+                self.parameters['addpar'] = {}
             for key in exclusive_keys:
                 self.parameters['addpar'][key] = kwargs[key]
 
@@ -127,6 +128,10 @@ class PsfVectorial(Psf):
     def calculatePSFs(self, phasepattern, Lxs=None, forcecalculation=False):
         # print(phasepattern)
         key = genkey(phasepattern, Lxs)
+        if Lxs is None:
+            # safety, but not so safe so alert the user
+            Lxs = [0]
+            print("Warning! Unknown Lxs. Using a default of [0].")
 
         if key in self.PSFs and not forcecalculation:
             return key
@@ -167,6 +172,80 @@ class PsfVectorial(Psf):
                                                        bounds_error = bounds_error,
                                                        fill_value = extraolation_method)
             self.PSFs[key] = PSFdonut
+        elif "halfmoon" in phasepattern:
+            # convert L into phase
+            dxdphi = 1.4  # nm/degree, from LSA paper Deguchi
+            # dzdphi = -3.6  #nm/degree
+            sys['delshift'] = float(Lxs)/dxdphi * np.pi/180
+            sys['Ei'] = ['halfmoon', 'linear']
+            sys = addzernikeaberrations(sys, out)
+            out = effField(sys, out, opt)
+            out = effIntensity(sys, out)
+            PSF = out['I'].squeeze()/self.normfactgauss
+            PSF = self.beadsize(PSF, sys['beadradius'])
+            PSFx = PSFStruct()
+            PSFy = PSFStruct()
+            PSF, PSFx.normalization = normpsf(PSF)
+            xx, yy, zz = range4PSF(PSF,out['dr'],out['dz'])
+            PSFx.interp = RegularGridInterpolator((xx, yy, zz), 
+                                                   PSF.transpose(1,0,2), 
+                                                   method = intmethod, 
+                                                   bounds_error = bounds_error,
+                                                   fill_value = extraolation_method)
+            PSFy.interp = RegularGridInterpolator((xx, yy, zz), 
+                                                   PSF, 
+                                                   method = intmethod, 
+                                                   bounds_error = bounds_error,
+                                                   fill_value = extraolation_method)   
+            PSFy.normalization = PSFx.normalization
+            self.PSFs[genkey("halfmoonx",Lxs)] = PSFx
+            self.PSFs[genkey("halfmoony",Lxs)] = PSFy
+        elif phasepattern == "pinhole":
+            sys['Ei'] = ['circular']
+            sys = addzernikeaberrations(sys, out)
+            phdiameter = float(Lxs[0])
+            if len(Lxs) == 3:
+                phpos = [float(Lxs[1]), float(Lxs[2])]
+            else:
+                phpos = [0, 0]
+            out = effField(sys, out, opt)
+            out = effIntensity(sys, out)
+            psfg = out['I'].squeeze()
+            norm = psfg[:,:,int(round(psfg.shape[2]/2))].sum()
+            psfg /= norm
+            pixelsize = opt['pixSize']*1e9
+            nx = np.arange(psfg.shape[0])
+            nx = (nx-np.mean(nx))*pixelsize
+            Xk, Yk = np.meshgrid(nx, nx) 
+            kernel = np.double(((Xk - phpos[1])**2 + (Yk - phpos[0])**2) < (phdiameter / 2)**2)
+            # print(kernel.shape, psfg.shape)
+            psfph = conv2fft(psfg, kernel)
+            xx, yy, zz = range4PSF(psfph, out['dr'], out['dz'])
+            PSFdonut = PSFStruct()
+            PSFdonut.interp = RegularGridInterpolator((xx, yy, zz),
+                                                      psfph, 
+                                                      method = intmethod, 
+                                                      bounds_error = bounds_error,
+                                                      fill_value = extraolation_method)
+            self.PSFs[key] = PSFdonut
+        elif phasepattern == "tophat":
+            dzdphi = -3.6  #nm/degree
+            sys['delshift'] = float(Lxs)/dzdphi * np.pi/180
+            sys['Ei'] = ['pishift', 'circular']
+            sys=addzernikeaberrations(sys,out)
+            out=effField(sys, out, opt)
+            out=effIntensity(sys, out)
+            PSF = out['I'].squeeze()/self.normfactgauss
+            PSF = self.beadsize(PSF, sys['beadradius'])
+            PSFdonut = PSFStruct()
+            PSF, PSFdonut.normalization = normpsf(PSF)
+            xx, yy, zz = range4PSF(PSF,out['dr'],out['dz'])
+            PSFdonut.interp = RegularGridInterpolator((xx, yy, zz), 
+                                                       PSF, 
+                                                       method = intmethod, 
+                                                       bounds_error = bounds_error,
+                                                       fill_value = extraolation_method)
+            self.PSFs[key] = PSFdonut
         elif phasepattern == "vortex":
             sys['Ei'] = ['phaseramp', 'circular']
             sys = addzernikeaberrations(sys, out)
@@ -176,7 +255,7 @@ class PsfVectorial(Psf):
             PSF = self.beadsize(PSF, sys['beadradius'])
             PSFdonut = PSFStruct()
             PSF, PSFdonut.normalization = normpsf(PSF)
-            xx, yy, zz = range4PSF(PSF,out['dr'],out['dz'])
+            xx, yy, zz = range4PSF(PSF, out['dr'], out['dz'])
             # print(xx.shape, yy.shape, zz.shape, PSF.shape, PSF.dtype, np.sum(np.isnan(PSF)))
             PSFdonut.interp = RegularGridInterpolator((xx, yy, zz), 
                                                       PSF, 
@@ -228,16 +307,20 @@ class PsfVectorial(Psf):
         """
         if len(offset) != 2:
             raise ValueError('PSF_vectorial.setpinhole: offset needs to have two entries [x,y]')
+        
         # Compute diameter if not provided
         if diameter is None:
             diameter = np.round(AU*1.22*self.parameters['sys']['loem']*1e9/self.parameters['sys']['NA'])
+            # print(f"calculated diameter is: {diameter}")
 
         phdefined = self.PSFph is not None and self.pinholepar is not None
-        notchanged = phdefined and (diameter == self.pinholepar['diameter']) and all(offset == self.pinholepar['offset'])
-        calculated = notchanged and f"pinhole{diameter}{offset}" in self.PSFs.keys()
+        notchanged = phdefined and (diameter == self.pinholepar['diameter']) and offset == self.pinholepar['offset']
+        calculated = notchanged and genkey('pinhole', [diameter,offset]) in self.PSFs.keys()
 
         if not calculated:
-            self.PSFph = self.calculatePSFs('pinhole',[diameter,offset],1)
+            self.PSFph = self.calculatePSFs('pinhole',
+                                            Lxs = [diameter,offset],
+                                            forcecalculation=True)
 
         self.pinholepar = {}
         self.pinholepar['offset'] = offset
