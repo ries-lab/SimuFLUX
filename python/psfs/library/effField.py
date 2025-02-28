@@ -104,7 +104,6 @@ def effField(sys, out=None, opt=None):
     M = optdim(m + nx - 1)
     N = optdim(n + ny - 1)
     
-    # Et = vmul(Et, np.tile(cis(-dk / 2 * np.arange(m)**2 - dk * out['x'][0] / out['dr'] * np.arange(m)), (1, 1, n)))
     cout = cis(-dk / 2 * np.arange(m)**2 - dk * out['x'][0] / out['dr'] * np.arange(m))
     Et = Et * cout[None, :, None]
     cisa0 = cis(dk / 2 * ((m-1) * np.arange(nx) - np.arange(nx)**2))
@@ -116,18 +115,21 @@ def effField(sys, out=None, opt=None):
     v = np.fft.fft(cis(dk / 2 * (np.arange(1 - m, nx)**2)), M)
     w = np.fft.fft(cis(dk / 2 * (np.arange(1 - n, ny)**2)), N)
     # print(Et.shape, a.shape, b.shape, v.shape, w.shape) # (3, 207, 207) (141, 207) (141,) (384,) (384,)
-    # print(f"Et: {Et[0,0,:3]}, a: {a[0,:3]}, b: {b[:3]}, v: {v[:3]}, w: {w[:3]}")
+    # print(f"Et: {Et[0,0,:3]}, a: {a[0,:3]}, a T: {a[:3,0]}, b: {b[:3]}, v: {v[:3]}, w: {w[:3]}")
 
-    m = np.arange(m, m + nx)
-    n = np.arange(n, n + ny)
+    # print(f"m: {m}, n: {n}, nx: {nx}, ny: {ny}")
+    m = np.arange(m-1, m + nx -1)
+    n = np.arange(n-1, n + ny -1)
 
     out['E'] = np.zeros((3, nx, ny, nz), dtype=Et.dtype)
 
     for z in range(nz):
         E = np.fft.ifft(np.fft.fft(Et, M, axis=1) * v[None, :, None], M, axis=1)
         # print("first, ", E[0,0,:3])
-        # print("intermediate", (E[:, m, :] * a[None,...])[0,0,:5])
-        # print("intermediate2", (np.fft.fft(E[:, m, :] * a[None,...], N, axis=2) * w[None, None, :])[0,0,:5])
+        # print(f"shape: {E[:, m, :].shape} {a.shape}")
+        # print("intermediate", (E[:, m, :] * a[None,...])[0,0,:3])
+        # print("intermediate T", (E[:, m, :] * a[None,...])[0,:3,0])
+        # print("intermediate2", (np.fft.fft(E[:, m, :] * a[None,...], N, axis=2) * w[None, None, :])[0,0,:3])
         E = np.fft.ifft(np.fft.fft(E[:, m, :] * a[None,...], N, axis=2) * w[None, None, :], N, axis=2)
         # print("second, ", E[0,0,:3])
         E = E[:, :, n] * b[None, None, :]

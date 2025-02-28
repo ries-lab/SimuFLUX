@@ -23,3 +23,6 @@ class PsfDonut2D(Psf):
             phfac=np.ones(io.shape)
 
         return io, phfac
+
+    def calculatePSFs(self, phasepattern, Lxs):
+        pass

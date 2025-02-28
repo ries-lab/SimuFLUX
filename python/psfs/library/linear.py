@@ -30,12 +30,10 @@ def linear(sys, E, r, t, p):
     s = np.sin(sys['pl'])
 
     try:
-        print("linear land try", E.shape, c.shape, s.shape)
         E = np.array([c*c*E[0,:,:] + c*s*E[1,:,:],
                       c*s*E[0,:,:] + s*s*E[1,:,:],
                       E[2,:,:]])
     except (IndexError, TypeError):
-        print("linear land", E.shape, c.shape, s.shape)
         E = np.array([c*E, s*E, np.zeros_like(E)]).squeeze()
         
     return E

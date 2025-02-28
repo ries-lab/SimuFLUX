@@ -175,7 +175,7 @@ class Simulator:
         for k in range(pattern.pos.shape[0]):
             pattern.psf.append(psf)
             pattern.phasemask.append(phasemask)
-            # pattern.psf[k].calculatePSFs(phasemask, pattern.zeropos[:,k])
+            pattern.psf[k].calculatePSFs(phasemask, pattern.zeropos[:,k])
             pattern.laserpower.append(kwargs.get("laserpower", 1))
         
         pdt = kwargs.get("pointdwelltime", [0.01])
@@ -251,12 +251,12 @@ class Simulator:
         out.time.patterntime = pattern.pointdwelltime.sum()
         out.counter = 1
         out.repetitions = repetitions
-        out.par = copy.deepcopy(pattern.par)
+        out.par = pattern.par  # copy.deepcopy(pattern.par)
         out.par.L = pattern.L
         out.par.patternpos = pattern.pos
         out.par.zeropos = pattern.zeropos
         out.par.dim = pattern.dim
-        out.par.pattern = copy.deepcopy(pattern)
+        out.par.pattern = pattern  # copy.deepcopy(pattern)
         
         self.time = time
 

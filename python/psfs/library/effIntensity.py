@@ -32,23 +32,17 @@
 
 import numpy as np
 
-from .vnorm import vnorm
-
 C0 = 299792458
 U0 = 4e-7*np.pi
 E0 = 1/(U0*C0*C0)
+SQE0U0 = np.sqrt(E0 / U0)
 
 def effIntensity(sys, out):
     if 'ns' in sys and sys['ns'] < sys['nm']:
         n = sys['ns']
     else:
         n = sys['nm']
-
-    # print("outE ", out['E'].shape)
     
-    out['I'] = np.sqrt(E0 / U0) * np.real(n) / 2 * vnorm(out['E'])
-
-
-    # print("outI ", out['I'].shape)
+    out['I'] = SQE0U0 * np.real(n) / 2 * np.sum(np.real(np.conj(out['E'])*out['E']),axis=0)
     
     return out

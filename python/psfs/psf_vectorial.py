@@ -7,13 +7,12 @@ from dataclasses import dataclass
 # import tensorflow as tf
 import numpy as np
 from scipy.interpolate import RegularGridInterpolator
-from scipy.ndimage import convolve
-from scipy.signal import fftconvolve
 
 from .psf import Psf
 from .library import effField
 from .library import effIntensity
 from .library import conv2fft
+from .library import convnfft
 
 @dataclass
 class PSFStruct:
@@ -46,11 +45,11 @@ def meshgrid4PSF(psf,dr,dz):
 def genkey(phasepattern, Lxs=None):
     if Lxs is None:
         return f"{phasepattern}"
-    elif not isinstance(Lxs, list):
-        Lx = [Lxs.copy()]
+    elif isinstance(Lxs, (int, float)):
+        Lx = [[Lxs]]
     else:
-        # list
-        Lx = Lxs.copy()
+        # list or array (we hope)
+        Lx = list(Lxs.copy())
         for i, x in enumerate(Lxs):
             if not isinstance(x , list):
                 Lx[i] = [x]
@@ -84,22 +83,48 @@ class PsfVectorial(Psf):
         self.fwhm = 310
 
     def setpar(self, **kwargs):
-        # overwrite any of the parameter fields if they exist
-        intersection_keys = list(self.parameters.keys() & kwargs.keys())
+        # # overwrite any of the parameter fields if they exist
+        # intersection_keys = list(self.parameters.keys() & kwargs.keys())
 
-        for key in intersection_keys:
-            self.parameters[key].update(kwargs[key])
+        # for key in intersection_keys:
+        #     self.parameters[key].update(kwargs[key])
 
-        # otherwise add to addpar
-        exclusive_keys = list(set(kwargs.keys()) - set(self.parameters.keys()))
-        if len(exclusive_keys) > 0:
-            if 'addpar' not in self.parameters.keys():
-                self.parameters['addpar'] = {}
-            for key in exclusive_keys:
-                self.parameters['addpar'][key] = kwargs[key]
+        # # otherwise add to addpar
+        # exclusive_keys = list(set(kwargs.keys()) - set(self.parameters.keys()))
+        # if len(exclusive_keys) > 0:
+        #     if 'addpar' not in self.parameters.keys():
+        #         self.parameters['addpar'] = {}
+        #     for key in exclusive_keys:
+        #         self.parameters['addpar'][key] = kwargs[key]
 
-        if len(intersection_keys) > 0:
-            # recalculate
+        # if len(intersection_keys) > 0:
+        #     # recalculate
+        #     self.PSFs = {}
+        #     self.normfactgauss = None
+        #     if self.pinholepar is not None:
+        #         self.setpinhole(**self.pinholepar)
+        fn = kwargs.keys()
+        fnpar = self.parameters.keys()
+
+        recalculate = False
+        for k in fn:
+            assigned = False
+            for j in fnpar:
+                if k in self.parameters[j].keys():
+                    try:
+                        if self.parameters[j][k] != kwargs[k]:
+                            self.parameters[j][k] = kwargs[k]
+                            recalculate = True
+                    except ValueError:
+                        # probably an array
+                        if np.any(self.parameters[j][k] != kwargs[k]):
+                            self.parameters[j][k] = kwargs[k]
+                            recalculate = True
+                    assigned = True
+            if not assigned:
+                self.parameters['addpar'][k] = kwargs[k]
+
+        if recalculate:
             self.PSFs = {}
             self.normfactgauss = None
             if self.pinholepar is not None:
@@ -120,21 +145,21 @@ class PsfVectorial(Psf):
         try:
             phfac = self.PSFs[self.PSFph].interp(flpos)
         except KeyError:
-            phfac = np.ones(iexc.shape)
+            phfac = np.ones_like(iexc)
         idet = iexc * phfac
 
         return idet, phfac
     
     def calculatePSFs(self, phasepattern, Lxs=None, forcecalculation=False):
-        # print(phasepattern)
         key = genkey(phasepattern, Lxs)
+
+        if key in self.PSFs and not forcecalculation:
+            return key
+        
         if Lxs is None:
             # safety, but not so safe so alert the user
             Lxs = [0]
             print("Warning! Unknown Lxs. Using a default of [0].")
-
-        if key in self.PSFs and not forcecalculation:
-            return key
         
         intmethod = 'cubic' # linear,cubic?
         bounds_error = False
@@ -146,7 +171,7 @@ class PsfVectorial(Psf):
         out = self.parameters['addpar']
         sys = self.parameters['sys']
 
-        fwhm = 0.51*sys['loem']/sys['NA']*1e9
+        fwhm = 0.51*sys['lo']/sys['NA']*1e9
         self.sigma = fwhm/2.35
 
         if self.normfactgauss is None:
@@ -154,7 +179,7 @@ class PsfVectorial(Psf):
             outc = effField(sys, out, opt)
             outc = effIntensity(sys, outc)
             zmid=int(np.ceil(outc['I'].shape[2]/2))
-            self.normfactgauss=np.max(np.max(outc['I'][...,zmid]))  # normalized to max =1
+            self.normfactgauss=np.max(outc['I'][:,:,zmid])  # normalized to max =1
 
         if phasepattern == "flat":
             sys['Ei'] = ['circular']
@@ -176,7 +201,7 @@ class PsfVectorial(Psf):
             # convert L into phase
             dxdphi = 1.4  # nm/degree, from LSA paper Deguchi
             # dzdphi = -3.6  #nm/degree
-            sys['delshift'] = float(Lxs)/dxdphi * np.pi/180
+            sys['delshift'] = np.deg2rad(float(Lxs)/dxdphi)
             sys['Ei'] = ['halfmoon', 'linear']
             sys = addzernikeaberrations(sys, out)
             out = effField(sys, out, opt)
@@ -230,11 +255,11 @@ class PsfVectorial(Psf):
             self.PSFs[key] = PSFdonut
         elif phasepattern == "tophat":
             dzdphi = -3.6  #nm/degree
-            sys['delshift'] = float(Lxs)/dzdphi * np.pi/180
+            sys['delshift'] = np.deg2rad(float(Lxs)/dzdphi)
             sys['Ei'] = ['pishift', 'circular']
-            sys=addzernikeaberrations(sys,out)
-            out=effField(sys, out, opt)
-            out=effIntensity(sys, out)
+            sys = addzernikeaberrations(sys, out)
+            out = effField(sys, out, opt)
+            out = effIntensity(sys, out)
             PSF = out['I'].squeeze()/self.normfactgauss
             PSF = self.beadsize(PSF, sys['beadradius'])
             PSFdonut = PSFStruct()
@@ -276,20 +301,20 @@ class PsfVectorial(Psf):
         dr = self.parameters['addpar']['dr']
         dz = self.parameters['addpar']['dz']
         
-        nx = np.arange(1, psf.shape[0] + 1)
+        nx = np.arange(psf.shape[0])
         nx = (nx - np.mean(nx)) * dr
         
-        ny = np.arange(1, psf.shape[1] + 1)
+        ny = np.arange(psf.shape[1])
         ny = (ny - np.mean(ny)) * dr
         
-        nz = np.arange(1, psf.shape[2] + 1)
+        nz = np.arange(psf.shape[2])
         nz = (nz - np.mean(nz)) * dz
         
-        X, Y, Z = np.meshgrid(nx, ny, nz, indexing='ij')
-        circpsf = (X**2 + Y**2 + Z**2 <= R**2).astype(float)
+        X, Y, Z = np.meshgrid(nx, ny, nz)
+        circpsf = np.double((X**2 + Y**2 + Z**2) <= R**2)
         circpsf /= np.sum(circpsf)
         
-        psfo = convolve(psf, circpsf, mode='constant')
+        psfo = convnfft(psf, circpsf)
         
         return psfo
     
@@ -327,7 +352,8 @@ class PsfVectorial(Psf):
         self.pinholepar['diameter'] = diameter
 
     def imagestack(self, key, show=False):
-        key = self.calculatePSFs(key)
+        if key not in self.PSFs.keys():
+            key = self.calculatePSFs(key, 0)
         psf = self.PSFs[key]
         vout = psf.interp.values
 

@@ -17,7 +17,7 @@ def pishift(sys, E, r, t, p):
     
     idx = r <= RADSHIFT # The area for pi shift.
     idx = 2*idx-1
-    phase = idx*np.exp((np.pi)*1j) 
+    phase = idx*(-1 + 0j)  # np.exp((np.pi)*1j) 
     if "delshift" in sys.keys():
         phase[r<=RADSHIFT] *= np.exp(sys['delshift']*1j)
 

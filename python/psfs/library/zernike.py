@@ -50,5 +50,10 @@ def zernike(sys, E, r, t, p):
     #    e += W['defoc'] * t  # r^2
 
     #E=E.*repmat(exp(2i*pi*e),size(E,1),1);  %B = repmat(A,m,n) returns an array containing m x n copies of A in the row and column dimensions.
-    E = E * np.exp(2j * np.pi * e)  # Multiply E with the phase factor
+    try:
+        E *= np.exp(2j * np.pi * e)  # Multiply E with the phase factor
+    except ValueError:
+        # scale up to 3D
+        E = E[:,None,None] * np.exp(2j * np.pi * e)[None,...]
+
     return E

@@ -15,7 +15,7 @@ def halfmoon(sys, E, r, t, p):
 
     idx = p >= 0       
     idx = 2*idx - 1
-    phase = idx*np.exp((np.pi)*1j)
+    phase = idx*(-1 + 0j)  # np.exp((np.pi)*1j)
     phase[p>=0] = phase[p>=0]*np.exp(sys['delshift']*1j)
     E *= phase
 
