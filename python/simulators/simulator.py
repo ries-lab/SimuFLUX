@@ -94,6 +94,16 @@ class Deadtimes:
     positionupdate: float = 0
     localization: float = 0
 
+@dataclass
+class FOVScan:
+    std: np.typing.ArrayLike = None
+    rmse: np.typing.ArrayLike = None
+    bias: np.typing.ArrayLike = None
+    sCRB: np.typing.ArrayLike = None
+    pos: np.typing.ArrayLike = None
+    stdrel: np.typing.ArrayLike = None
+    biasrel: np.typing.ArrayLike = None
+
 def initlocs(maxlocalizations, fields):
     locs = {f: np.zeros((maxlocalizations,1)) for f in fields}
     return SimpleNamespace(**locs)
@@ -204,7 +214,7 @@ class Simulator:
         posgalvo = self.posgalvo
         posEOD = self.posEOD
         flpos = np.zeros((fluorophores.numberOfFluorophores, 3))
-        flintall = np.zeros((fluorophores.numberOfFluorophores,1))
+        flintall = np.zeros((fluorophores.numberOfFluorophores, 1))
         flproperties = fluorophores.getproperties()  # for performance
         bgphot = 0 
         time = self.time
@@ -361,14 +371,9 @@ class Simulator:
                                                     'iteration', s)
                 else:
                     raise ValueError(f"Unknown component type {type_}.")
-            if loccounter_seq == loccounter:
-                loc.xnm[loccounter_seq] = xesttot[0]
-                loc.ynm[loccounter_seq] = xesttot[1]
-                loc.znm[loccounter_seq] = xesttot[2]
-            else:
-                loc.xnm[loccounter_seq:loccounter] = xesttot[0]
-                loc.ynm[loccounter_seq:loccounter] = xesttot[1]
-                loc.znm[loccounter_seq:loccounter] = xesttot[2]
+            loc.xnm[loccounter_seq:(loccounter+1)] = xesttot[0]
+            loc.ynm[loccounter_seq:(loccounter+1)] = xesttot[1]
+            loc.znm[loccounter_seq:(loccounter+1)] = xesttot[2]
             self.time += deadtimes.localization
         loc = removeempty(loc, loccounter)
         loc.abortcondition = np.zeros(loc.phot.shape)
@@ -587,7 +592,10 @@ class Simulator:
         ind = filter.squeeze()
         photraw = out.raw.copy()
         xest = np.column_stack((out.loc.xnm[ind], out.loc.ynm[ind], out.loc.znm[ind]))
+        # print("xnm ynm ", out.loc.xnm[:6], out.loc.ynm[:6], xest.shape)
         flpos = np.column_stack((out.loc.xfl1[ind], out.loc.yfl1[ind], out.loc.zfl1[ind]))
+        # print("xest ", xest.shape, xest[:6])
+        # print("flpos ", flpos.shape, flpos[:6])
 
         if hasattr(out.loc, 'seq'):
             sunique = np.unique(out.loc.seq[ind])
@@ -613,6 +621,7 @@ class Simulator:
         st.std = np.nanstd(xest-flpos, axis=0)
         st.stdraw = np.nanstd(xest, axis=0)
         st.rmse = np.sqrt(np.nanmean((xest - flpos) ** 2, axis=0))
+        # print("rmse ", st.rmse, st.rmse[:6])
         st.bias = np.nanmean(xest - flpos, axis=0)
 
         st.locp = locprecL
@@ -654,6 +663,90 @@ class Simulator:
                   f'sCRB*sqrt(phot): {", ".join(list(map(ff1.format, st.sCRB1)))}')
         
         return st
+    
+    def scan_fov(self, 
+                 seq,                    # cell of keys of patterns, elements
+                 xcoords,                # coordinates to scan
+                 maxlocs = 1000,         # how often to localize in each position
+                 repetitions = 1,        # repetitions in each position
+                 display = True,         # if to plot the results
+                 dimplot = 0,            # which dimension is used to calculate statistics
+                 dimscan = 0,            # which dimension is scanned 
+                 title = "FoV scan",     # title of the output figure
+                 fluorophorenumber = 0,  # which fluorophore is scanned. Use 0 for a FoV scan, use 1 to test effect of close-by fluorophore
+                 ax1 = "std",            # std, bias, rmse, sCRB, pos: what to displax in the figure, arrray of strings. 
+                 clearfigure = False,    # overwrite figure. if false: new plots are added
+                 tag = None,             # name of a plot, used in the figure legend
+                 linestyle = None):
+        
+        if isinstance(ax1, (str, int, float)):
+            ax1 = [ax1]
+
+        so = FOVScan()
+        so.std = np.zeros((len(xcoords),3))
+        so.rmse = np.zeros((len(xcoords),3))
+        so.bias = np.zeros((len(xcoords),3))
+        so.sCRB = np.zeros((len(xcoords),3))
+        so.bias = np.zeros((len(xcoords),3))
+        so.pos = np.zeros((len(xcoords),3))
+
+        if isinstance(self.fluorophores, FlCollection):
+            # print("collection")
+            fl = self.fluorophores.flall[fluorophorenumber]
+        else:
+            fl = self.fluorophores
+
+        # print(f"scan_fov fl.pos: {fl.pos}")
+
+        coords = ["x", "y", "z"]
+        posold = fl.pos[dimscan]
+        for k in range(len(xcoords)):
+            fl.pos[dimscan] = xcoords[k]
+            # print(f"scan_fov fl.pos after shift: {fl.pos}")
+            out = self.runSequence(seq, maxlocs=maxlocs,repetitions=repetitions)
+            stats = self.summarize_results(out, display=False)
+            so.std[k,:] = stats.std
+            so.bias[k,:] = stats.bias
+            so.rmse[k,:] = stats.rmse
+            # print(f"scan_fov rmse after shift: {so.rmse[:,dimplot]}")
+            so.sCRB[k,:] = stats.sCRB
+            so.pos[k,:] = stats.pos
+        so.stdrel = so.std/so.sCRB
+        so.biasrel = so.bias/so.pos
+
+        if display:
+            import matplotlib.pyplot as plt
+            axh = plt.gca()
+
+            if axh.get_legend() is not None and not clearfigure:
+                ltxt = [x.get_text() for x in axh.get_legend().texts]
+            else:
+                ltxt = []
+
+            if clearfigure:
+                axh.clear()
+
+            # Left axis plotting
+            ylab = f"{coords[dimplot]}: "
+            for m, ax in enumerate(ax1):
+                yval = getattr(so, ax)
+                plt.plot(xcoords, yval[:, dimplot], linestyle)
+                ylab += ax
+                if m < (len(ax1) - 1):
+                    ylab += "/"
+
+            plt.ylabel(f"{ylab} (nm)")
+            fl.pos[dimscan] = posold  # Assumes `fl_pos` is mutable and linked
+            plt.xlabel(f"{coords[dimscan]} position (nm)")
+            plt.title(title)
+
+            # Construct legend
+            ltxt += [f"{ax}: {tag}" for ax in ax1]
+            plt.legend(ltxt)
+
+            # Optional grid for "bias" conditions
+            if any("bias" in ax for ax in ax1):
+                plt.grid(True)
 
     def loadsequence(self, *args):
         raise UserWarning("No sequence loader implemented for Simulator class")
