@@ -13,7 +13,6 @@ def sumstruct(sin=None, sadd=None):
     for k in fn:
         saddk = getattr(sadd, k)
         if isinstance(saddk, (int, float)) or (isinstance(saddk, np.ndarray) and hasattr(saddk, '__add__') and hasattr(saddk, '__mul__')):
-            # print(f"key: {k} sink: {getattr(sin, k)} saddk: {getattr(sadd, k)}")
             setattr(sout, k, getattr(sin, k) + getattr(sadd, k))
         # else:
         #     setattr(sout, k, getattr(sin, k))

@@ -216,7 +216,7 @@ class Simulator:
         else:
             try:
                 pattern.pointdwelltime = np.zeros((1,pattern.pos.shape[0]))+pdt[0]
-            except TypeError:
+            except (TypeError, IndexError):
                 pattern.pointdwelltime = np.zeros((1,pattern.pos.shape[0]))+pdt
         if not isinstance(pdt, (int, float)) and len(pdt) == 2:
             pattern.pointdwelltime[-1] = pdt[1]
@@ -477,32 +477,40 @@ class Simulator:
         
         flpos = position
         brightness = self.fluorophores.brightness
-        bg = self.background / brightness[0]  # Hack, to not have to calculate with all fluorophores
+        try:
+            bg = self.background / brightness[0]  # Hack, to not have to calculate with all fluorophores
+        except TypeError:
+            bg = self.background / brightness
         pattern = self.patterns[patternnames]
 
         def pi(dpos):
             flposh = flpos.copy()
-            flposh[0, :] -= dpos
+            try:
+                flposh[0, :] -= dpos
+            except IndexError:
+                flposh -= dpos
             # bgh = bg * pattern.backgroundfac[k]
-            ih = np.sum(pattern.psf[k].intensity(flposh - self.posgalvo, 
-                                                pattern.pos[k,:], 
-                                                pattern.phasemask[k], 
-                                                pattern.zeropos[:,k]) + bg)
+            ih, _ = pattern.psf[k].intensity(flposh - self.posgalvo, 
+                                             pattern.pos[k,:], 
+                                             pattern.phasemask[k], 
+                                             pattern.zeropos[:,k])
+            ih = np.sum(ih + bg)
 
             ihm = 0
-            for m in reversed(range(len(pattern.zeropos))):
+            for m in reversed(range(pattern.zeropos.shape[1])):
                 # bgh = bg * pattern.backgroundfac[m]
-                ihm += np.sum(pattern.psf[m].intensity(flposh - self.posgalvo, 
-                                                       pattern.pos[m,:], 
-                                                       pattern.phasemask[m], 
-                                                       pattern.zeropos[:,m]) + bg)
+                ihmp, _ = pattern.psf[m].intensity(flposh - self.posgalvo, 
+                                                   pattern.pos[m,:], 
+                                                   pattern.phasemask[m], 
+                                                   pattern.zeropos[:,m])
+                ihm += np.sum(ihmp + bg)
 
             return ih / ihm
         
         eps = 1
         IFisher = np.zeros((len(dim), len(dim)))
 
-        for k in reversed(range(len(pattern.zeropos))):
+        for k in reversed(range(pattern.zeropos.shape[1])):
             dpdc = np.zeros(len(dim))
             for coord in range(len(dim)):
                 dposa = np.zeros(3)

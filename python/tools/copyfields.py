@@ -1,6 +1,5 @@
 
 def copyfields(destination, source=None, fields=None):
-    # print(f"destination: {destination} source: {source}")
     missing = []
     if fields is None:
         if source is None:
@@ -9,8 +8,6 @@ def copyfields(destination, source=None, fields=None):
         #     fn = source.keys() & destination.keys()
         # else:
         fn = source.keys()
-
-        # print(f"keys: {fn}")
         
         for k in fn:
             destination[k] = source[k]
@@ -24,5 +21,4 @@ def copyfields(destination, source=None, fields=None):
                     missing.append(k)
         else:
             missing = fields
-    # print(f"return: {destination} missing: {missing}")
     return destination, missing

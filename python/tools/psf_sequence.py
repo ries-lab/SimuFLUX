@@ -1,4 +1,4 @@
-# For globals
+# For globals()
 from ..psfs import PsfDonut2D
 from ..psfs import PsfGauss2D
 from ..psfs import PsfVectorial
@@ -36,9 +36,6 @@ def psf_sequence(sq, psfvec=None, seq=None):
         if itr['Mode'] == 'PSF_vectorial':
             psfs[k] = psfvec
         else:
-            # TODO: itr['Mode'] is supposed to be eval()ed. This means
-            # we have to figure out where it's calling functions from
-            # import them and then pull from there
             psfs[k] = globals()[itr['Mode']]
         phasemasks[k] = itr['par']
 

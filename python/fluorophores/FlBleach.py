@@ -3,7 +3,7 @@ import numpy as np
 from .Fluorophore import Fluorophore
 
 class FlBleach(Fluorophore):
-    def __init__(self, pos=..., brightness=1000):
+    def __init__(self, pos=[0,0,0], brightness=1000):
         super().__init__(pos, brightness)
         self._photonbudget = np.inf
 

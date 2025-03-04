@@ -5,7 +5,7 @@ Properties = namedtuple("Properties", ["brightness", "pos"])
 
 class Fluorophore:
     def __init__(self, pos=[0,0,0], brightness=1000):
-        self._pos = np.array(pos)  # nm
+        self.pos = pos  # nm
         self.brightness = brightness  # kHz
         self.remainingphotons = np.inf
         # Dummy properties for compatibility with collection
@@ -19,7 +19,7 @@ class Fluorophore:
     @pos.setter
     def pos(self, val):
         if not isinstance(val, np.ndarray):
-            self._pos = np.array(val)
+            self._pos = np.array(val, dtype=float)
         else:
             self._pos = val
     

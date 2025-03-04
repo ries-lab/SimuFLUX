@@ -149,16 +149,11 @@ class SimSequencefile(Simulator):
             stickiness = self.sequence['stickiness']
             photsum, abortccr, abortphot = 0, False, False
             scanout = PatternScan()
-            # print(f"{itrname} {sofar}")
-            # sofar += 1
             while photsum < itrs[itr]['phtLimit'] and stickinesscounter < stickiness and not abortphot:
-                # print(f"   {photsum} {itrs[itr]['phtLimit']} {stickiness} {abortphot}")
                 # repeat scanning until sufficient photons collected,
                 # or abort condition met
                 scanouth = self.patternscan(itrname)
                 scanouth = backgroundsubtractor(scanouth, self.background_estimated)
-                # print(f"scanout: {scanout.phot}")
-                # print(f"scanouth: {scanouth.phot}")
                 scanout = sumstruct(scanout, scanouth)
 
                 photsum = np.sum(scanout.phot)
@@ -167,7 +162,7 @@ class SimSequencefile(Simulator):
 
                 if itrs[itr]['ccrLimit'] > -1:
                     probecenter = True
-                    cfr = scanout.phot[-1]/self.sequence['ctrDwellFactor']/np.sum(scanout.phot[:-2])
+                    cfr = scanout.phot[-1]/self.sequence['ctrDwellFactor']/np.sum(scanout.phot[:-1])
                     abortccr = cfr > itrs[itr]['ccrLimit']
                 else:
                     probecenter = False
@@ -211,7 +206,6 @@ class SimSequencefile(Simulator):
                                             'background_est', bg_est,
                                             'iteration',itr)
                     xesth = estf(scanout.photrate, *estpar)
-                    # print(f"xest: {xest.shape} estimator dim: {estimator['dim']} xesth: {xesth.shape}")
                     xest[estimator['dim']] = xesth[estimator['dim']]
                     self.time = self.time + deadtimes.estimator
 
@@ -230,10 +224,10 @@ class SimSequencefile(Simulator):
                     xesttot = np.array([0,0,0])
                 
                 if itrs[itr]['ccrLimit'] > -1:  # probe center
-                    loc.eco[loccounter,0] = np.sum(scanout.phot[:-2])
+                    loc.eco[loccounter,0] = np.sum(scanout.phot[:-1])
                     loc.ecc[loccounter,0] = np.sum(scanout.phot[-1])
                     
-                    loc.efo=loc.eco/(np.sum(scanout.par.pattern.pointdwelltime[:-2]))
+                    loc.efo=loc.eco/(np.sum(scanout.par.pattern.pointdwelltime[:-1]))
                     loc.efc=loc.ecc/(scanout.par.pattern.pointdwelltime[-1])
                 else:
                     loc.eco[loccounter,0] = np.sum(scanout.phot)
