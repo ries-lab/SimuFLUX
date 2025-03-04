@@ -1,0 +1,33 @@
+{"PSF":
+ {"global": {"Mode": "PSF_vectorial",
+            "sys": {"dummy": []},
+            "opt": {"dummy": []},
+            "addpar": {"pinhole": ["AU",1]}},
+"Itr": [
+	{"Mode": "PSF_vectorial",
+     "par": 
+        {"phasemask": "flat"}, 
+     "estimator": 
+        {"function": "est_gauss2d",
+        "par": ["patternpos","L",120, false],
+        "dim": [0, 1]}},
+	{"Mode": "PSF_vectorial",
+     "par": 
+        {"phasemask": "vortex"}, 
+     "estimator": {"function": "est_donut2d",
+        "par": ["patternpos","L",310, false],
+        "dim": [0, 1]}},
+	{"Mode": "PSF_vectorial",
+     "par": 
+        {"phasemask": "vortex"}, 
+     "estimator": {"function": "est_donut2d",
+        "par": ["patternpos","L",310, false],
+         "dim": [0, 1]}},
+	{"Mode": "PSF_vectorial",
+     "par": 
+        {"phasemask": "vortex"}, 
+     "estimator": {"function": "est_donut2d",
+         "par": ["patternpos","L",310],
+        "dim": [0, 1]}}
+    ]}
+}

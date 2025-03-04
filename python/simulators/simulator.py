@@ -129,8 +129,8 @@ class Simulator:
         # self.sequences = {}
         self.fluorophores = fluorophores  # Fluorophore or FlCollection
         self.background = 0  # kHz from AF, does not count towards photon budget
-        self.posgalvo = np.array([0, 0, 0], dtype=float)  # nm, position of pattern center
-        self.posEOD = np.array([0, 0, 0], dtype=float)  # nm, not descanned, with respect to 
+        self._posgalvo = np.array([0, 0, 0], dtype=float)  # nm, position of pattern center
+        self._posEOD = np.array([0, 0, 0], dtype=float)  # nm, not descanned, with respect to 
                                            # posgalvo
         self.time = 0  # That is the master time
         self.background = background  # Constant autofluorescence background
@@ -143,6 +143,28 @@ class Simulator:
 
         if loadfile is not None:
             self.loadsequence(*loadfile)
+    
+    @property
+    def posgalvo(self):
+        return self._posgalvo
+    
+    @posgalvo.setter
+    def posgalvo(self, val):
+        if not isinstance(val, np.ndarray):
+            self._posgalvo = np.array(val)
+        else:
+            self._posgalvo = val
+
+    @property
+    def posEOD(self):
+        return self._posEOD
+    
+    @posEOD.setter
+    def posEOD(self, val):
+        if not isinstance(val, np.ndarray):
+            self._posEOD = np.array(val)
+        else:
+            self._posEOD = val
 
     def defineComponent(self, key, type_, functionhandle, parameters=None, dim=(0, 1, 2)):
         self.patterns[key] = Component(functionhandle=functionhandle,  
@@ -224,7 +246,11 @@ class Simulator:
             for k in range(numpoints):
                 timep += time   # for calculating average time point
                 flposh, isactive = fluorophores.position(self.time, flproperties)
-                flposrel = flposh - posgalvo
+                try:
+                    flposrel = flposh - posgalvo
+                except TypeError:
+                    # print(f"Wrong type flposh: {flposh} and posgalvo: {posgalvo}")
+                    flposrel = flposh - posgalvo
                 intensityh, pinholehfac = pattern.psf[k].intensity(flposrel[isactive,:],
                                                                    pattern.pos[k,:] + posEOD,
                                                                    pattern.phasemask[k], 

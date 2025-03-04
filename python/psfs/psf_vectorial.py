@@ -335,7 +335,7 @@ class PsfVectorial(Psf):
         
         # Compute diameter if not provided
         if diameter is None:
-            diameter = np.round(AU*1.22*self.parameters['sys']['loem']*1e9/self.parameters['sys']['NA'])
+            diameter = np.round(AU*1.22*self.parameters['sys']['loem']*1e9/self.parameters['sys']['NA']).astype(int)
             # print(f"calculated diameter is: {diameter}")
 
         phdefined = self.PSFph is not None and self.pinholepar is not None
@@ -362,7 +362,11 @@ class PsfVectorial(Psf):
             phpsf = self.PSFs[self.PSFph]
             vout = vout*phpsf.interp.values
 
-        return vout.transpose(1,0,2)
+        if show:
+            from ..tools import imx
+            imx(vout.transpose(1,0,2))
+
+        return vout.transpose(1,0,2), psf.interp.grid
     
     def normfactor(self, phasemask, number):
         return self.PSFs[f"{phasemask}{number}"].normalization
