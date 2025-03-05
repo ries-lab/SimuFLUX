@@ -151,7 +151,7 @@ class Simulator:
     @posgalvo.setter
     def posgalvo(self, val):
         if not isinstance(val, np.ndarray):
-            self._posgalvo = np.array(val)
+            self._posgalvo = np.array(val, dtype=float)
         else:
             self._posgalvo = val
 
@@ -162,7 +162,7 @@ class Simulator:
     @posEOD.setter
     def posEOD(self, val):
         if not isinstance(val, np.ndarray):
-            self._posEOD = np.array(val)
+            self._posEOD = np.array(val, dtype=float)
         else:
             self._posEOD = val
 

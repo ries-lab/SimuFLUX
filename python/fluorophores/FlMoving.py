@@ -11,7 +11,7 @@ class FlMoving(Fluorophore):
         self.posfunction = None
 
     def position(self, time, props=None):
-        posout = np.array([0,0,0])
+        posout = np.array([0,0,0], dtype=float)
         posmode = self.posmode
         if posmode == "static":
             posh = self.pos
@@ -35,7 +35,8 @@ class FlMoving(Fluorophore):
             self.posind = posind
         elif posmode == "function":
              posfunction = self.posfunction
-             for k in range(len(posfunction),-1,-1):
+             posh = np.zeros(len(posfunction))
+             for k in reversed(range(len(posfunction))):
                   posh[k] = posfunction[k](time)
         else:
              raise ValueError(f"Posmode {posmode} not implemented.")
@@ -47,7 +48,7 @@ class FlMoving(Fluorophore):
     def makediffusion(self, 
                       D, # um^2/s
                       dt,  # us
-                      startpos=np.array([0,0,0]), 
+                      startpos=np.array([0,0,0], dtype=float), 
                       dim=2,  # number of dimensions to simulate
                       numpoints=10000, 
                       boundarybox=None): # nm, half length of box, periodic boundary conditions
@@ -84,8 +85,8 @@ class FlMoving(Fluorophore):
                   stepsize,  # nm
                   dwelltime,  # ms
                   dt, 
-                  startpos=np.array([0,0,0]), 
-                  dim=1, 
+                  startpos=np.array([0,0,0], dtype=float), 
+                  dim=2, 
                   numpoints=10000,
                   angle=0):
         # print("makesteps")
@@ -98,17 +99,17 @@ class FlMoving(Fluorophore):
         time = np.atleast_2d(((np.arange(numpoints)+1)*dt)).T
 
         numjumps = np.ceil(numpoints*dt/(dwelltime)*2+5).astype(int)
-        jmp=np.random.exponential(dwelltime/dt,(numjumps,1))
-        jumppos=np.cumsum(jmp)
+        jmp = np.random.exponential(dwelltime/dt,(numjumps,1))
+        jumppos = np.cumsum(jmp, axis=0)
         jumppos = jumppos[jumppos<=len(time)]
-        hist, bin_edges = np.histogram(jumppos, bins=np.arange(len(time) + 1))
-        xjh = hist * stepsize
-        xpos=np.cumsum(xjh.T)
+        hist, _ = np.histogram(jumppos, bins=np.arange(len(time) + 1))
+        xjh = np.atleast_2d(hist * stepsize)
+        xpos = np.cumsum(xjh.T, axis=0)
         angle_rad = angle*np.pi/180
         
-        R = np.array([[np.cos(angle_rad) - np.sin(angle_rad)], 
+        R = np.array([[np.cos(angle_rad), -np.sin(angle_rad)], 
                       [np.sin(angle_rad), np.cos(angle_rad)]])
-        pos = (R*np.hstack([xpos, np.zeros(xpos.shape)]).T).T + startpos[:dim]
+        pos = (R @ np.hstack([xpos, np.zeros(xpos.shape)]).T).T + startpos[:dim]
         self.pos = np.hstack([time, pos])
         self.posmode = "steps"
 

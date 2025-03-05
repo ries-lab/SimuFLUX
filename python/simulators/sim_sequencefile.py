@@ -278,6 +278,7 @@ class SimSequencefile(Simulator):
                 itr += self.sequence['headstart']
             numitr += 1
         
+        # Convert from raggedarray to complete array
         if len(flpos) > 0:
             rawsh1 = np.max([len(x) for x in raw])
             flpossh1 = np.max([x.shape[0] for x in flpos])
@@ -292,6 +293,9 @@ class SimSequencefile(Simulator):
                 flposarr[i, :flpos[i].shape[0], :flpos[i].shape[1]] = flpos[i].squeeze(0)
                 flintarr[i, :flpos[i].shape[0]] = flint[i].squeeze()
 
+            # Now delete everything in loc > loccounter
+            for k, v in loc.__dict__.items():
+                setattr(loc, k, v[:loccounter,:])
 
             out = SimpleNamespace(loc=loc,
                                   raw = rawarr,

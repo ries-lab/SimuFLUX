@@ -8,7 +8,7 @@ Clone this repository. Open the repository in MATLAB.
 
 ### Setup
 
-Install MATLAB R2023b or higher and the ____ and ____ toolboxes.
+Install MATLAB 2023b or newer with the curve fitting toolbox.
 
 ### Usage
 
