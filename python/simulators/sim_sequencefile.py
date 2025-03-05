@@ -114,8 +114,8 @@ class SimSequencefile(Simulator):
         loclimit = self.sequence['locLimit']
 
         if 'maxOffTime' not in self.sequence.keys() or \
-            not isinstance(self.sequence['maxOffTime'], (int, float)) \
-                and self.sequence['maxOffTime'] == 'unspecified':
+            ((not (isinstance(self.sequence['maxOffTime'], (int, float))) \
+                and self.sequence['maxOffTime'] == 'unspecified')):
             maxOffTime = 3
         else:
             maxOffTime = self.sequence['maxOffTime']*1e6  # to us
@@ -170,8 +170,8 @@ class SimSequencefile(Simulator):
 
                 minphot = itrs[itr]['bgcThreshold']*scanouth.time.patterntotaltime*1e-6
 
-                if photsum < minphot:
-                    if scanouth.time.averagetime > offtimestamp+maxOffTime:
+                if np.sum(scanouth.phot) < minphot:
+                    if scanouth.time.averagetime > (offtimestamp+maxOffTime):
                         abortphot = True
                 else:
                     abortphot = False
@@ -206,18 +206,18 @@ class SimSequencefile(Simulator):
                                             'background_est', bg_est,
                                             'iteration',itr)
                     xesth = estf(scanout.photrate, *estpar)
-                    xest[estimator['dim']] = xesth[estimator['dim']]
+                    xest[np.array(estimator['dim'])] = xesth[np.array(estimator['dim'])]
                     self.time = self.time + deadtimes.estimator
 
-                    xesttot = xest + self.posgalvo+self.posEOD
+                    xesttot = xest + self.posgalvo + self.posEOD
                     
                     # recenter
                     if itr==maxiter:
                         dampf = 2**(-self.sequence['damping'])
-                        xold = self.posgalvo
+                        xold = self.posgalvo.copy()
                         self.posgalvo = (1-dampf)*self.posgalvo+dampf*(xesttot)
                         self.posEOD = self.posEOD + xold - self.posgalvo + xest
-                        self.time = self.time + deadtimes.positionupdate
+                        self.time += deadtimes.positionupdate
                     else:
                         self.posEOD = self.posEOD + xest
                 else:
@@ -272,7 +272,7 @@ class SimSequencefile(Simulator):
                     while len(par) < (itr+1):
                         par.append([None])
                     par[itr] = scanout.par
-            
+
             itr += 1
             if itr > maxiter:
                 itr += self.sequence['headstart']
@@ -288,7 +288,7 @@ class SimSequencefile(Simulator):
             flintarr = np.zeros((loccounter, flpossh1))
 
             for i in range(loccounter):
-                rawarr[i,:len(raw[i])] = raw[i].squeeze()
+                rawarr[i, :len(raw[i])] = raw[i].squeeze()
                 flposarr[i, :flpos[i].shape[0], :flpos[i].shape[1]] = flpos[i].squeeze(0)
                 flintarr[i, :flpos[i].shape[0]] = flint[i].squeeze()
 
@@ -362,6 +362,43 @@ class SimSequencefile(Simulator):
                 break
         if out is not None:
             out.duration = self.time-timestart
+
+    def plotpositions(self, out, figure=None, coordinate=0, axis=None, xvalues="itr"):
+        try:
+            out.loc.loccounter
+        except (NameError, AttributeError):
+            raise ValueError("No localizations found")
+        
+        import matplotlib.pyplot as plt
+        
+        xnmn = ["xnm", "ynm", "znm"]
+        xfln = ["xfl1", "yfl1", "zfl1"]
+        xgn = ["xgalvo", "ygalvo", "zgalvo"]
+        xen = ["xeod", "yeod", "zeod"]
+
+        if axis is None:
+            if figure is not None:
+                f = plt.figure(figure)
+            ax = plt.gca()
+        else:
+            ax = axis
+
+        if xvalues == "itr":
+            xv = out.loc.locounter
+            xtxt = "time (itr)"
+        elif xvalues == "time":
+            xv = out.loc.time
+            xtxt = "time (ms)"
+
+        c = coordinate
+        ax.plot(xv, getattr(out.loc, xnmn[c]), color='k')
+        ax.plot(xv, getattr(out.loc, xfln[c]), color='r')
+        ax.plot(xv, getattr(out.loc, xgn[c]), color=(0,0.7,0))
+        ax.plot(xv, getattr(out.loc, xen[c]), color='b')
+        ax.set_xlabel(xtxt)
+        ax.set_ylabel('x position (nm)')
+        ax.legend(['Estimated','Fluorophore','Galvo','EOD'])
+
 
 def makehexgrid(roi, d):
     h = d*np.cos(np.pi/6)  # 30 degrees

@@ -9,12 +9,15 @@ class FlBleach(Fluorophore):
 
     def intensity(self, I0, dwelltime, time, phfac, props=None):
         remainingphotons = self.remainingphotons
-        if remainingphotons == 0:
+        if remainingphotons <= 0:
             return 0
         intensity = self.brightness*I0*dwelltime
         
         Io = np.minimum(intensity, remainingphotons)
-        self.remainingphotons=remainingphotons-Io/phfac
+        if np.all(Io == 0) and np.all(phfac == 0):
+            self.remainingphotons = remainingphotons
+        else:
+            self.remainingphotons=remainingphotons - Io/phfac
 
         return Io
     

@@ -163,7 +163,8 @@ class PsfVectorial(Psf):
         
         intmethod = 'cubic' # linear,cubic?
         bounds_error = False
-        extraolation_method = None  # If None, extrapolate
+        # extraolation_method = None  # If None, extrapolate
+        extraolation_method = 0.0
         
         print(f"{key}, ", end="")
 

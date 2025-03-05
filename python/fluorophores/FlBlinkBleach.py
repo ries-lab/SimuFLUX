@@ -44,12 +44,12 @@ class FlBlinkBleach(Fluorophore):
             self.extendblinkingtrace()  # extend blinkingtrace
     
         ind1 = self.tind
-        if trace[ind1,2]>t:  #time asked that was before
+        if trace[ind1,2] > t:  #time asked that was before
             result = np.where(trace[ind1,2] <= t)[0]
             if len(result) > 0:
                 ind1 = result[-1]
             else:
-                ind1 = 1
+                ind1 = 0
 
         while trace[ind1,2] <= t:  # find last index below
             ind1 += 1

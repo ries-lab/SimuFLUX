@@ -318,8 +318,8 @@ class Simulator:
         bleached = False
         loccounter = -1
 
-        pos = [None]*(maxlocalizations*numpat)
-        int = [None]*(maxlocalizations*numpat)
+        pos = np.zeros(maxlocalizations*numpat)  # [None]*(maxlocalizations*numpat)
+        int = np.zeros(maxlocalizations*numpat)  # [None]*(maxlocalizations*numpat)
         fl = SimpleNamespace(pos=pos,int=int)
         par = []
         deadtimes = self.deadtimes
