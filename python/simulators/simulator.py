@@ -359,7 +359,7 @@ class Simulator:
                     loc.seq[loccounter,0] = s
                 elif type_ == "estimator":
                     # replace placeholder names by values
-                    component_par=replace_in_list(component.parameters, 
+                    component_par=replace_in_list(component.parameters.copy(), 
                                                   'patternpos', scanout.par.patternpos, 
                                                   'L', scanout.par.L, 
                                                   'probecenter', scanout.par.probecenter, 
@@ -388,13 +388,14 @@ class Simulator:
                     self.posEOD[np.array(component.dim)] = posEOD[np.array(component.dim)]
                     self.time += deadtimes.positionupdate
                 elif type_ == "background":
-                    component_par = replace_in_list(component.parameters,
+                    component_par = replace_in_list(component.parameters.copy(),
                                                     'patternpos', scanout.par.patternpos,
                                                     'L', scanout.par.L,
                                                     'probecenter', scanout.par.probecenter,
                                                     'bg_photons_gt', scanout.bg_photons_gt,
                                                     'background_estimated', self.background_estimated,
                                                     'iteration', s)
+                    scanout = component.functionhandle(scanout,*component_par)
                 else:
                     raise ValueError(f"Unknown component type {type_}.")
             loc.xnm[loccounter_seq:(loccounter+1)] = xesttot[0]
