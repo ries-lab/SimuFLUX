@@ -211,15 +211,15 @@ class Simulator:
             pattern.laserpower.append(kwargs.get("laserpower", 1))
         
         pdt = kwargs.get("pointdwelltime", [0.01])
-        if not isinstance(pdt, (int, float)) and len(pdt) == pattern.pos.shape[0]:
+        if isinstance(pdt, (int, float)):
+            pdt = [pdt]
+        if len(pdt) == pattern.pos.shape[0]:
             pattern.pointdwelltime = pdt
         else:
-            try:
-                pattern.pointdwelltime = np.zeros((1,pattern.pos.shape[0]))+pdt[0]
-            except (TypeError, IndexError):
-                pattern.pointdwelltime = np.zeros((1,pattern.pos.shape[0]))+pdt
-        if not isinstance(pdt, (int, float)) and len(pdt) == 2:
-            pattern.pointdwelltime[-1] = pdt[1]
+            pattern.pointdwelltime = np.zeros((1,pattern.pos.shape[0])) + pdt[0]
+
+        if len(pdt) == 2:
+            pattern.pointdwelltime[:,-1] = pdt[1]
 
         self.patterns[key] = pattern
 
@@ -246,11 +246,11 @@ class Simulator:
             for k in range(numpoints):
                 timep += time   # for calculating average time point
                 flposh, isactive = fluorophores.position(self.time, flproperties)
-                try:
-                    flposrel = flposh - posgalvo
-                except TypeError:
-                    # print(f"Wrong type flposh: {flposh} and posgalvo: {posgalvo}")
-                    flposrel = flposh - posgalvo
+                flposrel = flposh - posgalvo
+                # print(f"simulator any active: {np.any(isactive)}")
+                # if not np.any(isactive):
+                #     intensityh, pinholehfac, flint, intensity = 0, 0, 0, 0
+                # else:
                 intensityh, pinholehfac = pattern.psf[k].intensity(flposrel[isactive,:],
                                                                    pattern.pos[k,:] + posEOD,
                                                                    pattern.phasemask[k], 
@@ -318,8 +318,8 @@ class Simulator:
         bleached = False
         loccounter = -1
 
-        pos = np.zeros(maxlocalizations*numpat)  # [None]*(maxlocalizations*numpat)
-        int = np.zeros(maxlocalizations*numpat)  # [None]*(maxlocalizations*numpat)
+        pos = [None]*(maxlocalizations*numpat)
+        int = [None]*(maxlocalizations*numpat)
         fl = SimpleNamespace(pos=pos,int=int)
         par = []
         deadtimes = self.deadtimes
@@ -440,15 +440,16 @@ class Simulator:
         else:
             sr = out2.raw.shape
             if len(sr)==2:  # Abberior
-                out1.raw = np.concatenate(out1.raw, out2.raw, axis=0)
+                # print(f"out1.raw.shape: {out1.raw.shape} out2.raw.shape: {out2.raw.shape}")
+                out1.raw = np.concatenate((out1.raw, out2.raw), axis=0)
             else:
-                out1.raw = np.concatenate(out1.raw, np.expand_dims(out2.raw, axis=0), axis=0)
+                out1.raw = np.concatenate((out1.raw, np.expand_dims(out2.raw, axis=0)), axis=0)
             out1.fluorophores.pos = np.concatenate((out1.fluorophores.pos, out2.fluorophores.pos), axis=0)
             out1.fluorophores.int = np.concatenate((out1.fluorophores.int, out2.fluorophores.int), axis=0)
             out2.loc.rep = out1.raw.shape[0] + 0*out2.loc.xnm
             out1.loc = appendstruct(out1.loc, out2.loc)
-            out1.bg_photons_gt = np.concatenate(out1.bg_photons_gt, out2.bg_photons_gt)
-            out1.bg_photons_est = np.concatenate(out1.bg_photons_est, out2.bg_photons_est)
+            out1.bg_photons_gt = np.concatenate((out1.bg_photons_gt, out2.bg_photons_gt), axis=1)
+            out1.bg_photons_est = np.concatenate((out1.bg_photons_est, out2.bg_photons_est), axis=0)
 
         return out1
 
@@ -711,7 +712,7 @@ class Simulator:
                  ax1 = "std",            # std, bias, rmse, sCRB, pos: what to displax in the figure, arrray of strings. 
                  clearfigure = False,    # overwrite figure. if false: new plots are added
                  tag = None,             # name of a plot, used in the figure legend
-                 linestyle = None):
+                 linestyle = ""):
         
         if isinstance(ax1, (str, int, float)):
             ax1 = [ax1]

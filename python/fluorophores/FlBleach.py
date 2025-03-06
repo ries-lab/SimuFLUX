@@ -30,6 +30,6 @@ class FlBleach(Fluorophore):
         self._photonbudget = val
         self.reset(0)
 
-    def reset(self, time):
+    def reset(self, time=None):
         # resets the counter for bleaching, i.e. switches the fluorophore on again
         self.remainingphotons = np.random.exponential(self.photonbudget)

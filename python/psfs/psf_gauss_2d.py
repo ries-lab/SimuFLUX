@@ -8,7 +8,7 @@ class PsfGauss2D(Psf):
 
         self.sigma = 310/2.35
 
-    def intensity(self, flpos, patternpos, phasepattern, L):
+    def intensity(self, flpos, patternpos, phasepattern=None, L=None):
         flposrel=np.atleast_2d(flpos-patternpos)
         r2=flposrel[:,:2]**2
         sigma=self.sigma
@@ -23,5 +23,5 @@ class PsfGauss2D(Psf):
 
         return io, phfac
 
-    def calculatePSFs(self, phasepattern, Lxs):
+    def calculatePSFs(self, phasepattern=None, Lxs=None):
         pass

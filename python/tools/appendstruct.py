@@ -6,15 +6,25 @@ def appendstruct(sin, sadd):
     if not sin:
         return sadd
     
-    sout = sin.copy()
+    is_dict = True
     try:
-        fn = list(sin.keys())  # Get field names (keys) of the dictionary
+        sout = sin.copy()
     except AttributeError:
-        fn = list(sin.__dict__.keys())
-    # ln = len(sadd[fn[0]])  # Get the length of the first field in sadd
+        # SimpleNamespace
+        is_dict = False  # keep types consistent
+        sout = sin.__dict__
+
+    fn = sout.keys()
+    try:
+        sadd.keys()
+    except AttributeError:
+        sadd = sadd.__dict__
 
     for key in fn:
         if key in sadd.keys():
-            sout[key] = np.concatenate((sout[key], sadd[key]))
+            sout[key] = np.concatenate((sout[key], sadd[key]))                
 
-    return SimpleNamespace(**sout)
+    if is_dict:
+        return sout
+    else:
+        return SimpleNamespace(**sout)

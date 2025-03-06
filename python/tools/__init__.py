@@ -4,3 +4,4 @@ from .imx import imx
 from .copyfields import copyfields
 from .psf_sequence import psf_sequence
 from .sumstruct import sumstruct
+from .makeNPC import makeNPC

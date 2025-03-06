@@ -55,15 +55,15 @@ class SimSequencefile(Simulator):
             self.makepatterns()
 
     def makepatterns(self, psfs=None, phasemasks=None):
-        if psfs is None and phasemasks is None:
+        if phasemasks is None:
             if 'PSF' in self.sequence.keys() and 'global' in self.sequence['PSF'].keys():
                 psfs, phasemasks = psf_sequence(self.sequence['PSF'], self.psfvec, self.sequence)
             else:
                 psfs, phasemasks = [], []
-                psfs.append(PsfGauss2D)
-                psfs.append(PsfDonut2D)
-                phasemasks.append('gauss2D')
-                phasemasks.append('donut2D')
+                psfs.append(PsfGauss2D())
+                psfs.append(PsfDonut2D())
+                phasemasks.append({'phasemask': 'gauss2D'})
+                phasemasks.append({'phasemask': 'donut2D'})
                 base_path = pathlib.Path(__file__).parent.parent
                 self.loadsequence(os.path.join(base_path, 'settings', 'defaultestimators.json'), 'noupdate')
 
@@ -153,8 +153,11 @@ class SimSequencefile(Simulator):
                 # repeat scanning until sufficient photons collected,
                 # or abort condition met
                 scanouth = self.patternscan(itrname)
+                # print(f"scanouth.photrate: {scanouth.photrate.shape}")
                 scanouth = backgroundsubtractor(scanouth, self.background_estimated)
+                # print(f"scanouth.photrate no bg: {scanouth.photrate.shape}")
                 scanout = sumstruct(scanout, scanouth)
+                # print(f"scanout.photrate: {scanout.photrate.shape}")
 
                 photsum = np.sum(scanout.phot)
                 photbg = scanout.bg_photons_gt
@@ -196,7 +199,7 @@ class SimSequencefile(Simulator):
                     L = itrs[itr]['patGeoFactor']*360  #nm
                     estimator = self.estimators[itr]
                     estf = globals()[estimator['function']]
-                    estpar = estimator['par']
+                    estpar = estimator['par'].copy()
                     lenbe = (len(self.background_estimated)-1) if (isinstance(self.background_estimated, list) or isinstance(self.background_estimated, np.ndarray)) else 1
                     bg_est = self.background_estimated[np.minimum(itr,lenbe)] if lenbe > 1 else self.background_estimated
                     estpar = replace_in_list(estpar, 
@@ -204,7 +207,7 @@ class SimSequencefile(Simulator):
                                             'L', L,
                                             'probecenter', probecenter,
                                             'background_est', bg_est,
-                                            'iteration',itr)
+                                            'iteration', itr)
                     xesth = estf(scanout.photrate, *estpar)
                     xest[np.array(estimator['dim'])] = xesth[np.array(estimator['dim'])]
                     self.time = self.time + deadtimes.estimator
@@ -290,7 +293,7 @@ class SimSequencefile(Simulator):
 
             for i in range(loccounter):
                 rawarr[i, :len(raw[i])] = raw[i].squeeze()
-                flposarr[i, :flpos[i].shape[0], :flpos[i].shape[1]] = flpos[i].squeeze(0)
+                flposarr[i, :flpos[i].shape[0], :flpos[i].shape[1]] = flpos[i].squeeze()
                 flintarr[i, :flpos[i].shape[0]] = flint[i].squeeze()
 
             # Now delete everything in loc > loccounter
@@ -343,20 +346,20 @@ class SimSequencefile(Simulator):
     def scoutingSequence(self, maxrep=100000, maxtime=1e6):
         timestart = self.time
         allbleached = False
-        maxreppct = maxrep*100
-        maxtimepct = maxtime*100
         out = None
-        print("scouting, progress: 0%")
+        print("scouting, progress: 0%", end="", flush=True)
         for reps in range(maxrep):
-            if self.time > timestart+maxtime:
+            if self.time > (timestart+maxtime):
                 break
-            prog=reps/maxreppct
-            prog=max(prog, (self.time-timestart)/maxtimepct)
-            print(f"\b\b\b\b{prog:3.0f}%")
+            prog=reps/maxrep*100
+            try:
+                prog = np.maximum(prog, (self.time-timestart)/maxtime*100)[0]
+            except IndexError:
+                prog = np.maximum(prog, (self.time-timestart)/maxtime*100)
+            print(f"\rscouting, progress: {prog:3.0f}%", end="", flush=True)
             for pind in range(self.scoutingcoordinates.shape[0]):
-                out = SimpleNamespace(posgalvo = self.scoutingcoordinates[pind,:],
-                                      posEOD = np.array([0,0,0]),
-                                      duration = self.time-timestart)
+                self.posgalvo[:2] = self.scoutingcoordinates[pind,:]
+                self.posEOD = np.array([0,0,0])
                 out2 = self.runSequence()
                 out = self.appendout(out, out2)
                 if self.fluorophores.allbleached:
@@ -366,6 +369,9 @@ class SimSequencefile(Simulator):
                 break
         if out is not None:
             out.duration = self.time-timestart
+        print("")  # newline
+
+        return out
 
     def plotpositions(self, out, figure=None, coordinate=0, axis=None, xvalues="itr"):
         try:
@@ -408,13 +414,17 @@ def makehexgrid(roi, d):
     h = d*np.cos(np.pi/6)  # 30 degrees
     numpx = (roi[1,0]-roi[0,0])/h
     numpy = (roi[1,1]-roi[0,1])/d
-    pos = np.zeros((np.ceil(numpx*numpy),2))
+    # TODO: Not totally comfortable with the +1
+    pos = np.zeros((np.ceil(numpx*numpy).astype(int)+1,2))
     ind = 0
-    for ll in range(numpy,-numpx-1,-1):
-        for k in range(numpx+1):
+    numprange = numpy - np.arange(int(numpx+numpy)+1)
+    for ll in numprange:
+        for k in np.arange(numpx):
             x = k*h+roi[0,0]
             y = ll*d+k*d/2+roi[0,1]
             if x<= roi[1,0] and y<= roi[1,1] and x>=roi[0,0] and y>=roi[0,1]:
                 pos[ind,:] = np.array([x,y])
                 ind += 1
     pos = pos[:ind,:]
+
+    return pos

@@ -8,7 +8,7 @@ class PsfDonut2D(Psf):
 
         self.fwhm = 310  # comparison with calculated PSF
 
-    def intensity(self, flpos, patternpos, phasepattern, L):
+    def intensity(self, flpos, patternpos, phasepattern=None, L=None):
         flposrel=np.atleast_2d(flpos-patternpos)
         r2=flposrel[:,:2]**2
         fwhm=self.fwhm
@@ -24,5 +24,5 @@ class PsfDonut2D(Psf):
 
         return io, phfac
 
-    def calculatePSFs(self, phasepattern, Lxs):
+    def calculatePSFs(self, phasepattern=None, Lxs=None):
         pass
