@@ -23,7 +23,7 @@ class FlCollectionBlinking(FlCollection):
         flmoving = np.where(flprop['moving'])[0]
 
         for fl in flmoving:
-            pos[fl, :] = flall[fl].position(time)
+            pos[fl, :], _ = flall[fl].position(time)
 
         pos[~flprop['moving'],:] = flprop['startpos'][~flprop['moving'],:]
 

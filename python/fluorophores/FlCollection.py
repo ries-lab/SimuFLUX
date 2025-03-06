@@ -61,6 +61,6 @@ class FlCollection:
     @property
     def brightness(self):
         out = np.zeros((self.numberOfFluorophores, 1))
-        for k in range(self.numberOfFluorophores,-1,-1):
+        for k in reversed(range(self.numberOfFluorophores)):
             out[k] = self.flall[k].brightness
         return out    

@@ -29,7 +29,7 @@ def psf_sequence(sq, psfvec=None, seq=None):
         if "pinhole" in sq['global']['addpar'].keys():
             psfvec.setpinhole(**sq['global']['addpar']['pinhole'])
     
-    nItr = len(seq['Itr'])
+    nItr = len(sq['Itr'])
     psfs = [None]*nItr
     phasemasks = [None]*nItr
     for k, itr in enumerate(sq['Itr']):
