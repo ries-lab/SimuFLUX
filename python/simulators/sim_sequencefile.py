@@ -324,7 +324,10 @@ class SimSequencefile(Simulator):
 
         for k in range(repetitions):
             if resetfluorophores:
-                self.fluorophores[0].reset()
+                try:
+                    self.fluorophores[0].reset()
+                except TypeError:
+                    self.fluorophores.reset()
             out2 = self.runSequenceintern()
             out = self.appendout(out, out2)
         
