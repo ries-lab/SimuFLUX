@@ -3,4 +3,6 @@ from .est_donut2d import est_donut2d
 from .est_quad1Diter import est_quad1Diter
 from .est_quad2Diter import est_quad2Diter
 from .est_quadraticdirect1D import est_quadraticdirect1D
+from .est_quadraticdirectbg1D import est_quadraticdirectbg1D
+from .est_quadraticdirectnobg1D import est_quadraticdirectnobg1D
 from .backgroundsubtractor import backgroundsubtractor
