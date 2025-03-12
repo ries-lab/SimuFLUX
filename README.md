@@ -12,7 +12,7 @@ Install MATLAB 2023b or newer with the curve fitting toolbox.
 
 ### Usage
 
-Navigate to the `examples` folder.
+Open MATLAB. In MATLAB, navigate to the `MATLAB/examples` folder.
 
 ## Python
 
