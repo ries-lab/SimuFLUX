@@ -1,0 +1,5 @@
+numpy
+scipy
+jupyterlab
+ipympl
+pyyaml
