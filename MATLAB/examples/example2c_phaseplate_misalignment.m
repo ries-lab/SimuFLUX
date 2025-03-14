@@ -27,11 +27,25 @@ for k=1:length(phaseplateposrel)
     end
 end
 %%
+zind=3;
 stdxrel=stdx./crb1(1,:,:).*sqrt(phot); %normalized to perfectly aligned phaseplate and photon numbers
 rmserel=rmsex./crb1(1,:,:).*sqrt(phot); %normalized to perfectly aligned phaseplate and photon numbers
-figure(226)
+crbrel=crb1./crb1(1,:,:);
+crb=crb1./sqrt(phot);
+figure(229) %Fig. 1
+plot(phaseplateposmm,stdx(:,zind,1),'b',phaseplateposmm,crb(:,zind,1),'b--',phaseplateposmm,rmsex(:,zind,1),'r',phaseplateposmm,-biasx(:,zind,1),'r--');
+xlabel('misalignment of phase plate (mm)')
+ylabel('std, CRB, RMSE (nm)')
+legend('std','CRB','rmse','bias')
+ylim([0 40])
+
+figure(226) %ED
 subplot(4,3,[1 4])
-plot(phaseplateposmm,stdxrel(:,1,1),phaseplateposmm,stdxrel(:,1,2),'--');
+% plot(phaseplateposmm,stdx(:,zind,1),'b',phaseplateposmm,stdx(:,zind,2),'b--',phaseplateposmm,crb(:,zind,1),'r',phaseplateposmm,crb(:,zind,2),'r--');
+% plot(phaseplateposmm,stdxrel(:,zind,1),'b',phaseplateposmm,stdxrel(:,zind,2),'b--',phaseplateposmm,crbrel(:,zind,1),'r',phaseplateposmm,crbrel(:,zind,2),'r--');
+plot(phaseplateposmm,stdxrel(:,:,1),phaseplateposmm,stdxrel(:,:,2),'--');
+
+
 xlabel('misalignment of phase plate (mm)')
 ylabel('std / CRB aligned')
 title("Standard deviation")
