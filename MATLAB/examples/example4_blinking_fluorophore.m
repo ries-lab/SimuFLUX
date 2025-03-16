@@ -22,6 +22,7 @@ sim.defineComponent("estsq","estimator",@est_quad2Diter,parameters={L,probecente
 out=sim.runSequence({"donut","estsq"});sim.summarize_results(out);
 
 %% plot std vs repetitions
+%Fig. 2
 allrepetitions=1:1:25;
 stdx=zeros(length(allrepetitions),1);stdy=stdx;stdxrel=stdx;stdyrel=stdy;biasx=stdy;biasy=stdy;
 

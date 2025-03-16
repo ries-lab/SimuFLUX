@@ -6,13 +6,23 @@ phaseplateposmm=0:0.1:0.5; %mm
 zpos=[-200 -100 0 100 200];
 phaseplateposrel=phaseplateposmm/2.5; %pupil diameter assumed to be 5 mm; 
 stdx=zeros(length(phaseplateposrel),length(zpos),3);crb1=stdx;biasx=stdx;rmsex=stdx;phot=zeros(length(phaseplateposrel),length(zpos),1);
+fl=FlStatic(brightness=1000); %define a static fluorophore
+fl.pos=[10 0 0];
+sim=Simulator(fluorophores=fl); 
 
+L=75; %size of scan pattern
+probecenter=true; %should we also probe the center?
+orbitpoints=6;
+laserpower=5; %relative, increases brightness
+pointdwelltime=0.1; % ms, measurement time in each point
+repetitions=2; %how often to repeat the pattern scan
+sim.defineComponent("estdonut","estimator",@est_quad2Diter,parameters={L,probecenter},dim=1:2);
 clear psfall
 for k=1:length(phaseplateposrel)
     sys_mis.maskshift=[phaseplateposrel(k),0]; % radius of pupil function is 1
     psf_vecpp.setpar(sys_mis)
     sim.definePattern("donut_misaligned", psf_vecpp, phasemask="vortex", makepattern="orbitscan", orbitpoints=orbitpoints, ...
-        probecenter=probecenter,orbitL=L,pointdwelltime=pointdwelltime,laserpower=laserpower,repetitions=repetitions);
+        probecenter=probecenter,orbitL=L,pointdwelltime=0.1,laserpower=laserpower,repetitions=1);
     [psfall(:,:,:,k),gridv]=psf_vecpp.imagestack("vortex");
     for z=1:length(zpos)
         sim.fluorophores.pos=[0 0 zpos(z)];

@@ -1,4 +1,5 @@
 % Compare different estimators with and without backgroud
+% Figure 2
 addpath(genpath(fileparts(fileparts(mfilename('fullpath'))))); %add all folders to serach path
 if ~exist("psf_vec","var") %if PSF is already defined, we need not recalculate it if no parameters are changed
     psf_vec=PsfVectorial; %simple 2D donut PSF
@@ -7,7 +8,7 @@ psf_vec.setpinhole("AU",1);
 
 fl=FlStatic;
 fl.brightness=10000; %very bright to look at bias
-fl.pos=[20 0 0];
+fl.pos=[0 0 0];
 sim=Simulator(fluorophores=fl);
 
 numberOfLocalizations=1000;
@@ -22,13 +23,14 @@ sim.definePattern("donut", psf_vec, phasemask="vortex", makepattern="orbitscan",
 % sim.calculateCRBscan("donut")
 
 ax1v="pos"; 
+% ax1v="rmse"; 
 %% no background, simple estimator
 sim.defineComponent("estdonut","estimator",@est_donut2d,parameters={sim.patterns("donut").pos,L,360},dim=1:2);
 seq={"donut","estdonut"};
 psf_vec.zerooffset=0;
 
 figure(270); 
-tiledlayout("TileSpacing","tight"); nexttile; hold off 
+tiledlayout(1,2,"TileSpacing","tight"); nexttile(1); hold off 
 statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,clearfigure=true,tag="simple est");
 
 %iterative
@@ -40,10 +42,10 @@ statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,
 % sim.summarize_results(out);
 
 % no background, direct estimator
-sim.defineComponent("estdirect","estimator",@est_quadraticdirect1D,parameters={L},dim=1);
-seq={"donut","estdirect"};
-hold off
-statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,clearfigure=false, tag="direct lsq",title="comparison of estimators");
+% sim.defineComponent("estdirect","estimator",@est_quadraticdirect1D,parameters={L},dim=1);
+% seq={"donut","estdirect"};
+% hold off
+% statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,clearfigure=false, tag="direct lsq",title="comparison of estimators");
 
 
 sim.defineComponent("estimator2p","estimator",@est_quadraticdirectnobg1D,parameters={L,probecenter},dim=1);
@@ -54,18 +56,19 @@ statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,
 if ax1v=="pos"
     plot([0 L],[0 L],'k--')
 end
-ax=gca; ax.YLim(1)=0;
+ax=gca; ax.YLim(1)=0;ax.YLim(2)=65;
+ax.XLim(end)=L*0.75;
 
 %% explore impact of background on estimator
 %no background
 fl.brightness=1000;
-fl.pos=[30 30 0];
+fl.pos=[0 0 0];
 sim.background=0;
 sim.defineComponent("estdonut","estimator",@est_quad2Diter,parameters={L,probecenter},dim=1:2);
 seq={"donut","estdonut"};
 psf_vec.zerooffset=0;
 % xcoords=0:5:50;
-nexttile; hold off
+nexttile(2); hold off
 statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,tag="no bg");
 % out=sim.runSequence(seq,maxlocs=1);
 % sim.summarize_results(out);
@@ -96,7 +99,8 @@ statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,
 if ax1v=="pos"
     plot([0 L],[0 L],'k--')
 end
-
+ax=gca; ax.YLim(1)=0; ax.YLim(2)=65;
+ax.XLim(end)=L*0.75;
 % out=sim.runSequence(seq,maxlocs=1);
 % sim.summarize_results(out);
 
@@ -113,4 +117,12 @@ end
 % out=sim.runSequence(seq,"maxlocs",numberOfLocalizations);
 % disp("est_donut2d")
 % sim.summarize_results(out);
-
+% %% Fig, 1
+% figure(271)
+% seq={"donut","estdonut"};
+% psf_vec.zerooffset=0;
+% sim.background=0;
+% xcoords=0:5:50;
+% numberOfLocalizations=10000;
+% statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=["rmse","sCRB"],clearfigure=true,tag="simple est");
+% ylim([0 12])

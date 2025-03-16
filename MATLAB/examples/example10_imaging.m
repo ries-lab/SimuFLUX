@@ -1,4 +1,4 @@
-%% Imaging of DNA-PAINT (blinking fluorophores + diffusive background) with Abberior scouting sequence
+ %% Imaging of DNA-PAINT (blinking fluorophores + diffusive background) with Abberior scouting sequence
 addpath(genpath(fileparts(fileparts(mfilename('fullpath'))))); %add all folders to serach path
 
 %make abberior simulator
@@ -51,6 +51,12 @@ sim.fluorophores=fc;
 brightnesses=[0,1]; %compare without and with background from diffusing fluorophore
 titles=["DNA-PAINT: imaging strands invisible","DNA-PAINT: diffusive imaging strands"];
 
+colvalcfr=[0 0 1];
+colval=[1 0 1];
+colnonval=[1 1 1]*0.75;
+flcol=[0 1 1];
+valsymb='.';
+
 %
 figure(300)
 tiledlayout("TileSpacing","tight")
@@ -74,11 +80,11 @@ for k=1:length(brightnesses)
     hold off;
     plot(sim.scoutingcoordinates(:,1),sim.scoutingcoordinates(:,2),'k*')
     hold on
-    plot(out.loc.xnm(notvld),out.loc.ynm(notvld),'y.')
-    plot(out.loc.xnm(vld),out.loc.ynm(vld),'m.')
-    plot(out.loc.xnm(vldcfr),out.loc.ynm(vldcfr),'bx')
+    plot(out.loc.xnm(notvld),out.loc.ynm(notvld),'.','Color',colnonval)
+    plot(out.loc.xnm(vld),out.loc.ynm(vld),'.','Color',colval)
+    plot(out.loc.xnm(vldcfr),out.loc.ynm(vldcfr),valsymb,'Color',colvalcfr)
     posfl=squeeze(out.fluorophores.pos(end,1:end-2,:)); %last one is diffusing
-    plot(posfl(:,1),posfl(:,2),'ro')
+    plot(posfl(:,1),posfl(:,2),'o','Color',flcol)
     axis equal 
     legend('scouting','not vld', 'last itr vld','last itr vld +cfr', 'fluorophore')
     title(titles(k))
@@ -131,16 +137,16 @@ nexttile
 hold off;
 plot(sim.scoutingcoordinates(:,1),sim.scoutingcoordinates(:,2),'k*')
 hold on
-plot(out.loc.xnm(notvld),out.loc.ynm(notvld),'y.')
-plot(out.loc.xnm(vld),out.loc.ynm(vld),'m.')
-plot(out.loc.xnm(vldcfr),out.loc.ynm(vldcfr),'bx')
+plot(out.loc.xnm(notvld),out.loc.ynm(notvld),'.','Color',colnonval)
+plot(out.loc.xnm(vld),out.loc.ynm(vld),'.','Color',colval)
+plot(out.loc.xnm(vldcfr),out.loc.ynm(vldcfr),valsymb,'Color',colvalcfr)
 posfl=squeeze(out.fluorophores.pos(end,:,:));
-plot(posfl(:,1),posfl(:,2),'ro')
+plot(posfl(:,1),posfl(:,2),'o','Color',flcol)
 axis equal 
 legend('scouting','not vld', 'last itr vld','last itr vld +cfr', 'fluorophore')
 title(titles(k))
     plot([-90 10],[-70 -70],'k')
-    text(-50,-60,"100 µm")
+    text(-50,-60,"100 nm")
 drawnow
 ax=gca; ax.XAxis.Visible="off";ax.YAxis.Visible="off";
     xlim([-95 100])
@@ -192,16 +198,16 @@ nexttile
 hold off;
 plot(sim.scoutingcoordinates(:,1),sim.scoutingcoordinates(:,2),'k*')
 hold on
-plot(out.loc.xnm(notvld),out.loc.ynm(notvld),'y.')
-plot(out.loc.xnm(vld),out.loc.ynm(vld),'m.')
-plot(out.loc.xnm(vldcfr),out.loc.ynm(vldcfr),'bx')
+plot(posfl(:,1),posfl(:,2),'o','Color',flcol)
+plot(out.loc.xnm(notvld),out.loc.ynm(notvld),'.','Color',colnonval)
+plot(out.loc.xnm(vld),out.loc.ynm(vld),'.','Color',colval)
+plot(out.loc.xnm(vldcfr),out.loc.ynm(vldcfr),valsymb,'Color',colvalcfr)
 posfl=squeeze(out.fluorophores.pos(end,:,:));
-plot(posfl(:,1),posfl(:,2),'ro')
 axis equal 
-legend('scouting','not vld', 'last itr vld','last itr vld +cfr', 'fluorophore')
+% legend('scouting','not vld', 'last itr vld','last itr vld +cfr', 'fluorophore')
 title("toff (s): "+toff(k)/1000)
     plot([-90 10],[-70 -70],'k')
-    text(-50,-60,"100 µm")
+    text(-55,-60,"50 nm")
 drawnow
 ax=gca; ax.XAxis.Visible="off";ax.YAxis.Visible="off";
     xlim([-95 100])

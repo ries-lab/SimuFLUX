@@ -34,20 +34,22 @@ ylabel("y (nm)")
 title("diffusion")
 
 %% make stepping fluorophore
+% fig. 1
 sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;
 fl2=FlMoveBleach;
-fl2.photonbudget=20000;
+fl2.photonbudget=5000;
 fl2.brightness=200;
 updatetime=0.01; %us
 stepsize=16; %nm
 dwelltime=28; %ms
-fl2.makesteps(stepsize,dwelltime, updatetime,angle=0)
+fl2.makesteps(stepsize,dwelltime, updatetime,angle=0,startpos=[50,0,0])
       % args.startpos, dim, numpoints,angle (degree);
 
 sim.fluorophores=fl2;sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;
 out=sim.runSequence("repetitions",1);
 title("diffusion")
 nexttile
+% figure(99)
 sim.plotpositions(out,xvalues="time");
 title("stepping")
 
