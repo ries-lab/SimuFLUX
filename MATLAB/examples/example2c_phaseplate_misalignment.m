@@ -51,9 +51,16 @@ ylim([0 40])
 
 figure(226) %ED
 subplot(4,3,[1 4])
+hold off
+for k=1:size(stdxrel,2)
+    plot(phaseplateposmm,stdxrel(:,k,1)','Color',colors(k,:));
+    hold on
+    plot(phaseplateposmm,stdxrel(:,k,2)','--','Color',colors(k,:))
+end
+
 % plot(phaseplateposmm,stdx(:,zind,1),'b',phaseplateposmm,stdx(:,zind,2),'b--',phaseplateposmm,crb(:,zind,1),'r',phaseplateposmm,crb(:,zind,2),'r--');
 % plot(phaseplateposmm,stdxrel(:,zind,1),'b',phaseplateposmm,stdxrel(:,zind,2),'b--',phaseplateposmm,crbrel(:,zind,1),'r',phaseplateposmm,crbrel(:,zind,2),'r--');
-plot(phaseplateposmm,stdxrel(:,:,1),phaseplateposmm,stdxrel(:,:,2),'--');
+% plot(phaseplateposmm,stdxrel(:,:,1),phaseplateposmm,stdxrel(:,:,2),'--');
 
 
 xlabel('misalignment of phase plate (mm)')
@@ -61,19 +68,35 @@ ylabel('std / CRB aligned')
 title("Standard deviation")
 legend("x","y")
 
+colors=lines(8);
+
 subplot(4,3,[3 6])
-plot(zpos,biasx(:,:,1)',zpos,biasx(:,:,2)','--')
+hold off
+for k=1:size(biasx,1)
+    plot(zpos,biasx(k,:,1),'Color',colors(k,:));
+    hold on
+    plot(zpos,biasx(k,:,2),'--','Color',colors(k,:))
+end
 xlabel('z position (nm)')
 ylabel('bias (nm)')
-legend(string(phaseplateposmm))
+pn=vertcat(phaseplateposmm,phaseplateposmm);
+legend(string(pn(:)))
 title("Bias")
 
 subplot(4,3,[2 5])
-plot(phaseplateposmm,rmserel(:,:,1),phaseplateposmm,rmserel(:,:,2),'--');
+hold off
+for k=1:size(rmserel,2)
+    plot(phaseplateposmm,rmserel(:,k,1)','Color',colors(k,:)) 
+    hold on
+    plot(phaseplateposmm,rmserel(:,k,2)','--','Color',colors(k,:))
+end
+
+% plot(phaseplateposmm,rmserel(:,:,1),phaseplateposmm,rmserel(:,:,2),'--');
 xlabel('misalignment of phase plate (mm)')
 ylabel('rmse / CRB aligned')
 title("Root mean square error (rmse)")
-legend(string(zpos))
+zn=vertcat(zpos,zpos);
+legend(string(zn(:)))
 %%
 clear indz
 
