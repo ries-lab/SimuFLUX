@@ -1,7 +1,8 @@
+addpath(genpath(fileparts(fileparts(mfilename('fullpath'))))); %add all folders to serach path
 if ~exist("psf_vecpp","var") %if PSF is already defined, we need not recalculate it if no parameters are changed
     psf_vecph=PsfVectorial; %simple 2D donut PSF
 end
-pinholepos=0:100:500; %um
+pinholepos=0:100:400; %um
 
 stdx=zeros(length(pinholepos),3);crb1=stdx;biasx=stdx;rmsex=stdx;phot=zeros(length(pinholepos),1);
 fl=FlStatic(brightness=1000); %define a static fluorophore
@@ -33,9 +34,9 @@ for k=1:length(pinholepos)
 end
 %%
 zind=3;
-stdxrel=stdx./crb1(1,:,:).*sqrt(phot); %normalized to perfectly aligned phaseplate and photon numbers
-rmserel=rmsex./crb1(1,:,:).*sqrt(phot); %normalized to perfectly aligned phaseplate and photon numbers
-crbrel=crb1./crb1(1,:,:);
+stdxrel=stdx./crb1(1,:).*sqrt(phot); %normalized to perfectly aligned phaseplate and photon numbers
+rmserel=rmsex./crb1(1,:).*sqrt(phot); %normalized to perfectly aligned phaseplate and photon numbers
+crbrel=crb1./crb1(1,:);
 crb=crb1./sqrt(phot);
 
 

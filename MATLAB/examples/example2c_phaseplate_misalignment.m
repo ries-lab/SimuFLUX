@@ -1,3 +1,4 @@
+addpath(genpath(fileparts(fileparts(mfilename('fullpath'))))); %add all folders to serach path
 if ~exist("psf_vecpp","var") %if PSF is already defined, we need not recalculate it if no parameters are changed
     psf_vecpp=PsfVectorial; %simple 2D donut PSF
 end

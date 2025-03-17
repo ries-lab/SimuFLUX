@@ -11,7 +11,7 @@ fl.photonbudget=200000;
 fl.pos=[200 50 0];
 fl.brightness=300; %kHz 
 sim.fluorophores=fl;
-sim.background=0; % a background that is not matched with a proper estimate leads to 'tails'
+sim.background=30*0; % a background that is not matched with a proper estimate leads to 'tails'
 sim.background_estimated=0; % a similar result is obtained when no background is present but the background is underestimatedd (negative background estimate ). This leads to a bias in the estimator and appearance of "tails"
             %over-estimation of background leads to instabilities
 

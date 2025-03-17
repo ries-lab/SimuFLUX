@@ -37,6 +37,7 @@ sim.defineComponent("estdonut","estimator",@est_quad2Diter,parameters={L,probece
 sim.defineComponent("est_x","estimator",@est_quadraticdirect1D,parameters={L},dim=1);
 sim.defineComponent("est_y","estimator",@est_quadraticdirect1D,parameters={L},dim=2);
 
+%2D donut
 seq={"donut","estdonut"};
 out=sim.runSequence(seq,"maxlocs",numberOfLocalizations);
 disp('no aberration donut:')
@@ -47,19 +48,24 @@ figure(225);
 hold off
 sim.scan_fov(seq,xs,clearfigure=true,tag="donut",ax1=displaywhat,linestyle='k');
 
+%3D donut
 seqthnoab={"tophat_xy","estdonut"};
 out=sim.runSequence(seqthnoab,"maxlocs",numberOfLocalizations);
 disp('no aberration tophat:')
 sim.summarize_results(out); %display summary of simulation
 sim.scan_fov(seqthnoab,xs, tag="tophat",ax1=displaywhat,linestyle='r');
 
-%%
+% PhaseFLUX
 seqpf={"pf_x","est_x","pf_y","est_y"};
 out=sim.runSequence(seqpf,"maxlocs",numberOfLocalizations);
 disp('no aberration phaseflux:')
 sim.summarize_results(out); %display summary of simulation
 sim.scan_fov(seqpf,xs, tag="phaseflux",ax1=displaywhat,linestyle='b');
-%%
+
+psf2Ddonut=psf_vec.imagestack("vortex");
+psf3Ddonut=psf_vec.imagestack("tophat");
+psfPF=psf_vec.imagestack("halfmoonx");
+%% Aberrations:
 if ~exist("psf_veca","var") %if PSF is already defined, we need not recalculate it if no parameters are changed
     psf_veca=PsfVectorial; %simple 2D donut PSF
 end
@@ -93,6 +99,10 @@ out=sim.runSequence(seqpfa,"maxlocs",numberOfLocalizations);
 disp(' aberration phaseflux:')
 sim.summarize_results(out); %display summary of simulation
 sim.scan_fov(seqpfa,xs, tag="phaseflux ab",ax1=displaywhat,linestyle='b-.');
+
+psf2Ddonuta=psf_veca.imagestack("vortex");
+psf3Ddonuta=psf_veca.imagestack("tophat");
+psfPFa=psf_veca.imagestack("halfmoonx");
 
 %% more fluorophores
 fc=FlCollection;
@@ -146,3 +156,15 @@ sim.summarize_results(out); %display summary of simulation
 sim.scan_fov(seqpf,xs, tag="phaseflux bg",ax1=displaywhat,linestyle='b:');
 
 ylim([0 L/2])
+
+
+%% plot PSFs
+midp=ceil(size(psf2Ddonut,3)/2);
+
+pa2d=cat(1,psf2Ddonut(:,:,midp),psf2Ddonuta(:,:,midp));
+pa3d=cat(1,psf3Ddonut(:,:,midp),psf3Ddonuta(:,:,midp));
+papf=cat(1,psfPF(:,:,midp),psfPFa(:,:,midp));
+
+figure(226)
+imagesc(cat(2,pa2d/max(pa2d(:)),pa3d/max(pa3d(:)),papf/max(papf(:))))
+axis equal

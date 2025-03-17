@@ -13,7 +13,7 @@ fc.add({fl1, fl2})
 
 sim=Simulator(fluorophores=fc); %make a simulator and attach fluorophore
 
-numberOfLocalizations=1000;
+numberOfLocalizations=5000;
 orbitpoints=4;
 probecenter=true;
 L=75;
@@ -27,7 +27,7 @@ seq={"donut","estdonut"};
 out=sim.runSequence(seq,"maxlocs",numberOfLocalizations);
 stats=sim.summarize_results(out);
 
-x=0:20:750;
+x=0:20:600;
 
 figure(260)
 tiledlayout(1,2,"TileSpacing","tight")
