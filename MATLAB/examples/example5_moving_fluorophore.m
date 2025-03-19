@@ -12,7 +12,7 @@ sim.makepatterns;
 
 %% make diffusing, bleaching fluorophores
 figure(250)
-tiledlayout(2,2,"TileSpacing","tight")
+tiledlayout(1,2,"TileSpacing","tight")
 nexttile
 
 sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;sim.background=0;
@@ -47,7 +47,7 @@ fl2.makesteps(stepsize,dwelltime, updatetime,angle=0,startpos=[50,0,0])
 
 sim.fluorophores=fl2;sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;
 out=sim.runSequence("repetitions",1);
-title("diffusion")
+
 nexttile
 % figure(99)
 sim.plotpositions(out,xvalues="time");
@@ -58,7 +58,7 @@ fl3=FlMoving(brightness=50000); %collect more photons
 fl3.posmode='function';
 
 figure(261)
-tiledlayout(1,2); nexttile
+tiledlayout(1,4); nexttile
 frequencies=[0.05 0.1, 0.2, 0.5, 1, 2, 5, 10]; %kHz
 
 % frequencies=1;

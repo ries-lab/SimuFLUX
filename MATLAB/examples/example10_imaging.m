@@ -59,7 +59,7 @@ valsymb='.';
 
 %
 figure(300)
-tiledlayout("TileSpacing","tight")
+tiledlayout(2,2,"TileSpacing","tight")
 
 for k=1:length(brightnesses)
     sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;
@@ -74,9 +74,9 @@ for k=1:length(brightnesses)
     vld=out.loc.vld==1 & out.loc.itr==max(out.loc.itr) ;
     vldcfr=vld & out.loc.cfr<cfrcutoff;
     notvld=~vld & ~vldcfr;
-
+    posfl=squeeze(out.fluorophores.pos(end,1:end-2,:)); %last one is diffusing
     % subplot(2,2,k); 
-    nexttile
+    nexttile(k)
     hold off;
     plot(sim.scoutingcoordinates(:,1),sim.scoutingcoordinates(:,2),'k*')
     hold on
@@ -84,7 +84,7 @@ for k=1:length(brightnesses)
     plot(out.loc.xnm(notvld),out.loc.ynm(notvld),'.','Color',colnonval)
     plot(out.loc.xnm(vld),out.loc.ynm(vld),'.','Color',colval)
     plot(out.loc.xnm(vldcfr),out.loc.ynm(vldcfr),valsymb,'Color',colvalcfr)
-    posfl=squeeze(out.fluorophores.pos(end,1:end-2,:)); %last one is diffusing
+ 
     
     axis equal 
     legend('scouting','not vld', 'last itr vld','last itr vld +cfr', 'fluorophore')
@@ -133,8 +133,9 @@ out=sim.scoutingSequence(maxtime=maxtime);
 vld=out.loc.vld==1 & out.loc.itr==max(out.loc.itr) ;
 vldcfr=vld & out.loc.cfr<cfrcutoff;
 notvld=~vld & ~vldcfr;
+posfl=squeeze(out.fluorophores.pos(end,:,:));
 % subplot(2,2,k+2);
-nexttile
+nexttile(k+2)
 hold off;
 plot(sim.scoutingcoordinates(:,1),sim.scoutingcoordinates(:,2),'k*')
 hold on
@@ -142,7 +143,7 @@ plot(posfl(:,1),posfl(:,2),'o','Color',flcol)
 plot(out.loc.xnm(notvld),out.loc.ynm(notvld),'.','Color',colnonval)
 plot(out.loc.xnm(vld),out.loc.ynm(vld),'.','Color',colval)
 plot(out.loc.xnm(vldcfr),out.loc.ynm(vldcfr),valsymb,'Color',colvalcfr)
-posfl=squeeze(out.fluorophores.pos(end,:,:));
+
 
 axis equal 
 legend('scouting','not vld', 'last itr vld','last itr vld +cfr', 'fluorophore')
@@ -195,6 +196,7 @@ out=sim.scoutingSequence(maxtime=maxtime);
 vld=out.loc.vld==1 & out.loc.itr==max(out.loc.itr) ;
 vldcfr=vld & out.loc.cfr<cfrcutoff;
 notvld=~vld & ~vldcfr;
+posfl=squeeze(out.fluorophores.pos(end,:,:));
 % subplot(2,2,k+2);
 nexttile
 hold off;
@@ -204,7 +206,7 @@ plot(posfl(:,1),posfl(:,2),'o','Color',flcol)
 plot(out.loc.xnm(notvld),out.loc.ynm(notvld),'.','Color',colnonval)
 plot(out.loc.xnm(vld),out.loc.ynm(vld),'.','Color',colval)
 plot(out.loc.xnm(vldcfr),out.loc.ynm(vldcfr),valsymb,'Color',colvalcfr)
-posfl=squeeze(out.fluorophores.pos(end,:,:));
+
 axis equal 
 % legend('scouting','not vld', 'last itr vld','last itr vld +cfr', 'fluorophore')
 title("toff (s): "+toff(k)/1000)
