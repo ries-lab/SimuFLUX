@@ -39,3 +39,4 @@ out=sim.runSequence(seq,maxlocs=numberOfLocalizations);
 % out.raw: photon measurements
 
 sim.summarize_results(out); %display summary of simulation
+

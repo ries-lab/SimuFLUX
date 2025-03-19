@@ -14,7 +14,7 @@ classdef FlMoving<Fluorophore
         %     reset@MFfluorophore(obj);
         %     %later: also reset trace / position if wanted
         % end
-        function [posout,isactive]=position(obj,time,props)
+        function [posout,isactive]=position(obj,time)
             isactive=true;
             posout=[0 0 0];
             posmode=obj.posmode;

@@ -122,18 +122,18 @@ classdef Simulator<handle
             posEOD=obj.posEOD;
             flpos=zeros(fluorophores.numberOfFluorophores,3);
             flintall=zeros(fluorophores.numberOfFluorophores,1);
-            flproperties=fluorophores.getproperties; %for performance
+          
             bgphot=0;
             time=obj.time;
             background=obj.background;
             for r=1:repetitions
                 for k=1:numpoints
                     timep=timep+time; %for calculating average time point
-                    [flposh,isactive]=fluorophores.position(obj.time,flproperties);
+                    [flposh,isactive]=fluorophores.position(obj.time);
                     flposrel=flposh-posgalvo;
                     [intensityh,pinholehfac]=pattern.psf(k).intensity(flposrel(isactive,:),pattern.pos(k,:)+posEOD,pattern.phasemask(k),pattern.zeropos(k));
                     intensityh=intensityh*pattern.laserpower(k);
-                    flint=fluorophores.intensity(intensityh,pattern.pointdwelltime(k),time,pinholehfac,flproperties);
+                    flint=fluorophores.intensity(intensityh,pattern.pointdwelltime(k),time,pinholehfac);
                     intensity=sum(flint);
                     flpos(:,:)=flpos(:,:)+flposh;
                     flintall(isactive,:)=flintall(isactive,:)+flint;
@@ -660,6 +660,18 @@ classdef Simulator<handle
         end
         function loadsequence(obj,varargin)
             warning('no sequence loader implemented for Simulator class')
+        end
+        function export(obj,out,fname)
+            if nargin<3 
+                [fname,fpath]=uiputfile('simulation.csv');
+                if isempty(fname)
+                    return
+                end
+                fname=[fpath fname];
+            end
+            ltab=struct2table(out.loc);
+            writetable(ltab,fname);
+
         end
     end
 end

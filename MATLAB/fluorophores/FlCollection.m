@@ -22,7 +22,7 @@
             end
             obj.numberOfFluorophores=length(obj.flall);
         end
-        function [pos,isactive]=position(obj,time,props)
+        function [pos,isactive]=position(obj,time)
             flall=obj.flall;
             % fact=find(isactive);
             pos=zeros(length(flall),3);
@@ -31,7 +31,7 @@
             end
             isactive=true(length(flall),1);
         end
-        function ih=intensity(obj,intin,dt,time,phfac,props)
+        function ih=intensity(obj,intin,dt,time,phfac)
             flall=obj.flall;
             ih=zeros(length(flall),1);
             for k=1:length(flall)

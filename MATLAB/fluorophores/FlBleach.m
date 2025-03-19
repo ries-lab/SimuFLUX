@@ -6,7 +6,7 @@ classdef FlBleach<Fluorophore
         function obj=FlBleach(varargin)
             obj@Fluorophore(varargin{:})
         end
-        function Io=intensity(obj,I0,dwelltime,time,phfac,props)
+        function Io=intensity(obj,I0,dwelltime,time,phfac)
             remainingphotons=obj.remainingphotons;
             if remainingphotons==0
                 Io=0;

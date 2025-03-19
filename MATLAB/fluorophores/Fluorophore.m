@@ -16,7 +16,7 @@ classdef Fluorophore<handle
             obj.pos=args.pos;
             obj.brightness=args.brightness;
         end
-        function Io=intensity(obj,I0,dwelltime, time,phfac,props)
+        function Io=intensity(obj,I0,dwelltime, time,phfac)
             % if nargin>=6 && ~isempty(props) %for performance: avoid property access
                 % brightness=props.brightness;
             % else
@@ -30,12 +30,8 @@ classdef Fluorophore<handle
         end
         function reset(obj,time)
         end
-        function [posout,isactive]=position(obj,time,props)
-            if nargin>=3 && ~isempty(props) %for performance: avoid property access
-                pos=props.pos;
-            else
-                pos=obj.pos;
-            end
+        function [posout,isactive]=position(obj,time)
+            pos=obj.pos;
             posout=pos;
             isactive=true;
         end
