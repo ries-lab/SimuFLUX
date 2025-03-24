@@ -24,7 +24,7 @@ Navigate to the folder containing this repository. Then run, in this folder,
 
 ```
 cd python
-conda create -n simulfux python=3.11
+conda create -n simulflux python=3.11
 conda activate simulflux
 pip install -r requirements.txt
 ```
