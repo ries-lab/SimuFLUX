@@ -25,6 +25,7 @@ sim.definePattern("donut", psf_vec, phasemask="vortex", makepattern="orbitscan",
 ax1v="pos"; 
 % ax1v="rmse"; 
 %% no background, simple estimator
+sim.background=0;sim.background_estimated=0;
 sim.defineComponent("estdonut","estimator",@est_donut2d,parameters={sim.patterns("donut").pos,L,360},dim=1:2);
 seq={"donut","estdonut"};
 psf_vec.zerooffset=0;
@@ -51,6 +52,10 @@ statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,
 sim.defineComponent("estimator2p","estimator",@est_quadraticdirectnobg1D,parameters={L,probecenter},dim=1);
 seq={"donut","estimator2p"};
 statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,clearfigure=false,tag="direct eq");
+
+sim.defineComponent("estimatorMLE","estimator",@est_MLEquadraticdirect1D,parameters={L},dim=1);
+seq={"donut","estimatorMLE"};
+statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,clearfigure=false,tag="MLE");
 
 
 if ax1v=="pos"
