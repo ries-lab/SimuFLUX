@@ -35,7 +35,7 @@ tiledlayout(1,2,"TileSpacing","tight"); nexttile(1); hold off
 statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,clearfigure=true,tag="simple est");
 
 %iterative
-sim.defineComponent("estiter","estimator",@est_quad2Diter,parameters={L,probecenter,30},dim=1:2);
+sim.defineComponent("estiter","estimator",@est_quad2Diter,parameters={L,probecenter,50},dim=1:2);
 seq={"donut","estiter"};
 % sim.fluorophores.pos=[30 20 0];
 statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true, ax1=ax1v,clearfigure=false,tag="iterative est");
@@ -64,7 +64,22 @@ end
 ax=gca; ax.YLim(1)=0;ax.YLim(2)=65;
 ax.XLim(end)=L*0.75;
 
+%% convergence of the iterative estimator
+figure(271); clf
+
+% sim.fluorophores.pos=[30 20 0];
+xcoords=0:2:L;
+iters=[1,2,3,4, 5, 6,7, 8, 10,  15, 20, 30, 50];
+for k=1:length(iters)
+    sim.defineComponent("estiter","estimator",@est_quad2Diter,parameters={L,probecenter,iters(k)},dim=1:2);
+    seq={"donut","estiter"};
+    statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true, ax1=ax1v,clearfigure=false,tag="iterations: "+string(iters(k)));
+end
+
+plot([0 L],[0 L],'k--')
+ax=gca; ax.YLim(1)=0;
 %% explore impact of background on estimator
+figure(270)
 %no background
 fl.brightness=1000;
 fl.pos=[0 0 0];
