@@ -1,4 +1,4 @@
-function xest=est_quad1Diter(photonsi,L,iter,eps)
+function xest=est_qLSQiter1D(photonsi,L,iter,eps)
 %Eilers 2.64, k=1
 if nargin<4
     eps=.1; %nm

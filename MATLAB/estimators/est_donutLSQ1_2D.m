@@ -1,4 +1,4 @@
-function xest=est_donut2d(photonsi,patternpos,L,fwhm,background)
+function xest=est_donutLSQ1_2D(photonsi,patternpos,L,fwhm,background)
 if nargin<5
     background=0;
 end

@@ -1,4 +1,4 @@
-function xest=est_MLEquadraticdirect1D(photonsi,L)
+function xest=est_qMLE1D(photonsi,L)
 if length(photonsi)>3
     i1=3;i2=1;i0=5;
 else

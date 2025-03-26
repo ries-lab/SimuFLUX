@@ -591,6 +591,7 @@ classdef Simulator<handle
                 so.rmse(k,:)=stats.rmse;
                 so.sCRB(k,:)=stats.sCRB;
                 so.pos(k,:)=stats.pos;
+                so.phot(k)=stats.phot;
             end
             so.stdrel=so.std./so.sCRB;
             so.biasrel=so.bias./so.pos;

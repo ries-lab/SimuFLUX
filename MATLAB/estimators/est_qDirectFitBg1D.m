@@ -1,4 +1,4 @@
-function xest=est_quadraticdirectbg1D(photonsi,L)
+function xest=est_qDirectFitBg1D(photonsi,L,probecenter)
 if length(photonsi)>3
     i1=3;i2=1;i0=5;
 elseif length(photonsi)==3
@@ -8,8 +8,9 @@ elseif length(photonsi)==2
     return
 end
 p=photonsi([i1 i2 i0]);%for testing:
-xest=(-(L*p(1)) + L*p(2))/(4*(2*p(3) - p(1) - p(2)));
-relmax=0.75;
+% xest=(-(L*p(1)) + L*p(2))/(4*(2*p(3) - p(1) - p(2)));
+xest=(L*(-p(1) + p(2)))/(8*p(3) - 4*(p(1) + p(2)));
+relmax=1;
 xest(abs(xest)>relmax*L)=relmax*L; %extrapolation does not work well
 end
 
