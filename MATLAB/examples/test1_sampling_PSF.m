@@ -30,7 +30,7 @@ for k=1:length(pixelsizes)
     repetitions=2; %how often to repeat the pattern scan
     sim.definePattern("donut", psf_vec, phasemask="vortex", makepattern="orbitscan", orbitpoints=orbitpoints, ...
         probecenter=probecenter,orbitL=L,pointdwelltime=pointdwelltime,laserpower=laserpower,repetitions=repetitions)
-    sim.defineComponent("estdonut","estimator",@est_quad2Diter,parameters={L,probecenter},dim=1:2);
+    sim.defineComponent("estdonut","estimator",@est_qLSQiter2D,parameters={L,probecenter},dim=1:2);
     seq={"donut","estdonut"};
     out=sim.runSequence(seq,"maxlocs",numberOfLocalizations);
     

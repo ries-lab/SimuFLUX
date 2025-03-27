@@ -12,7 +12,7 @@ sim.makepatterns;
 
 %% make diffusing, bleaching fluorophores
 figure(250)
-tiledlayout(1,2,"TileSpacing","tight")
+tiledlayout(2,2,"TileSpacing","tight")
 nexttile
 
 sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;sim.background=0;

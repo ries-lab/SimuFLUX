@@ -24,7 +24,7 @@ sim.definePattern("donut", psf_vec, phasemask="vortex", makepattern="orbitscan",
     probecenter=probecenter,orbitL=L,pointdwelltime=pointdwelltime,laserpower=laserpower,repetitions=repetitions)
 
 %we need an estimator. Define as component
-sim.defineComponent("estdonut","estimator",@est_quad2Diter,parameters={L,probecenter},dim=1:2);
+sim.defineComponent("estdonut","estimator",@est_qLSQiter2D,parameters={L,probecenter},dim=1:2);
 % sim.defineComponent(key,type (estimator),function handle of estimator function,parameters);
 
 %sequence: 
@@ -171,8 +171,8 @@ sim.definePattern("tophat_xy", psf_vecth, phasemask="tophat", makepattern="orbit
 sim.definePattern("tophat_z", psf_vecth, phasemask="tophat", makepattern="zscan", orbitpoints=2, ...
     probecenter=probecenterz,orbitL=Lz,pointdwelltime=pointdwelltime,laserpower=laserpower,repetitions=repetitions,dim=3);
 
-sim.defineComponent("esttophat_xy","estimator",@est_quad2Diter,parameters={L,probecenter},dim=1:2);
-sim.defineComponent("esttophat_z","estimator",@est_quad1Diter,parameters={Lz},dim=3);
+sim.defineComponent("esttophat_xy","estimator",@est_qLSQiter2D,parameters={L,probecenter},dim=1:2);
+sim.defineComponent("esttophat_z","estimator",@est_qLSQiter1D,parameters={Lz},dim=3);
 
 seq={"tophat_xy","esttophat_xy","tophat_z","esttophat_z"};
 out=sim.runSequence(seq);
@@ -229,10 +229,10 @@ sim.definePattern("pf_y", psf_vecphaseflux, phasemask="halfmoony", zeropos=zerop
 sim.definePattern("pf_z", psf_vecphaseflux, phasemask="tophat", zeropos=zeroposz,...
     pointdwelltime=pointdwelltime,laserpower=laserpowerz,repetitions=repetitions,dim=3);
 
-sim.defineComponent("est_x","estimator",@est_quad1Diter,parameters={L},dim=1);
-sim.defineComponent("est_y","estimator",@est_quad1Diter,parameters={L},dim=2);
-sim.defineComponent("est_z","estimator",@est_quad1Diter,parameters={Lz},dim=3);
-% sim.defineComponent("esttophat_z","estimator",@est_quad1Diter,parameters={Lz},dim=3);
+sim.defineComponent("est_x","estimator",@est_qLSQiter1D,parameters={L},dim=1);
+sim.defineComponent("est_y","estimator",@est_qLSQiter1D,parameters={L},dim=2);
+sim.defineComponent("est_z","estimator",@est_qLSQiter1D,parameters={Lz},dim=3);
+% sim.defineComponent("esttophat_z","estimator",@est_qLSQiter1D,parameters={Lz},dim=3);
 
 
 seq={"pf_x","est_x","pf_y","est_y","pf_z","est_z"};

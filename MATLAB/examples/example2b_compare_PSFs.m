@@ -33,7 +33,7 @@ sim.definePattern("pf_x", psf_vec, phasemask="halfmoonx", zeropos=zeroposx,...
 sim.definePattern("pf_y", psf_vec, phasemask="halfmoony", zeropos=zeroposx,...
     pointdwelltime=pointdwelltime,laserpower=laserpowerpf,repetitions=repetitions,dim=2);
 
-sim.defineComponent("estdonut","estimator",@est_quad2Diter,parameters={L,probecenter},dim=1:2);
+sim.defineComponent("estdonut","estimator",@est_qLSQiter2D,parameters={L,probecenter},dim=1:2);
 sim.defineComponent("est_x","estimator",@est_quadraticdirect1D,parameters={L},dim=1);
 sim.defineComponent("est_y","estimator",@est_quadraticdirect1D,parameters={L},dim=2);
 

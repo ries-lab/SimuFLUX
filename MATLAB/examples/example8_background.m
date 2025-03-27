@@ -15,7 +15,7 @@ L=75;
 probecenter=true;
 sim.definePattern("donut", psf_vec, phasemask="vortex", makepattern="orbitscan", orbitpoints=4, ...
     probecenter=probecenter,orbitL=L,laserpower=laserpower,pointdwelltime=0.1)
-sim.defineComponent("estdonut","estimator",@est_quad2Diter,parameters={L,probecenter},dim=1:2);
+sim.defineComponent("estdonut","estimator",@est_qLSQiter2D,parameters={L,probecenter},dim=1:2);
 sim.defineComponent("bg","background",@backgroundsubtractor,parameters={"background_estimated"});
 seq={"donut","bg","estdonut"};
 % bgf=sim.patterns('donut').backgroundfac(1); %background used for simulation

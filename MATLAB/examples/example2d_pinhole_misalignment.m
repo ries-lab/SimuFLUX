@@ -15,7 +15,7 @@ orbitpoints=6;
 laserpower=5; %relative, increases brightness
 pointdwelltime=0.1; % ms, measurement time in each point
 repetitions=1; %how often to repeat the pattern scan
-sim.defineComponent("estdonut","estimator",@est_quad2Diter,parameters={L,probecenter},dim=1:2);
+sim.defineComponent("estdonut","estimator",@est_qLSQiter2D,parameters={L,probecenter},dim=1:2);
 clear psfall
 for k=1:length(pinholepos)
     psf_vecph.setpinhole("AU",1,"offset",[pinholepos(k) 0]);

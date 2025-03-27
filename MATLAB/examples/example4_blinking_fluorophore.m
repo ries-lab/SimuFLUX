@@ -10,7 +10,7 @@ repetitions=1; %how often to repeat the pattern scan
 L=75;
 pointdwelltimerep=0.1; %ms, for all repetitions
 pointdwelltime=pointdwelltimerep/repetitions;%ms
-% orbitorder=[1 2 3 4 5 6 7]; %order might matter. If you change this, you cannot use est_quad2Diter.
+% orbitorder=[1 2 3 4 5 6 7]; %order might matter. If you change this, you cannot use est_qLSQiter2D.
 orbitpoints=4;
 probecenter=true;
 psf_donut=PsfDonut2D;
@@ -18,7 +18,7 @@ sim.definePattern("donut", psf_donut, makepattern="orbitscan", orbitpoints=orbit
     probecenter=probecenter,orbitL=L,pointdwelltime=pointdwelltime,laserpower=100,...
     repetitions=repetitions);
 % sim.defineComponent("estdonut","estimator",@est_donut2d,parameters={sim.patterns("donut").pos,L,360},dim=1:2);
-sim.defineComponent("estsq","estimator",@est_quad2Diter,parameters={L,probecenter},dim=1:2);
+sim.defineComponent("estsq","estimator",@est_qLSQiter2D,parameters={L,probecenter},dim=1:2);
 out=sim.runSequence({"donut","estsq"});sim.summarize_results(out);
 
 %% plot std vs repetitions

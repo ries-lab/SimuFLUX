@@ -17,7 +17,7 @@ orbitpoints=6;
 laserpower=5; %relative, increases brightness
 pointdwelltime=0.1; % ms, measurement time in each point
 repetitions=2; %how often to repeat the pattern scan
-sim.defineComponent("estdonut","estimator",@est_quad2Diter,parameters={L,probecenter},dim=1:2);
+sim.defineComponent("estdonut","estimator",@est_qLSQiter2D,parameters={L,probecenter},dim=1:2);
 clear psfall
 for k=1:length(phaseplateposrel)
     sys_mis.maskshift=[phaseplateposrel(k),0]; % radius of pupil function is 1
@@ -51,6 +51,7 @@ legend('std','CRB','rmse','bias')
 ylim([0 40])
 
 figure(226) %ED
+colors=lines(8);
 subplot(4,3,[1 4])
 hold off
 for k=1:size(stdxrel,2)
@@ -69,7 +70,6 @@ ylabel('std / CRB aligned')
 title("Standard deviation")
 legend("x","y")
 
-colors=lines(8);
 
 subplot(4,3,[3 6])
 hold off

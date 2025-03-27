@@ -92,7 +92,7 @@ photonsbg=statout.phot(1)
 % bgf=sim.patterns('donut').backgroundfac(1); %background used for simulation
 sim.background_estimated=sim.background*laserpower; %in general, the GT background is not known but needs to be calibrated 
 
-%sim.defineComponent("estdonut","estimator",@est_quad2Diter,parameters={L,probecenter},dim=1:2);
+%sim.defineComponent("estdonut","estimator",@est_qLSQiter2D,parameters={L,probecenter},dim=1:2);
 sim.defineComponent("bg","background",@backgroundsubtractor,parameters={"background_estimated"});
 seq={"donut","bg","estdonut"};
 psf_vec.zerooffset=0;
@@ -116,9 +116,9 @@ ax.XLim(end)=L*0.75;
 figure(271); clf
 
 % sim.fluorophores.pos=[30 20 0];
-xcoords=0:2:L;
+xcoords=0:5:L;
 iters=[1,2,3,4, 5, 6,7, 8, 10,  15, 20, 30, 50];
-iters=50
+% iters=50
 for k=1:length(iters)
     sim.defineComponent("estiter","estimator",@est_qLSQiter2D,parameters={L,probecenter,iters(k)},dim=1:2);
     seq={"donut","estiter"};

@@ -26,7 +26,7 @@ sim.definePattern("donut", psf_donut, makepattern="orbitscan", orbitpoints=orbit
 
 %we need an estimator. Define as component
 
-sim.defineComponent("estdonut","estimator",@est_quad2Diter,parameters={L,probecenter},dim=1:2);
+sim.defineComponent("estdonut","estimator",@est_qLSQiter2D,parameters={L,probecenter},dim=1:2);
 % sim.defineComponent(key,type (estimator),function handle of estimator function,parameters);
 
 %sequence: 

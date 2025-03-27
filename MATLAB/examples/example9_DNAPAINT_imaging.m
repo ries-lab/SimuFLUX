@@ -21,7 +21,7 @@ sim1=Simulator(fluorophores=fc);
 sim1.definePattern("donut", psf_vec, phasemask="vortex", makepattern="orbitscan", orbitpoints=4, ...
     probecenter=true,orbitL=L,pointdwelltime=0.1,laserpower=1,repetitions=1)
 fwhm=360;% size of the donut, needed for proper estimation. 
-sim1.defineComponent("estdonut","estimator",@est_quad2Diter,parameters={L,true},dim=1:2);
+sim1.defineComponent("estdonut","estimator",@est_qLSQiter2D,parameters={L,true},dim=1:2);
 
 seq={"donut","estdonut"};
 out=sim1.runSequence(seq,"maxlocs",numberOfLocalizations);
