@@ -66,6 +66,10 @@ classdef SimSequencefile<Simulator
                 switch itrs(k).Mode.pattern
                     case 'hexagon'
                         patternpoints=6;
+                    case 'square'
+                        patternpoints=4;
+                    case 'triangle'
+                        patternpoints=3;
                     otherwise
                         disp([itrs(k).Mode.id]+ " not implemented");                        
                 end
@@ -175,13 +179,13 @@ classdef SimSequencefile<Simulator
                         xesttot=xest+obj.posgalvo+obj.posEOD;
                         
                         %recenter
-                        if itr==maxiter
+                        if itr==maxiter && ~any(isnan(xesttot))
                             dampf=2^(-obj.sequence.damping);
                             xold=obj.posgalvo;
                             obj.posgalvo=(1-dampf)*obj.posgalvo+dampf*(xesttot);
                             obj.posEOD=obj.posEOD+xold-obj.posgalvo+xest;
                             obj.time=obj.time+deadtimes.positionupdate;
-                        else
+                        elseif ~any(isnan(xesttot))
                             obj.posEOD=obj.posEOD+xest;
                         end
                     else
@@ -194,12 +198,12 @@ classdef SimSequencefile<Simulator
                         
                         % orbittime=scanout.patterntotaltime/(1+probecenter*obj.sequence.ctrDwellFactor);
                         % out.loc.efo=out.loc.eco/(orbittime)*1e6;
-                        out.loc.efo=out.loc.eco/(sum(scanout.par.pattern.pointdwelltime(1:end-1)));
+                        out.loc.efo=out.loc.eco/(sum(scanout.par.pattern.pointdwelltime(1:end-1)))/scanout.repetitions;
                         % out.loc.efc=out.loc.ecc/(scanout.patterntotaltime-orbittime)*1e6;
-                        out.loc.efc=out.loc.ecc/(scanout.par.pattern.pointdwelltime(end));
+                        out.loc.efc=out.loc.ecc/(scanout.par.pattern.pointdwelltime(end))/scanout.repetitions;
                     else
                         out.loc.eco(loccounter,1)=sum(scanout.phot);
-                        out.loc.efo=out.loc.eco/(sum(scanout.par.pattern.pointdwelltime));
+                        out.loc.efo=out.loc.eco/(sum(scanout.par.pattern.pointdwelltime))/scanout.repetitions;
                         % out.loc.efo=out.loc.eco/(scanout.patterntotaltime);
                         out.loc.ecc(loccounter,1)=-1;
                         out.loc.efc(loccounter,1)=-1;

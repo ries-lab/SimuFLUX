@@ -7,19 +7,279 @@ end
 fname='Tracking_2D.json';
 fname2='PSFvectorial2D.json'; %use a PSF that is defined via a json file
 sim.loadsequence(fname,fname2);
-sim.sequence.locLimit=200;
+% L=150;
+sim.sequence.locLimit=100;
 % sim.sequence.Itr(4)=[];
 % sim.sequence.damping=1;
-sim.sequence.Itr(4).phtLimit=20;
+
+%iterative estimator:
+% sim.estimators(4).function='est_qLSQiter2D';
+% sim.estimators(4).par{3}=false; % no ccr check
+
+% sim.sequence.Itr(4).phtLimit=20;
 % sim.sequence.Itr(4).patDwellTime=0.1e-3;
-sim.sequence.Itr(4).patGeoFactor=0.5;
+% sim.sequence.Itr(4).patGeoFactor=L/360;
+ % L=itrs(itr).patGeoFactor*360; %nm;
 % sim.deadtimes.point=0; sim.deadtimes.estelimator=0;
 sim.makepatterns;
-laserpower=.8;
-%% make diffusing, bleaching fluorophores
-Ds=0.5:0.1:1.5;
-repetitions=5;
-rmse=zeros(length(Ds),repetitions,3);efo=zeros(length(Ds),repetitions);
+laserpower=1;
+updatetime=0.01; %ms
+
+maxerr=100;
+figure(256); clf
+%% investigate what happens if fluorophore gets lost
+D=01;
+numtracks=300;
+lenwin=10;
+averagejump=zeros(lenwin,1);
+averageerr=zeros(lenwin,1);
+nj=0;
+for k=1:numtracks
+sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;
+fl=FlMoveBleach;
+fl.photonbudget=inf;
+fl.brightness=1000*laserpower;
+fl.makediffusion(D,updatetime)
+sim.fluorophores=fl;
+out=sim.runSequence(repetitions=1,resetfluorophores=true);
+
+err=sqrt((out.loc.xnm-out.loc.xfl1).^2+(out.loc.ynm-out.loc.yfl1).^2);
+jx=vertcat(diff(out.loc.xfl1),0);
+jy=vertcat(diff(out.loc.yfl1),0);
+% jx=smoothdata(jx,'movmean',5);
+% jy=smoothdata(jy,'movmean',5);
+jump=sqrt(jx.^2+jy.^2);
+
+indlost=find(err<maxerr, 1,'last');
+try
+    averagejump=averagejump+jump(indlost-lenwin+4:indlost+3);
+    averageerr=averageerr+err(indlost-lenwin+4:indlost+3);
+    nj=nj+1;
+end
+end
+
+subplot(2,3,4)
+hold off
+nx=(1:length(averageerr))'-7;
+plot(nx,averagejump/nj); hold on; plot(nx,averageerr/nj);
+xlabel('time (localization)')
+ylabel('jump, localization error (nm)')
+legend('average jump', 'average error')
+%% plot example track
+sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;
+fl=FlMoveBleach;
+fl.photonbudget=inf;
+fl.brightness=1000*laserpower;
+fl.makediffusion(D,updatetime)
+sim.fluorophores=fl;
+out=sim.runSequence(repetitions=1,resetfluorophores=true);
+err=sqrt((out.loc.xnm-out.loc.xfl1).^2+(out.loc.ynm-out.loc.yfl1).^2);
+indlost=find(err<maxerr, 1,'last');
+subplot(2,3,1)
+hold off; plot(out.loc.loccounter, out.loc.xnm);hold on; plot(out.loc.loccounter,out.loc.xfl1)%;hold on; plot(out.loc.loccounter,out.loc.xgalvo)
+xlabel('time (localizations)'); ylabel('x position (nm)'); legend('estimated position','fluorophore position')
+plot([indlost,indlost],[min(out.loc.xnm),max(out.loc.xnm)])
+subplot(2,3,2)
+hold off; plot(out.loc.loccounter, out.loc.ynm);hold on; plot(out.loc.loccounter,out.loc.yfl1)%;hold on; plot(out.loc.loccounter,out.loc.ygalvo)
+plot([indlost,indlost],[min(out.loc.ynm),max(out.loc.ynm)])
+xlabel('time (localizations)'); ylabel('x position (nm)'); 
+subplot(2,3,3)
+hold off; plot(out.loc.xnm(1:end-1), out.loc.ynm(1:end-1));hold on; plot(out.loc.xfl1,out.loc.yfl1)%;hold on; plot(out.loc.loccounter,out.loc.ygalvo)
+xlabel('x position (nm)'); ylabel('y position (nm)'); axis equal
+
+
+%% investigate maximum diffusion coefficient for various conditions
+% change default settings
+fname='Tracking_2D.json';
+fname2='PSFvectorial2D.json'; %use a PSF that is defined via a json file
+sim.loadsequence(fname,fname2);
+
+sim.makepatterns;
+
+figure(257); clf
+repetitions=20;
+
+laserpowers=0.2:0.2:1.6;
+clear Dmaxl efoDmaxl rmseDmaxl
+figure(301)
+for k=1:length(laserpowers)
+    [Dmaxl(k),efoDmaxl(k),rmseDmaxl(k)]=maxDiffusion(sim, laserpowers(k),repetitions)
+end
+title('laserpowers')
+figure(258)
+subplot(2,4,1)
+plot(laserpowers,Dmaxl)
+xlabel('laserpower (a.u.)')
+ylabel('max Diffusion D µm^2/s')
+title('laserpower')
+
+subplot(2,4,5)
+plot(laserpowers,rmseDmaxl)
+xlabel('laserpower (a.u.)')
+ylabel('rmse at Dmax (nm)')
+title('laserpower')
+
+%redo with no dead times and faster pattern dwell times
+deadtimesold=sim.deadtimes;
+patterntimeold=sim.sequence.Itr(4).patDwellTime;
+sim.deadtimes.point=0; sim.deadtimes.estelimator=0;
+sim.sequence.Itr(4).patDwellTime=2e-5; %20 us
+clear Dmaxlf efoDmaxlf rmseDmaxlf
+figure(302)
+for k=1:length(laserpowers)
+    [Dmaxlf(k),efoDmaxlf(k),rmseDmaxlf(k)]=maxDiffusion(sim, laserpowers(k),repetitions)
+end
+sim.deadtimes=deadtimesold; %revert to standard
+sim.sequence.Itr(4).patDwellTime=patterntimeold;
+
+figure(258)
+subplot(2,4,1)
+hold on
+plot(laserpowers,Dmaxlf)
+legend('standard','no deadtime')
+subplot(2,4,5)
+hold on
+plot(laserpowers,rmseDmaxlf)
+legend('standard','no deadtime')
+
+% L scan pattern size
+clear DmaxL efoDmaxL rmseDmaxL
+Ls=[40 75 150 300];
+patGeoFactorOld=sim.sequence.Itr(4).patGeoFactor;
+figure(303)
+for k=1:length(Ls)
+    sim.sequence.Itr(4).patGeoFactor=Ls(k)/360;
+    [DmaxL(k),efoDmaxL(k),rmseDmaxL(k)]=maxDiffusion(sim, laserpower,repetitions)
+end
+title('L')
+sim.sequence.Itr(4).patGeoFactor=patGeoFactorOld;
+
+figure(258)
+subplot(2,4,2)
+plot(Ls,DmaxL)
+xlabel('Scan pattern size L (nm)')
+ylabel('max Diffusion D µm^2/s')
+title('L')
+
+subplot(2,4,6)
+plot(Ls,rmseDmaxL)
+xlabel('Scan pattern size L (nm)')
+ylabel('rmse at Dmax (nm)')
+title('L')
+
+
+clear Dmaxpl efoDmaxpl rmseDmaxl
+photlim=[5 10 20 30 50 100];
+figure(304)
+for k=1:length(photlim)
+    sim.sequence.Itr(4).phtLimit=photlim(k);
+    [Dmaxpl(k),efoDmaxpl(k),rmseDmaxpl(k)]=maxDiffusion(sim, laserpower,repetitions)
+end
+title('photon limit')
+
+
+figure(258)
+subplot(2,4,3)
+plot(photlim,Dmaxpl)
+xlabel('photon limit')
+ylabel('max Diffusion D µm^2/s')
+title('photon limit')
+
+subplot(2,4,7)
+plot(photlim,rmseDmaxpl)
+xlabel('photon limit')
+ylabel('rmse at Dmax (nm)')
+title('photon limit')
+
+
+
+%dwell time
+dwelltimes=[10 25 50 100 200 500 1000]; %us
+patterntimeold=sim.sequence.Itr(4).patDwellTime;
+clear Dmaxdt efoDmaxdt rmseDmaxdt
+figure(305)
+for k=1:length(dwelltimes)
+    sim.sequence.Itr(4).patDwellTime=dwelltimes(k)*1e-6;
+    [Dmaxdt(k),efoDmaxdt(k),rmseDmaxdt(k)]=maxDiffusion(sim, laserpower,repetitions)
+end
+
+
+figure(258)
+subplot(2,4,4)
+plot(dwelltimes,Dmaxdt)
+xlabel('pattern dwell time µs')
+ylabel('max Diffusion D µm^2/s')
+title('pattern dwell time')
+
+subplot(2,4,8)
+plot(dwelltimes,rmseDmaxdt)
+xlabel('pattern dwell time µs')
+ylabel('rmse at Dmax (nm)')
+title('pattern dwell time')
+
+%redo with fast instrument
+sim.deadtimes.point=0; sim.deadtimes.estimator=0;
+
+figure(306)
+clear Dmaxdtf efoDmaxdtf rmseDmaxdtf
+for k=1:length(dwelltimes)
+    sim.sequence.Itr(4).patDwellTime=dwelltimes(k)*1e-6;
+    [Dmaxdtf(k),efoDmaxdtf(k),rmseDmaxdtf(k)]=maxDiffusion(sim, laserpower,repetitions)
+end
+figure(258)
+subplot(2,2,4)
+hold on
+plot(dwelltimes,Dmaxdtf)
+xlabel('pattern dwell time µs')
+ylabel('max Diffusion D µm^2/s')
+title('pattern dwell time')
+legend('normal','fast')
+
+subplot(2,4,8)
+hold on
+plot(dwelltimes,rmseDmaxdtf)
+xlabel('pattern dwell time µs')
+ylabel('rmse at Dmax (nm)')
+title('pattern dwell time')
+sim.deadtimes=deadtimesold;
+sim.sequence.Itr(4).patDwellTime=patterntimeold;
+%%
+repititions=10;
+figure(259)
+clf
+% reference
+[Dmaxp,efop]=maxDiffusion(sim, laserpower,repetitions)
+
+% 3 instead of 6 probing positions
+sim.sequence.Itr(4).Mode.pattern='triangle';
+[Dmaxp,efop]=maxDiffusion(sim, laserpower,repetitions)
+
+% 4 instead of 6 probing positions
+sim.sequence.Itr(4).Mode.pattern='square';
+[Dmaxp,efop]=maxDiffusion(sim, laserpower,repetitions)
+
+%no dead times
+% also decrease pattern time
+sim.sequence.Itr(4).Mode.pattern='hexagon';
+deadtimesold=sim.deadtimes;
+sim.deadtimes.point=0; sim.deadtimes.estelimator=0;
+[Dmaxnod,efonod]=maxDiffusion(sim, laserpower,repetitions)
+sim.deadtimes=deadtimesold;
+%%
+%better estimator
+% simestold=sim.estimators(4);
+sim.estimators(4).function='est_qLSQiter2D';
+sim.estimators(4).par{3}=false; % no ccr check
+sim.estimators(4).par(1)=[];
+
+%remove
+[Dmaxest,efoest]=maxDiffusion(sim, laserpower,repetitions)
+sim.estimators(4)=simestold;
+
+
+function [Dmax, efoDmax,rmseDmax]=maxDiffusion(sim, laserpower,repetitions)
+Ds=0.2:0.1:1.5;
+rmse=zeros(length(Ds),repetitions,3);efo=zeros(length(Ds),repetitions); efostart=efo;
 
 for d=1:length(Ds)
     for k=1:repetitions
@@ -28,42 +288,50 @@ for d=1:length(Ds)
         fl=FlMoveBleach;
         fl.photonbudget=inf;
         fl.brightness=1000*laserpower;
-        updatetime=0.01; %ms
+        
         D=Ds(d); %um^2/s
-        fl.makediffusion(D,updatetime)
+        fl.makediffusion(D,0.01)
         sim.fluorophores=fl;
         out=sim.runSequence(repetitions=1,resetfluorophores=true);
         filter=out.loc.itr==max(out.loc.itr);
         sr=sim.summarize_results(out,display=false,filter=filter);
         rmse(d,k,:)=sr.rmse;
         efo(d,k)=mean(out.loc.efo(filter));
+        filter(max(2,length(filter)-10):end)=false;
+        efostart(d,k)=mean(out.loc.efo(filter)); %take out 10 last locs where fluorophore might be lost
     end
 end
 
-rmsem=squeeze(mean(rmse,2));
+rmsem=squeeze(mean(rmse,2,'omitnan'));
 indconverged=rmse<rmse(1,1,1)*3;
 fconverged=squeeze(sum(indconverged,2))/repetitions;
+fconverged=mean(fconverged(:,1:2),2);
+
+indconv=find(fconverged>0.5,1,'last');
+Dmax=Ds(indconv);
 rmsec=rmse; rmsec(~indconverged)=NaN;
 rmsecm=mean(rmsec,2,'omitnan');
 
-figure(255)
+efoDmax=mean(efostart(indconv,:));
+rmseDmax=mean(rmsecm(indconv,1:2));
 subplot(1,3,1)
-hold off
-plot(Ds,mean(fconverged(:,1:2),2))
+
+plot(Ds,fconverged)
 hold on
 ylabel("fraction tracked")
 xlabel('Diffusion coefficient um^2/s')
-
+title("Dmax: "+ string(Dmax) +" µm2/s")
 subplot(1,3,2)
-hold off
-plot(Ds,mean(efo,2))
+
+plot(Ds,mean(efostart,2))
 hold on
 xlabel('Diffusion coefficient um^2/s')
 ylabel("efo kHz")
 
 subplot(1,3,3)
-hold off
+
 plot(Ds,mean(rmsecm(:,1:2),2))
 hold on
 ylabel("RMSE of converged (nm)")
 xlabel('Diffusion coefficient um^2/s')
+end

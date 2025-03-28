@@ -33,3 +33,5 @@ ylabel('x position(nm)')
 legend('estimated', 'fluorophore','xgalvo','EOD')
 indf=out.loc.itr==max(out.loc.itr) & out.loc.vld==1;
 sim.summarize_results(out,filter=indf); %display summary of simulation
+
+out.loc.efo(end)
