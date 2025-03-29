@@ -129,7 +129,7 @@ classdef Simulator<handle
             for r=1:repetitions
                 for k=1:numpoints
                     timep=timep+time; %for calculating average time point
-                    [flposh,isactive]=fluorophores.position(obj.time);
+                    [flposh,isactive]=fluorophores.position(time);
                     flposrel=flposh-posgalvo;
                     [intensityh,pinholehfac]=pattern.psf(k).intensity(flposrel(isactive,:),pattern.pos(k,:)+posEOD,pattern.phasemask(k),pattern.zeropos(k));
                     intensityh=intensityh*pattern.laserpower(k);

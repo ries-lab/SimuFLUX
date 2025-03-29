@@ -28,7 +28,7 @@ updatetime=0.001; %ms
 maxerr=100;
 figure(256); clf
 %% investigate what happens if fluorophore gets lost
-D=01;
+D=2.5;
 numtracks=300;
 lenwin=10;
 averagejump=zeros(lenwin,1);
@@ -86,6 +86,54 @@ xlabel('time (localizations)'); ylabel('x position (nm)');
 subplot(2,3,3)
 hold off; plot(out.loc.xnm(1:end-1), out.loc.ynm(1:end-1));hold on; plot(out.loc.xfl1,out.loc.yfl1)%;hold on; plot(out.loc.loccounter,out.loc.ygalvo)
 xlabel('x position (nm)'); ylabel('y position (nm)'); axis equal
+
+%% MSD analysis
+tlast=0;
+D=1.5;
+% plot example track
+msdwin=10;
+msdmf=zeros(msdwin,1);msdfl=msdmf;
+imsd=0;
+repetitionsmsd=100;
+dtmsd=[];
+for k=1:repetitionsmsd
+    sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;
+    fl=FlMoveBleach;
+    fl.photonbudget=inf;
+    fl.brightness=1000*laserpower;
+    fl.makediffusion(D,updatetime)
+    sim.fluorophores=fl;
+    out=sim.runSequence(repetitions=1,resetfluorophores=true);
+    err=sqrt((out.loc.xnm-out.loc.xfl1).^2+(out.loc.ynm-out.loc.yfl1).^2);
+    indlost=find(err<maxerr, 1,'last');
+    
+    if indlost>50
+        time=out.loc.time(1:indlost);
+        if isempty(dtmsd)
+            dtmsd=min(diff(time));
+        end
+        xfl=interp1(fl.pos(:,1),fl.pos(:,2),time,"nearest");
+        yfl=interp1(fl.pos(:,1),fl.pos(:,3),time,"nearest");
+        % [msdhf,dt]=getmsd(out.loc.xfl1(1:indlost),out.loc.yfl1(1:indlost),time,msdwin);
+         [msdhf,dtmsd]=getmsd(xfl,yfl,time,msdwin,dtmsd);
+        
+        [msdhm,dtmsd]=getmsd(out.loc.xnm(1:indlost),out.loc.ynm(1:indlost),time,msdwin,dtmsd);
+        if ~(any(isnan(msdhm)|any(isnan(msdfl))))
+            msdfl=msdfl+msdhf;
+            msdmf=msdmf+msdhm;
+            imsd=imsd+1;
+        end
+    end
+end
+
+msdfl=msdfl/imsd;
+msdmf=msdmf/imsd;
+subplot(2,3,5);
+hold off
+[Dfl,offfl]=msdfit(msdfl,dtmsd,'r');
+[Dmf,offmf]=msdfit(msdmf,dtmsd,'b');
+legend("fluorophore","D="+string(Dfl)+"µm2/s","Minflux","D="+string(Dmf)+"µm2/s")
+
 
 
 %% investigate maximum diffusion coefficient for various conditions
@@ -267,9 +315,13 @@ sim.estimators(4)=simestold;
 
 legend('reference','triangle','fast','square','iterative LSQ')
 
+
+%% helper functions
 function [Dmax, efoDmax,rmseDmax]=maxDiffusion(sim, laserpower,repetitions)
-Ds=0:0.05:1.25;
+Ds=0:0.1:3.5;
 rmse=zeros(length(Ds),repetitions,3);efo=zeros(length(Ds),repetitions); efostart=efo;
+
+maxerr=100;
 
 for d=1:length(Ds)
     for k=1:repetitions
@@ -283,12 +335,15 @@ for d=1:length(Ds)
         fl.makediffusion(D,0.01)
         sim.fluorophores=fl;
         out=sim.runSequence(repetitions=1,resetfluorophores=true);
+        err=sqrt((out.loc.xnm-out.loc.xfl1).^2+(out.loc.ynm-out.loc.yfl1).^2);
+        indlost=find(err<maxerr, 1,'last');
         filter=out.loc.itr==max(out.loc.itr);
+        filter(indlost+1:end)=false;
         sr=sim.summarize_results(out,display=false,filter=filter);
         rmse(d,k,:)=sr.rmse;
         efo(d,k)=mean(out.loc.efo(filter),'omitnan');
-        filter(max(2,length(filter)-10):end)=false;
-        efostart(d,k)=mean(out.loc.efo(filter),'omitnan'); %take out 10 last locs where fluorophore might be lost
+        % filter(max(2,length(filter)-10):end)=false;
+        % efostart(d,k)=mean(out.loc.efo(filter),'omitnan'); %take out 10 last locs where fluorophore might be lost
     end
 end
 
@@ -302,7 +357,7 @@ Dmax=Ds(indconv);
 rmsec=rmse; rmsec(~indconverged)=NaN;
 rmsecm=mean(rmsec,2,'omitnan');
 
-efoDmax=mean(efostart(indconv,:));
+efoDmax=mean(efo(indconv,:));
 rmseDmax=mean(rmsecm(indconv,1:2));
 subplot(1,3,1)
 
@@ -324,4 +379,30 @@ plot(Ds,mean(rmsecm(:,1:2),2))
 hold on
 ylabel("RMSE of converged (nm)")
 xlabel('Diffusion coefficient um^2/s')
+end
+
+
+function [msd,dt]=getmsd(x,y,time,maxd,dt)
+% maxp=max(time)/dt;
+timeint=min(time):dt:max(time);
+intm="nearest";
+intm="linear";
+xint=interp1(time,x,timeint,intm);
+yint=interp1(time,y,timeint,intm);
+% maxd=10;
+msd=zeros(maxd,1);
+
+for di=1:maxd
+    msd(di)=mean((xint(1:end-di)-xint(1+di:end)).^2+(yint(1:end-di)-yint(1+di:end)).^2);
+end
+end
+
+function [Dfit, off]=msdfit(msd,dt,linec)
+msdt=(0:dt:length(msd)*dt)';
+plot(msdt(2:end),msd,linec)
+fp=fit(msdt(2:end),msd(1:end),"poly1");
+hold on;plot(msdt,fp(msdt),linec+"--")
+Dfit=fp.p1/1000/4; %um^2/s
+off=sqrt(fp.p2);
+% title("Dfit: "+string(Dfit)+" µm2/s, offset: " + string(fp.p2)+ " nm, " + "sqrt(off): " +string(off))
 end

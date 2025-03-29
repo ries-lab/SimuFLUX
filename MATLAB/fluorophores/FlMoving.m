@@ -64,9 +64,12 @@ classdef FlMoving<Fluorophore
             obj.posparameters={D,dt,args};
             % Dstep=D/1e6*1e6*dt; %D in um^2/s is the same as D in nm^2/us.
             % to obtain nm^2/ms multiply by 1000;
-            Dstep=D*dt*1000;
+            % Dstep=D*dt*1000;
+            Dstep=D*1000;
+            jumplength1D=sqrt(2*Dstep*dt);
             time=dt:dt:args.numpoints*dt;
-            jumps=(randn(args.numpoints,args.dim)*Dstep);
+            % jumps=(randn(args.numpoints,args.dim)*Dstep);
+            jumps=(randn(args.numpoints,args.dim)*jumplength1D);
             pos=horzcat(cumsum(jumps,1))+args.startpos(1:args.dim);
             if ~isempty(args.boundarybox) %periodic boundary conditions
                 if numel(args.boundarybox)==1
