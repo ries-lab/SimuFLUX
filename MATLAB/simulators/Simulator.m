@@ -374,7 +374,8 @@ classdef Simulator<handle
                         end
                     end
                 end
-                crlb=(inv(IFisher));
+                warning('off','MATLAB:singularMatrix')
+                crlb=(inv(IFisher)); %Warning: Matrix is singular to working precision. 'MATLAB:singularMatrix'
                 locprech=diag(sqrt(crlb))';
                 locprec=[0 0 0];
                 locprec(dim)=locprech;%(dim);
@@ -441,6 +442,7 @@ classdef Simulator<handle
 
             fl1.pos=oldpar.pos;
             fl1.remainingphotons=oldpar.remainingphotons;
+            warning('off','MATLAB:singularMatrix')
             crlb=(inv(IFisher));
             locprech=diag(sqrt(crlb))';
             locprec=[0 0 0];

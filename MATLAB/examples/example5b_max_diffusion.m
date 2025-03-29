@@ -23,7 +23,7 @@ sim.sequence.locLimit=100;
 % sim.deadtimes.point=0; sim.deadtimes.estelimator=0;
 sim.makepatterns;
 laserpower=1;
-updatetime=0.01; %ms
+updatetime=0.001; %ms
 
 maxerr=100;
 figure(256); clf
@@ -96,22 +96,24 @@ sim.loadsequence(fname,fname2);
 
 sim.makepatterns;
 
-figure(257); clf
+figure(258); clf
 repetitions=20;
 
-laserpowers=0.2:0.2:1.6;
+laserpowers=0.25:0.25:3;
 clear Dmaxl efoDmaxl rmseDmaxl
 figure(301)
 for k=1:length(laserpowers)
     [Dmaxl(k),efoDmaxl(k),rmseDmaxl(k)]=maxDiffusion(sim, laserpowers(k),repetitions)
 end
 title('laserpowers')
+
 figure(258)
 subplot(2,4,1)
 plot(laserpowers,Dmaxl)
 xlabel('laserpower (a.u.)')
 ylabel('max Diffusion D µm^2/s')
 title('laserpower')
+text(0,0.35,num2str(efoDmaxl','%2.0f'))
 
 subplot(2,4,5)
 plot(laserpowers,rmseDmaxl)
@@ -131,6 +133,7 @@ for k=1:length(laserpowers)
 end
 sim.deadtimes=deadtimesold; %revert to standard
 sim.sequence.Itr(4).patDwellTime=patterntimeold;
+title('laserpower fast')
 
 figure(258)
 subplot(2,4,1)
@@ -144,7 +147,7 @@ legend('standard','no deadtime')
 
 % L scan pattern size
 clear DmaxL efoDmaxL rmseDmaxL
-Ls=[40 75 150 300];
+Ls=[40 75 150 200 250 300];
 patGeoFactorOld=sim.sequence.Itr(4).patGeoFactor;
 figure(303)
 for k=1:length(Ls)
@@ -194,7 +197,7 @@ title('photon limit')
 
 
 %dwell time
-dwelltimes=[10 25 50 100 200 500 1000]; %us
+dwelltimes=[10 25 50 100 200 500 1000 2000 5000]; %us
 patterntimeold=sim.sequence.Itr(4).patDwellTime;
 clear Dmaxdt efoDmaxdt rmseDmaxdt
 figure(305)
@@ -202,21 +205,8 @@ for k=1:length(dwelltimes)
     sim.sequence.Itr(4).patDwellTime=dwelltimes(k)*1e-6;
     [Dmaxdt(k),efoDmaxdt(k),rmseDmaxdt(k)]=maxDiffusion(sim, laserpower,repetitions)
 end
-
-
-figure(258)
-subplot(2,4,4)
-plot(dwelltimes,Dmaxdt)
-xlabel('pattern dwell time µs')
-ylabel('max Diffusion D µm^2/s')
 title('pattern dwell time')
-
-subplot(2,4,8)
-plot(dwelltimes,rmseDmaxdt)
-xlabel('pattern dwell time µs')
-ylabel('rmse at Dmax (nm)')
-title('pattern dwell time')
-
+ 
 %redo with fast instrument
 sim.deadtimes.point=0; sim.deadtimes.estimator=0;
 
@@ -227,7 +217,7 @@ for k=1:length(dwelltimes)
     [Dmaxdtf(k),efoDmaxdtf(k),rmseDmaxdtf(k)]=maxDiffusion(sim, laserpower,repetitions)
 end
 figure(258)
-subplot(2,2,4)
+subplot(2,4,4)
 hold on
 plot(dwelltimes,Dmaxdtf)
 xlabel('pattern dwell time µs')
@@ -243,7 +233,7 @@ ylabel('rmse at Dmax (nm)')
 title('pattern dwell time')
 sim.deadtimes=deadtimesold;
 sim.sequence.Itr(4).patDwellTime=patterntimeold;
-%%
+%% compare different conditions
 repititions=10;
 figure(259)
 clf
@@ -265,20 +255,20 @@ deadtimesold=sim.deadtimes;
 sim.deadtimes.point=0; sim.deadtimes.estelimator=0;
 [Dmaxnod,efonod]=maxDiffusion(sim, laserpower,repetitions)
 sim.deadtimes=deadtimesold;
-%%
+%
 %better estimator
-% simestold=sim.estimators(4);
+simestold=sim.estimators(4);
 sim.estimators(4).function='est_qLSQiter2D';
 sim.estimators(4).par{3}=false; % no ccr check
 sim.estimators(4).par(1)=[];
 
-%remove
 [Dmaxest,efoest]=maxDiffusion(sim, laserpower,repetitions)
 sim.estimators(4)=simestold;
 
+legend('reference','triangle','fast','square','iterative LSQ')
 
 function [Dmax, efoDmax,rmseDmax]=maxDiffusion(sim, laserpower,repetitions)
-Ds=0.2:0.1:1.5;
+Ds=0:0.05:1.25;
 rmse=zeros(length(Ds),repetitions,3);efo=zeros(length(Ds),repetitions); efostart=efo;
 
 for d=1:length(Ds)
@@ -296,14 +286,14 @@ for d=1:length(Ds)
         filter=out.loc.itr==max(out.loc.itr);
         sr=sim.summarize_results(out,display=false,filter=filter);
         rmse(d,k,:)=sr.rmse;
-        efo(d,k)=mean(out.loc.efo(filter));
+        efo(d,k)=mean(out.loc.efo(filter),'omitnan');
         filter(max(2,length(filter)-10):end)=false;
-        efostart(d,k)=mean(out.loc.efo(filter)); %take out 10 last locs where fluorophore might be lost
+        efostart(d,k)=mean(out.loc.efo(filter),'omitnan'); %take out 10 last locs where fluorophore might be lost
     end
 end
 
 rmsem=squeeze(mean(rmse,2,'omitnan'));
-indconverged=rmse<rmse(1,1,1)*3;
+indconverged=rmse<min(rmse(1,1,1)*3,100);
 fconverged=squeeze(sum(indconverged,2))/repetitions;
 fconverged=mean(fconverged(:,1:2),2);
 
