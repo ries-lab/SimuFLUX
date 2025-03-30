@@ -368,7 +368,7 @@ xlabel('Diffusion coefficient um^2/s')
 title("Dmax: "+ string(Dmax) +" µm2/s")
 subplot(1,3,2)
 
-plot(Ds,mean(efostart,2))
+plot(Ds,mean(efo,2))
 hold on
 xlabel('Diffusion coefficient um^2/s')
 ylabel("efo kHz")
