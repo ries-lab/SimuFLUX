@@ -156,10 +156,10 @@ sim.makepatterns;
 
 figure(258); clf
 laserpowers=[0.05 0.1 0.2:0.2:0.8 1:0.5:3];
-clear Dmaxl efoDmaxl rmseDmaxl
+clear Dmaxl efoD0l rmseDmaxl
 figure(301);clf
 for k=1:length(laserpowers)
-    [Dmaxl(k),efoDmaxl(k),rmseDmaxl(k)]=maxDiffusion(sim, laserpowers(k),repetitions, Dtest)
+    [Dmaxl(k),efoD0l(k),rmseDmaxl(k)]=maxDiffusion(sim, laserpowers(k),repetitions, Dtest)
     drawnow
 end
 title('laserpowers')
@@ -171,7 +171,7 @@ plot(laserpowers,Dmaxl)
 xlabel('laserpower (a.u.)')
 ylabel('max Diffusion D µm^2/s')
 title('laserpower')
-text(0,0.35,num2str(efoDmaxl','%2.0f'))
+text(0,0.35,num2str(efoD0l','%2.0f'))
 
 subplot(3,4,5)
 plot(laserpowers,rmseDmaxl)
@@ -180,14 +180,13 @@ ylabel('rmse at Dmax (nm)')
 title('laserpower')
 
 subplot(3,4,9)
-plot(efoDmaxl,Dmaxl)
+plot(efoD0l,Dmaxl)
 xlabel('efo (kHz)')
 ylabel('max Diffusion D µm^2/s')
 title('laserpower')
-text(0,0.35,num2str(efoDmaxl','%2.0f'))
 
 subplot(3,4,10)
-plot(efoDmaxl,rmseDmaxl)
+plot(efoD0l,rmseDmaxl)
 xlabel('efo (kHz)')
 ylabel('rmse at Dmax (nm)')
 title('laserpower')
@@ -199,10 +198,10 @@ patterntimeold=sim.sequence.Itr(4).patDwellTime;
 sim.deadtimes.point=0; sim.deadtimes.estelimator=0;
 sim.sequence.Itr(4).patDwellTime=2e-5; %20 us
 sim.makepatterns();
-clear Dmaxlf efoDmaxlf rmseDmaxlf
+clear Dmaxlf efoD0lf rmseDmaxlf
 figure(302); clf
 for k=1:length(laserpowers)
-    [Dmaxlf(k),efoDmaxlf(k),rmseDmaxlf(k)]=maxDiffusion(sim, laserpowers(k),repetitions, Dtest)
+    [Dmaxlf(k),efoD0lf(k),rmseDmaxlf(k)]=maxDiffusion(sim, laserpowers(k),repetitions, Dtest)
 end
 sim.deadtimes=deadtimesold; %revert to standard
 sim.sequence.Itr(4).patDwellTime=patterntimeold;
@@ -224,23 +223,23 @@ legend('standard','no deadtime')
 
 subplot(3,4,9)
 hold on
-plot(efoDmaxlf,Dmaxlf)
+plot(efoD0lf,Dmaxlf)
 
 
 subplot(3,4,10)
 hold on
-plot(efoDmaxlf,rmseDmaxlf)
+plot(efoD0lf,rmseDmaxlf)
 
 
 Dtest=0:0.25:6;
 % L scan pattern size
-clear DmaxL efoDmaxL rmseDmaxL
+clear DmaxL efoD0L rmseDmaxL
 Ls=[40 75 150 200 250 300];
 patGeoFactorOld=sim.sequence.Itr(4).patGeoFactor;
 figure(303); clf
 for k=1:length(Ls)
     sim.sequence.Itr(4).patGeoFactor=Ls(k)/360;
-    [DmaxL(k),efoDmaxL(k),rmseDmaxL(k)]=maxDiffusion(sim, laserpower,repetitions, Dtest)
+    [DmaxL(k),efoD0L(k),rmseDmaxL(k)]=maxDiffusion(sim, laserpower,repetitions, Dtest)
 end
 title('L')
 legend(string(Ls'))
@@ -262,12 +261,12 @@ ylabel('rmse at Dmax (nm)')
 title('L')
 
 
-clear Dmaxpl efoDmaxpl rmseDmaxl
+clear Dmaxpl efoD0pl rmseDmaxl
 photlim=[5 10 20 30 50 100];
 figure(304);clf
 for k=1:length(photlim)
     sim.sequence.Itr(4).phtLimit=photlim(k);
-    [Dmaxpl(k),efoDmaxpl(k),rmseDmaxpl(k)]=maxDiffusion(sim, laserpower,repetitions, Dtest)
+    [Dmaxpl(k),efoD0pl(k),rmseDmaxpl(k)]=maxDiffusion(sim, laserpower,repetitions, Dtest)
 end
 title('photon limit')
 legend(string(photlim'))
@@ -293,12 +292,12 @@ dwelltimes=[10 20 50 100 200 500 1000]; %us
 % dwelltimes=10;
 
 patterntimeold=sim.sequence.Itr(4).patDwellTime;
-clear Dmaxdt efoDmaxdt rmseDmaxdt
+clear Dmaxdt efoD0dt rmseDmaxdt
 figure(305);clf
 for k=1:length(dwelltimes)
     sim.sequence.Itr(4).patDwellTime=dwelltimes(k)*1e-6;
     sim.makepatterns();
-    [Dmaxdt(k),efoDmaxdt(k),rmseDmaxdt(k)]=maxDiffusion(sim, laserpower,repetitions, Dtest)
+    [Dmaxdt(k),efoD0dt(k),rmseDmaxdt(k)]=maxDiffusion(sim, laserpower,repetitions, Dtest)
 end
 title('pattern dwell time')
  legend(string(dwelltimes'))
@@ -307,11 +306,11 @@ title('pattern dwell time')
 sim.deadtimes.point=0; sim.deadtimes.estimator=0;
 
 figure(306);clf
-clear Dmaxdtf efoDmaxdtf rmseDmaxdtf
+clear Dmaxdtf efoD0dtf rmseDmaxdtf
 for k=1:length(dwelltimes)
     sim.sequence.Itr(4).patDwellTime=dwelltimes(k)*1e-6;
     sim.makepatterns();
-    [Dmaxdtf(k),efoDmaxdtf(k),rmseDmaxdtf(k)]=maxDiffusion(sim, laserpower,repetitions, Dtest)
+    [Dmaxdtf(k),efoD0dtf(k),rmseDmaxdtf(k)]=maxDiffusion(sim, laserpower,repetitions, Dtest)
 end
 title('pattern dwell time fast')
  legend(string(dwelltimes'))
@@ -381,7 +380,7 @@ legend('reference','triangle','fast','square','iterative LSQ')
 savefig(gcf,[savepath filesep 'compare_conditions.fig'])
 
 %% helper functions
-function [Dmax, efoDmax,rmseDmax]=maxDiffusion(sim, laserpower,repetitions,Ds)
+function [Dmax, efoD0,rmseDmax]=maxDiffusion(sim, laserpower,repetitions,Ds)
 if nargin<4
     Ds=0:0.25:8;
 end
@@ -438,6 +437,7 @@ indconv=find(Ds<=Dmax,1,'last');
 rmsem=squeeze(mean(rmse,2,'omitnan'));
 
 efoDmax=mean(efo(indconv,:),'omitnan');
+efoD0=mean(efo(1,:),'omitnan');
 rmseDmax=mean(rmsem(indconv,1:2),'omitnan');
 subplot(1,3,1)
 
