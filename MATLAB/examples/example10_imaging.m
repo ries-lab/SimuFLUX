@@ -40,7 +40,7 @@ fc.add(makeNPC(pos=[0 0 0]));
 % slow sequences, bounding box: 1 um  x 1 um x 2 um: ~ 1 particle
 % fast sequences: 2 um x 2 um x 2 um: ~1 particle
 boundingbox=[2000 2000 2000]; %two fluorophores per 2x2x2 um
-D=30; %um^2/s
+D=50; %um^2/s
 fd=FlMoving;
 fd.makediffusion(D,0.01,dim=3,boundarybox=boundingbox);
 fd2=FlMoving;

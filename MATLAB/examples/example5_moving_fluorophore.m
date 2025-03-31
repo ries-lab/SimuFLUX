@@ -69,7 +69,7 @@ for k=1:length(frequencies)
     posfl=[0 0 0];
     fl3.posfunction={@(t) amplitude*sin(frequencies(k)*t)+posfl(1), @(t) 0*t+posfl(2), @(t) 0*t+posfl(3)};    
     sim.fluorophores=fl3;sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;
-    out=sim.runSequence("repetitions",1);
+    out=sim.runSequence("repetitions",10);
     filter=out.loc.itr==max(out.loc.itr)&out.loc.vld==1;
     sr=sim.summarize_results(out,display=false,filter=filter);
     stdx(k)=sr.stdraw(1);
@@ -87,7 +87,7 @@ for k=1:length(amplitudes)
     posfl=[0 0 0];
     fl3.posfunction={@(t) amplitudes(k)*sin(frequency*t)+posfl(1), @(t) 0*t+posfl(2), @(t) 0*t+posfl(3)};    
     sim.fluorophores=fl3;sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;
-    out=sim.runSequence("repetitions",1);
+    out=sim.runSequence("repetitions",10);
     filter=out.loc.itr==max(out.loc.itr)&out.loc.vld==1;
     sr=sim.summarize_results(out,display=false,filter=filter);
     stdxa(k)=sr.stdraw(1);
