@@ -25,8 +25,8 @@ sim.sequence.locLimit=100;
 % sim.deadtimes.point=0; sim.deadtimes.estelimator=0;
 sim.makepatterns;
 laserpower=0.6;
-updatetime=0.01; %ms
-
+updatetime=0.0025; %ms
+repetitions=20;
 maxerr=100;
 
 %% plot example track
@@ -149,7 +149,7 @@ fname2='PSFvectorial2D.json'; %use a PSF that is defined via a json file
 sim.loadsequence(fname,fname2);
 sim.sequence.locLimit=100;
 
-repetitions=20;
+
 Dtest=0:0.25:9;
 
 sim.makepatterns;
@@ -192,7 +192,7 @@ ylabel('rmse at Dmax (nm)')
 title('laserpower')
 % text(0,0.35,num2str(efoDmaxl','%2.0f'))
 
-%redo with no dead times and faster pattern dwell times
+%% redo with no dead times and faster pattern dwell times
 deadtimesold=sim.deadtimes;
 patterntimeold=sim.sequence.Itr(4).patDwellTime;
 sim.deadtimes.point=0; sim.deadtimes.estelimator=0;
@@ -337,21 +337,20 @@ sim.makepatterns();
 
 savefig(gcf,[savepath filesep 'D_scan_vars.fig'])
 %% compare different conditions
-repititions=10;
-figure(259)
-clf
+repititions=20;
+figure(259); clf
 % reference
-[Dmaxp,efop]=maxDiffusion(sim, laserpower,repetitions)
+[Dmaxp6,efop6]=maxDiffusion(sim, laserpower,repetitions,[],"hexagon")
 
 % 3 instead of 6 probing positions
 sim.sequence.Itr(4).Mode.pattern='triangle';
 sim.makepatterns;
-[Dmaxp,efop]=maxDiffusion(sim, laserpower,repetitions)
+[Dmaxp3,efop3]=maxDiffusion(sim, laserpower,repetitions,[],"triangle")
 
 % 4 instead of 6 probing positions
 sim.sequence.Itr(4).Mode.pattern='square';
 sim.makepatterns;
-[Dmaxp,efop]=maxDiffusion(sim, laserpower,repetitions)
+[Dmaxp4,efop4]=maxDiffusion(sim, laserpower,repetitions,[],"square")
 
 %no dead times
 % also decrease pattern time
@@ -362,7 +361,7 @@ sim.sequence.Itr(4).Mode.pattern='hexagon';
 deadtimesold=sim.deadtimes;
 sim.deadtimes.point=0; sim.deadtimes.estelimator=0;
 sim.makepatterns;
-[Dmaxnod,efonod]=maxDiffusion(sim, laserpower,repetitions)
+[Dmaxnod,efonod]=maxDiffusion(sim, laserpower,repetitions,[],"fast hex")
 sim.deadtimes=deadtimesold;
 sim.sequence.Itr(4).patDwellTime=patterntimeold;
 sim.makepatterns;
@@ -373,16 +372,27 @@ sim.estimators(4).function='est_qLSQiter2D';
 sim.estimators(4).par{3}=false; % no ccr check
 sim.estimators(4).par(1)=[];
 
-[Dmaxest,efoest]=maxDiffusion(sim, laserpower,repetitions)
+[D0est,efoest]=maxDiffusion(sim, laserpower,repetitions,[],"iterLSQ")
 sim.estimators(4)=simestold;
 
-legend('reference','triangle','fast','square','iterative LSQ')
+%
+legend
+subplot(1,3,1)
+legend
+
 savefig(gcf,[savepath filesep 'compare_conditions.fig'])
 
 %% helper functions
-function [Dmax, efoD0,rmseDmax]=maxDiffusion(sim, laserpower,repetitions,Ds)
-if nargin<4
+function [Dmax, efoD0,rmseDmax]=maxDiffusion(sim, laserpower,repetitions,Ds,dname,fig)
+if nargin<4 || isempty(Ds)
     Ds=0:0.25:8;
+end
+if nargin<5 || isempaty(dname)
+    dname="data";
+end
+
+if nargin<6
+    fig=gcf;
 end
 rmse=zeros(length(Ds),repetitions,3);efo=zeros(length(Ds),repetitions); efostart=efo;
 indlosta=zeros(length(Ds),repetitions);
@@ -398,7 +408,7 @@ for d=1:length(Ds)
         fl.brightness=1000*laserpower;
         
         D=Ds(d); %um^2/s
-        fl.makediffusion(D,0.01)
+        fl.makediffusion(D,0.003)
         sim.fluorophores=fl;
         out=sim.runSequence(repetitions=1,resetfluorophores=true);
         err=sqrt((out.loc.xnm-out.loc.xfl1).^2+(out.loc.ynm-out.loc.yfl1).^2);
@@ -439,27 +449,34 @@ rmsem=squeeze(mean(rmse,2,'omitnan'));
 efoDmax=mean(efo(indconv,:),'omitnan');
 efoD0=mean(efo(1,:),'omitnan');
 rmseDmax=mean(rmsem(indconv,1:2),'omitnan');
+if any(size(rmseDmax)~=1)
+    rmseDmax=NaN;
+end
+figure(fig)
 subplot(1,3,1)
 
-hp=plot(Ds,fconverged);
+hp=plot(Ds,fconverged,DisplayName=dname);
 hold on
 ylabel("fraction tracked")
 xlabel('Diffusion coefficient um^2/s')
 title("Dmax: "+ string(Dmax) +" µm2/s")
-plot(Ds,fp(Ds),'Color',hp.Color)
+plot(Ds,fp(Ds),'Color',hp.Color,LineWidth=1, DisplayName=dname+"fit")
 subplot(1,3,2)
 
-plot(Ds,mean(efo,2,'omitnan'))
+plot(Ds,mean(efo,2,'omitnan'),DisplayName=dname)
 hold on
 xlabel('Diffusion coefficient um^2/s')
 ylabel("efo kHz")
 
 subplot(1,3,3)
 
-plot(Ds,mean(rmsem(:,1:2),2,'omitnan'))
+plot(Ds,mean(rmsem(:,1:2),2,'omitnan'),DisplayName=dname)
 hold on
 ylabel("RMSE of converged (nm)")
 xlabel('Diffusion coefficient um^2/s')
+
+
+% Dmax, efoD0,rmseDmax
 end
 
 

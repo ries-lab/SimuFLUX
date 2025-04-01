@@ -226,7 +226,7 @@ classdef Simulator<handle
                             loc.seq(loccounter,1)=s;
                         case "estimator"
                             % replace placeholder names by values
-                            component_par=replaceinlist(component.parameters,'patternpos',scanout.par.patternpos,'L',scanout.par.L,...
+                            component_par=replaceinlist(component.parameters,'patternpos',scanout.par.pattern.pos,'L',scanout.par.L,...
                                 'probecenter',scanout.par.probecenter,'bg_photons_gt',scanout.bg_photons_gt, ...
                                 'background_estimated',obj.background_estimated,'iteration',s);
                             xesth=component.functionhandle(scanout.photrate,component_par{:});
@@ -375,6 +375,7 @@ classdef Simulator<handle
                     end
                 end
                 warning('off','MATLAB:singularMatrix')
+                warning('off','MATLAB:nearlySingularMatrix')
                 crlb=(inv(IFisher)); %Warning: Matrix is singular to working precision. 'MATLAB:singularMatrix'
                 locprech=diag(sqrt(crlb))';
                 locprec=[0 0 0];
