@@ -12,7 +12,7 @@ fl=FlStatic;
 fl.pos=[10 0 0];
 sim=Simulator(fluorophores=fl); %make a simulator and attach fluorophore
 
-numberOfLocalizations=1000;
+maxlocs=5000;
 
 %define scan pattern
 L=75; %size of scan pattern
@@ -46,21 +46,21 @@ xs=0:5:65;
 displaywhat="rmse";
 figure(225);
 hold off
-sim.scan_fov(seq,xs,clearfigure=true,tag="donut",ax1=displaywhat,linestyle='k');
+sim.scan_fov(seq,xs,clearfigure=true,tag="donut",ax1=displaywhat,linestyle='k',maxlocs=numberOfLocalizations);
 
 %3D donut
 seqthnoab={"tophat_xy","estdonut"};
 out=sim.runSequence(seqthnoab,"maxlocs",numberOfLocalizations);
 disp('no aberration tophat:')
 sim.summarize_results(out); %display summary of simulation
-sim.scan_fov(seqthnoab,xs, tag="tophat",ax1=displaywhat,linestyle='r');
+sim.scan_fov(seqthnoab,xs, tag="tophat",ax1=displaywhat,linestyle='r',maxlocs=numberOfLocalizations);
 
 % PhaseFLUX
 seqpf={"pf_x","est_x","pf_y","est_y"};
 out=sim.runSequence(seqpf,"maxlocs",numberOfLocalizations);
 disp('no aberration phaseflux:')
 sim.summarize_results(out); %display summary of simulation
-sim.scan_fov(seqpf,xs, tag="phaseflux",ax1=displaywhat,linestyle='b');
+sim.scan_fov(seqpf,xs, tag="phaseflux",ax1=displaywhat,linestyle='b',maxlocs=numberOfLocalizations);
 
 psf2Ddonut=psf_vec.imagestack("vortex");
 psf3Ddonut=psf_vec.imagestack("tophat");
@@ -86,19 +86,19 @@ seqdab={"donuta","estdonut"};
 out=sim.runSequence(seqdab,"maxlocs",numberOfLocalizations);
 % disp('aberration donut:')
 % sim.summarize_results(out); %display summary of simulation
-sim.scan_fov(seqdab,xs,tag="donut ab",ax1=displaywhat,linestyle='k-.');
+sim.scan_fov(seqdab,xs,tag="donut ab",ax1=displaywhat,linestyle='k-.',maxlocs=numberOfLocalizations);
 
 seqthab={"tophat_xya","estdonut"};
 out=sim.runSequence(seqthab,"maxlocs",numberOfLocalizations);
 disp('aberration tophat:')
 % sim.summarize_results(out); %display summary of simulation
-sim.scan_fov(seqthab,xs,tag="tophat ab",ax1=displaywhat,linestyle='r-.');
+sim.scan_fov(seqthab,xs,tag="tophat ab",ax1=displaywhat,linestyle='r-.',maxlocs=numberOfLocalizations);
 
 seqpfa={"pf_xa","est_x","pf_ya","est_y"};
 out=sim.runSequence(seqpfa,"maxlocs",numberOfLocalizations);
 disp(' aberration phaseflux:')
 sim.summarize_results(out); %display summary of simulation
-sim.scan_fov(seqpfa,xs, tag="phaseflux ab",ax1=displaywhat,linestyle='b-.');
+sim.scan_fov(seqpfa,xs, tag="phaseflux ab",ax1=displaywhat,linestyle='b-.',maxlocs=numberOfLocalizations);
 
 psf2Ddonuta=psf_veca.imagestack("vortex");
 psf3Ddonuta=psf_veca.imagestack("tophat");
@@ -118,18 +118,18 @@ out=sim.runSequence(seq,"maxlocs",numberOfLocalizations);
 disp('fl donut:')
 sim.summarize_results(out); %display summary of simulation
 
-sim.scan_fov(seq,xs,tag="donut fl",ax1=displaywhat,linestyle='k--');
+sim.scan_fov(seq,xs,tag="donut fl",ax1=displaywhat,linestyle='k--',maxlocs=numberOfLocalizations);
 seqthnoab={"tophat_xy","estdonut"};
 out=sim.runSequence(seqthnoab,"maxlocs",numberOfLocalizations);
 disp('fl tophat:')
 sim.summarize_results(out); %display summary of simulation
-sim.scan_fov(seqthnoab,xs, tag="tophat fl",ax1=displaywhat,linestyle='r--');
+sim.scan_fov(seqthnoab,xs, tag="tophat fl",ax1=displaywhat,linestyle='r--',maxlocs=numberOfLocalizations);
 
 
 out=sim.runSequence(seqpf,"maxlocs",numberOfLocalizations);
 disp('fl phaseflux:')
 sim.summarize_results(out); %display summary of simulation
-sim.scan_fov(seqpf,xs, tag="phaseflux fl",ax1=displaywhat,linestyle='b--');
+sim.scan_fov(seqpf,xs, tag="phaseflux fl",ax1=displaywhat,linestyle='b--',maxlocs=numberOfLocalizations);
 
 
 %% background
@@ -142,18 +142,18 @@ disp('bg donut:')
 sim.summarize_results(out); %display summary of simulation
 mean(out.bg_photons_gt)
 
-sim.scan_fov(seq,xs,tag="donut bg",ax1=displaywhat,linestyle='k:');
+sim.scan_fov(seq,xs,tag="donut bg",ax1=displaywhat,linestyle='k:',maxlocs=numberOfLocalizations);
 seqthnoab={"tophat_xy","estdonut"};
 out=sim.runSequence(seqthnoab,"maxlocs",numberOfLocalizations);
 disp('bg tophat:')
 sim.summarize_results(out); %display summary of simulation
 mean(out.bg_photons_gt)
-sim.scan_fov(seqthnoab,xs, tag="tophat bg",ax1=displaywhat,linestyle='r:');
+sim.scan_fov(seqthnoab,xs, tag="tophat bg",ax1=displaywhat,linestyle='r:',maxlocs=numberOfLocalizations);
 
 out=sim.runSequence(seqpf,"maxlocs",numberOfLocalizations);
 disp('bg phaseflux:')
 sim.summarize_results(out); %display summary of simulation
-sim.scan_fov(seqpf,xs, tag="phaseflux bg",ax1=displaywhat,linestyle='b:');
+sim.scan_fov(seqpf,xs, tag="phaseflux bg",ax1=displaywhat,linestyle='b:',maxlocs=numberOfLocalizations);
 
 ylim([0 L/2])
 

@@ -21,9 +21,10 @@ sim.loadsequence(fname,fname2);
 
 %test different confounding factors, otherwise comment out:
 sim.psfvec.setpar('beadradius',0*50e-9) %in m can also lead to tails. Set to zero if no bead used
-% sim.sequence.PSF.Itr(1).estimator.par{3}=80; %wrong parameter for first estimator: this makes tails much more pronounced, as currently the Gaussian estimator seems too good.
+% sim.sequence.PSF.Itr(1).estimator.par{3}=80; %correct: 120. wrong parameter for first estimator: this makes tails much more pronounced, as currently the Gaussian estimator seems too good.
 sim.sequence.locLimit=100; %only track for 1000 localizations
 sim.makepatterns;
+
 out=sim.runSequence("repetitions",1);
 
 figure(230);hold off;plot(out.loc.loccounter, out.loc.xnm);hold on; plot(out.loc.loccounter,out.loc.xfl1);hold on; plot(out.loc.loccounter,out.loc.xgalvo)

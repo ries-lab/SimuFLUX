@@ -87,7 +87,7 @@ for k=1:length(brightnesses)
  
     
     axis equal 
-    legend('scouting','not vld', 'last itr vld','last itr vld +cfr', 'fluorophore')
+    legend( 'scouting','fluorophore','not vld', 'last itr vld','last itr vld +cfr')
     title(titles(k))
     drawnow
     plot([-90 -40],[-70 -70],'k')
@@ -146,7 +146,7 @@ plot(out.loc.xnm(vldcfr),out.loc.ynm(vldcfr),valsymb,'Color',colvalcfr)
 
 
 axis equal 
-legend('scouting','not vld', 'last itr vld','last itr vld +cfr', 'fluorophore')
+legend('scouting','fluorophore','not vld', 'last itr vld','last itr vld +cfr')
 title(titles(k))
     plot([-90 -40],[-70 -70],'k')
     text(-50,-60,"50 nm")
@@ -168,7 +168,7 @@ reactivations =2;
 brightnesses=100;
 laserpower=5;
 
-toff=[0.5, 1, 2, 5, 10, 20, 50, 100, 200]*1e3; %ms
+toff=[0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100, 200, 500]*1e3; %ms
 
 for k=1:length(toff)
 sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;
