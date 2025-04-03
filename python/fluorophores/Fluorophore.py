@@ -23,7 +23,7 @@ class Fluorophore:
         else:
             self._pos = val
     
-    def intensity(self, I0, dwelltime, time, phfac, props=None):
+    def intensity(self, I0, dwelltime, time, phfac):
         # if props is not None:  # For performance: avoid property access
         #     brightness = props.brightness
         # else:
@@ -37,11 +37,8 @@ class Fluorophore:
     def reset(self, time=None):
         pass
     
-    def position(self, time, props=None):
-        if props is not None:
-            pos = props.pos
-        else:
-            pos = self.pos
+    def position(self, time):
+        pos = self.pos
         
         return pos, True
     

@@ -21,7 +21,7 @@ class FlCollection:
             self.flall.extend(fllist)
         self.numberOfFluorophores = len(self.flall)
 
-    def position(self, time, props=None):
+    def position(self, time):
         pos = np.zeros((self.numberOfFluorophores, 3))
 
         for k in range(self.numberOfFluorophores):
@@ -31,7 +31,7 @@ class FlCollection:
 
         return pos, isactive
     
-    def intensity(self, intin, dt, time, phfac, props=None):
+    def intensity(self, intin, dt, time, phfac):
         ih = np.zeros((self.numberOfFluorophores,1))
         for k in range(self.numberOfFluorophores):
             ih[k] = self.flall[k].intensity(intin[k], dt, time, phfac[k])

@@ -345,7 +345,7 @@ class PsfVectorial(Psf):
 
         if not calculated:
             self.PSFph = self.calculatePSFs('pinhole',
-                                            Lxs = [diameter,offset],
+                                            Lxs = [diameter,*offset],
                                             forcecalculation=True)
 
         self.pinholepar = {}

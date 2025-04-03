@@ -1,6 +1,6 @@
 import numpy as np
 
-def est_quad1Diter(photonsi, L, iter=15, eps=0.1):
+def est_qLSQiter1D(photonsi, L, iter=15, eps=0.1):
     """
     Eilers 2.64, k=1
     """
@@ -21,11 +21,13 @@ def est_quad1Diter(photonsi, L, iter=15, eps=0.1):
     xest[np.abs(xest)>1.3*L] = np.nan
     return xest
 
+
 def iteration(p, x0, L):
     d12 = p[0] - p[1]
     dr = ((L**2 + 4 * x0**2) * (-4 * L * x0 + d12 * (L**2 + 4 * x0**2))) / (4 * (L**3 - 4 * L * x0**2))
     dro = dr + x0
     return dro
+
 
 def iterationcenter(p, x0, L):
     # p[0] at -L/2, p[1] at L/2, p[2] at 0

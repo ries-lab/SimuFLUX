@@ -10,7 +10,7 @@ class FlMoving(Fluorophore):
         self.posmode = None
         self.posfunction = None
 
-    def position(self, time, props=None):
+    def position(self, time):
         posout = np.array([0,0,0], dtype=float)
         posmode = self.posmode
         if posmode == "static":
@@ -49,7 +49,7 @@ class FlMoving(Fluorophore):
                       D, # um^2/s
                       dt,  # us
                       startpos=np.array([0,0,0], dtype=float), 
-                      dim=2,  # number of dimensions to simulate
+                      dim=2,  # number of dimensions to simulate, 2 -> 2D, 3-> 3D
                       numpoints=10000, 
                       boundarybox=None): # nm, half length of box, periodic boundary conditions
         # print("makediffusion")
@@ -60,9 +60,10 @@ class FlMoving(Fluorophore):
         self.posparameters = [D, dt, kwargs]
 
         # to obtain nm^2/ms multiply by 1000;
-        Dstep = D*dt*1000
+        Dstep = D*1000
+        jumplength1D = np.sqrt(2*Dstep*dt)
         time = np.atleast_2d((np.arange(numpoints)+1)*dt)
-        jumps = np.random.randn(numpoints, dim)*Dstep
+        jumps = np.random.randn(numpoints, dim)*jumplength1D
         # print("max jump: ", jumps.max(0))
         # print(f"startpos: {startpos[:dim]}")
         pos = np.cumsum(jumps, axis=0) + startpos[:dim]

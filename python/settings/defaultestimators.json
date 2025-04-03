@@ -2,16 +2,16 @@
  {
 "Itr": [
 	{"estimator": 
-        {"function": "est_gauss2d",
+        {"function": "est_GaussLSQ1_2D",
         "par": ["patternpos","L",120, false],
         "dim": [0, 1]}},
-	{"estimator": {"function": "est_donut2d",
+	{"estimator": {"function": "est_donutLSQ1_2D",
         "par": ["patternpos","L",310, false],
         "dim": [0, 1]}},
-	{"estimator": {"function": "est_donut2d",
+	{"estimator": {"function": "est_donutLSQ1_2D",
         "par": ["patternpos","L",310, false],
          "dim": [0, 1]}},
-	{"estimator": {"function": "est_donut2d",
+	{"estimator": {"function": "est_donutLSQ1_2D",
          "par": ["patternpos","L",310],
         "dim": [0, 1]}}
     ]}
