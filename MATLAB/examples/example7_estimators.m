@@ -114,7 +114,7 @@ ax.XLim(end)=L*0.75;
 
 %% convergence of the iterative estimator
 figure(271); clf
-
+sim.background=0;sim.background_estimated=0;
 % sim.fluorophores.pos=[30 20 0];
 xcoords=0:5:L;
 iters=[1,2,3,4, 5, 6,7, 8, 10,  15, 20, 30, 50];
