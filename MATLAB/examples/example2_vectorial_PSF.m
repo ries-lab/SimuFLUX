@@ -152,7 +152,7 @@ sim.summarize_results(out);
 
 
 %% 3D with tophat
-sim.fluorophores.pos=[10,0, 20];
+sim.fluorophores.pos=[10,0, -20];
 if ~exist("psf_vecth","var") %if PSF is already defined, we need not recalculate it if no parameters are changed
     psf_vecth=PsfVectorial; %simple 2D donut PSF
 end

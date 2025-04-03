@@ -454,6 +454,7 @@ laserpowerLnorm=laserpower*Ldefault^2./Lm.^2;
 sim.sequence.Itr(4).phtLimit=10;
 sim.makepatterns;
 [Dmaxopt,efoopt]=maxDiffusion(sim, laserpowerLnorm,repetitions,[],"optimized")
+title("D_s="+Dmaxp6+", D_o="+Dmaxopt)
 
 f.Position=posfig;
 savefig(f,[savepath filesep 'optim2.fig'])

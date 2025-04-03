@@ -12,7 +12,7 @@ fl=FlStatic;
 fl.pos=[10 0 0];
 sim=Simulator(fluorophores=fl); %make a simulator and attach fluorophore
 
-maxlocs=5000;
+numberOfLocalizations=5000;
 
 %define scan pattern
 L=75; %size of scan pattern
@@ -34,8 +34,8 @@ sim.definePattern("pf_y", psf_vec, phasemask="halfmoony", zeropos=zeroposx,...
     pointdwelltime=pointdwelltime,laserpower=laserpowerpf,repetitions=repetitions,dim=2);
 
 sim.defineComponent("estdonut","estimator",@est_qLSQiter2D,parameters={L,probecenter},dim=1:2);
-sim.defineComponent("est_x","estimator",@est_quadraticdirect1D,parameters={L},dim=1);
-sim.defineComponent("est_y","estimator",@est_quadraticdirect1D,parameters={L},dim=2);
+sim.defineComponent("est_x","estimator",@est_qLSQiter1D,parameters={L},dim=1);
+sim.defineComponent("est_y","estimator",@est_qLSQiter1D,parameters={L},dim=2);
 
 %2D donut
 seq={"donut","estdonut"};
