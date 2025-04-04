@@ -17,18 +17,21 @@ numberOfLocalizations=1000;
 L=75; %size of scan pattern
 orbitpoints=6; %number of probing points in orbit. 
 probecenter=true; %should we also probe the center?
-laserpower=5; %relative, increases brightness
-pointdwelltime=0.5/(orbitpoints+probecenter); %ms, measurement time in each point
+laserpower=2; %relative, increases brightness
+pointdwelltime=1/(orbitpoints+probecenter); %ms, measurement time in each point
 repetitions=2; %how often to repeat the pattern scan
 sim.definePattern("donut", psf_donut, makepattern="orbitscan", orbitpoints=orbitpoints, ...
     probecenter=probecenter,orbitL=L,pointdwelltime=pointdwelltime,laserpower=laserpower,repetitions=repetitions)
 % sim.definePattern(key, PSF_object, arguments...)
 
 %we need an estimator. Define as component
+sim.defineComponent("estdonut","estimator",@est_qLSQiter2D,parameters={L,probecenter},dim=1:2);
+% sim.defineComponent("estdonut","estimator",@est_donutLSQ1_2D,parameters={"patternpos",L,360},dim=1:2);
 
-% sim.defineComponent("estdonut","estimator",@est_qLSQiter2D,parameters={L,probecenter},dim=1:2);
-sim.defineComponent("estdonut","estimator",@est_donutLSQ1_2D,parameters={"patternpos",L,360},dim=1:2);
 % sim.defineComponent(key,type (estimator),function handle of estimator function,parameters);
+% parameters: use strings to replace with actual values "patternpos":
+% coordinates of probing positions. "L": orbit diameter."probecenter": if
+% center is probed.
 
 %sequence: 
 seq={"donut","estdonut"};
