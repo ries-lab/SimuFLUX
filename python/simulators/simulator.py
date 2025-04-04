@@ -463,7 +463,7 @@ class Simulator:
                 pos_pattern = pos_pattern[orbit_order]
             return pos_pattern
         elif pattern_type == "zscan":
-            pos_pattern = np.array([[-1, 0, 0], [1, 0, 0]], dtype=float)
+            pos_pattern = np.array([[0, 0, -1], [0, 0, -1]], dtype=float)
             if use_center:
                 pos_pattern = np.vstack([pos_pattern, [0, 0, 0]], dtype=float)
             return pos_pattern
