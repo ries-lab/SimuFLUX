@@ -103,6 +103,7 @@ class FOVScan:
     pos: np.typing.ArrayLike = None
     stdrel: np.typing.ArrayLike = None
     biasrel: np.typing.ArrayLike = None
+    phot: np.typing.ArrayLike = None
 
 def initlocs(maxlocalizations, fields):
     locs = {f: np.zeros((maxlocalizations,1)) for f in fields}
@@ -237,7 +238,6 @@ class Simulator:
         posEOD = self.posEOD
         flpos = np.zeros((fluorophores.numberOfFluorophores, 3))
         flintall = np.zeros((fluorophores.numberOfFluorophores, 1))
-        flproperties = fluorophores.getproperties()  # for performance
         bgphot = 0 
         time = self.time
         background = self.background
@@ -245,7 +245,7 @@ class Simulator:
         for _ in range(repetitions):
             for k in range(numpoints):
                 timep += time   # for calculating average time point
-                flposh, isactive = fluorophores.position(self.time, flproperties)
+                flposh, isactive = fluorophores.position(time)
                 flposrel = flposh - posgalvo
                 # print(f"simulator any active: {np.any(isactive)}")
                 # if not np.any(isactive):
@@ -259,8 +259,7 @@ class Simulator:
                 flint = fluorophores.intensity(intensityh,
                                                pattern.pointdwelltime[:,k],
                                                time,
-                                               pinholehfac,
-                                               flproperties)
+                                               pinholehfac)
                 intensity = np.sum(flint, axis=0)
                 flpos += flposh
                 flintall[isactive,:] += flint
@@ -360,7 +359,7 @@ class Simulator:
                 elif type_ == "estimator":
                     # replace placeholder names by values
                     component_par=replace_in_list(component.parameters.copy(), 
-                                                  'patternpos', scanout.par.patternpos, 
+                                                  'patternpos', scanout.par.pattern.pos, 
                                                   'L', scanout.par.L, 
                                                   'probecenter', scanout.par.probecenter, 
                                                   'bg_photons_gt', scanout.bg_photons_gt,
@@ -464,7 +463,7 @@ class Simulator:
                 pos_pattern = pos_pattern[orbit_order]
             return pos_pattern
         elif pattern_type == "zscan":
-            pos_pattern = np.array([[-1, 0, 0], [1, 0, 0]], dtype=float)
+            pos_pattern = np.array([[0, 0, -1], [0, 0, -1]], dtype=float)
             if use_center:
                 pos_pattern = np.vstack([pos_pattern, [0, 0, 0]], dtype=float)
             return pos_pattern
@@ -725,6 +724,7 @@ class Simulator:
         so.sCRB = np.zeros((len(xcoords),3))
         so.bias = np.zeros((len(xcoords),3))
         so.pos = np.zeros((len(xcoords),3))
+        so.phot = np.zeros((len(xcoords),))
 
         if isinstance(self.fluorophores, FlCollection):
             # print("collection")
@@ -747,6 +747,7 @@ class Simulator:
             # print(f"scan_fov rmse after shift: {so.rmse[:,dimplot]}")
             so.sCRB[k,:] = stats.sCRB
             so.pos[k,:] = stats.pos
+            so.phot[k] = stats.phot
         so.stdrel = so.std/so.sCRB
         so.biasrel = so.bias/so.pos
 
@@ -783,6 +784,38 @@ class Simulator:
             # Optional grid for "bias" conditions
             if any("bias" in ax for ax in ax1):
                 plt.grid(True)
+        
+        return so
 
     def loadsequence(self, *args):
         raise UserWarning("No sequence loader implemented for Simulator class")
+    
+    def export(self, out, fname=None):
+        if fname is None:
+            import tkinter as tk
+            from tkinter import filedialog
+
+            root = tk.Tk()
+            root.withdraw()
+
+            fname = filedialog.askopenfilename()
+
+            if fname == "":
+                return 
+        
+        # Convert out.loc to structured array numpy
+        # https://www.geeksforgeeks.org/numpy-structured-array/
+        # ltab=struct2table(out.loc);
+        dt = np.dtype([(k, v.dtype) for k, v in out.loc.__dict__.items()])
+        ltab = np.empty(out.loc.__dict__['xnm'].shape[0], dtype=dt)
+        for k, v in out.loc.__dict__.items():
+            # print(k, v.shape)
+            try:
+                ltab[k] = v.squeeze()
+            except ValueError:
+                # efc is messed up
+                # print(f'messed up on {k}')
+                pass
+
+        # writetable(ltab,fname); # CSV
+        np.savetxt(fname, ltab, delimiter=",", header=",".join(out.loc.__dict__.keys()))

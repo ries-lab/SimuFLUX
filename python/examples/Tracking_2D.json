@@ -3,7 +3,7 @@
         {
             "Mode": {
                 "id": "prbt",
-                "dim": 1,
+                "dim": 2,
                 "epsf": "focFldVortex.pickled",
                 "emod": "axial",
                 "dpsf": "focFldPlane.pickled",
@@ -75,7 +75,7 @@
         {
             "Mode": {
                 "id": "mflx",
-                "dim": 1,
+                "dim": 2,
                 "epsf": "focFldVortex.pickled",
                 "emod": "both",
                 "dpsf": "focFldPlane.pickled",
@@ -147,7 +147,7 @@
         {
             "Mode": {
                 "id": "mflx",
-                "dim": 1,
+                "dim": 2,
                 "epsf": "focFldVortex.pickled",
                 "emod": "both",
                 "dpsf": "focFldPlane.pickled",
@@ -219,7 +219,7 @@
         {
             "Mode": {
                 "id": "mflx",
-                "dim": 1,
+                "dim": 2,
                 "epsf": "focFldVortex.pickled",
                 "emod": "both",
                 "dpsf": "focFldPlane.pickled",

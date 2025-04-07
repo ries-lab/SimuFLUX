@@ -7,7 +7,7 @@ class FlBleach(Fluorophore):
         super().__init__(pos, brightness)
         self._photonbudget = np.inf
 
-    def intensity(self, I0, dwelltime, time, phfac, props=None):
+    def intensity(self, I0, dwelltime, time, phfac):
         remainingphotons = self.remainingphotons
         if remainingphotons <= 0:
             return 0

@@ -17,8 +17,8 @@ from ..tools import replace_in_list
 from ..estimators import backgroundsubtractor
 
 # To ensure they are found in globals()
-from ..estimators import est_gauss2d
-from ..estimators import est_donut2d
+from ..estimators import est_GaussLSQ1_2D
+from ..estimators import est_donutLSQ1_2D
 
 @dataclass
 class Estimator:
@@ -82,6 +82,10 @@ class SimSequencefile(Simulator):
 
             if itr['Mode']['pattern'] == "hexagon":
                 patternpoints = 6
+            elif itr['Mode']['pattern'] == "square":
+                patternpoints = 4
+            elif itr['Mode']['pattern'] == "triangle":
+                patternpoints = 3
             else:
                 raise UserWarning(f"Pattern {itr['Mode']['id']} not implemented")
             
@@ -202,7 +206,7 @@ class SimSequencefile(Simulator):
                     estpar = estimator['par'].copy()
                     lenbe = (len(self.background_estimated)-1) if (isinstance(self.background_estimated, list) or isinstance(self.background_estimated, np.ndarray)) else 1
                     bg_est = self.background_estimated[np.minimum(itr,lenbe)] if lenbe > 1 else self.background_estimated
-                    estpar = replace_in_list(estpar, 
+                    estpar = replace_in_list(estpar,
                                             'patternpos', patternpos,
                                             'L', L,
                                             'probecenter', probecenter,
@@ -215,13 +219,13 @@ class SimSequencefile(Simulator):
                     xesttot = xest + self.posgalvo + self.posEOD
                     
                     # recenter
-                    if itr==maxiter:
+                    if (itr==maxiter) and not np.any(np.isnan(xesttot)):
                         dampf = 2**(-self.sequence['damping'])
                         xold = self.posgalvo.copy()
                         self.posgalvo = (1-dampf)*self.posgalvo+dampf*(xesttot)
                         self.posEOD = self.posEOD + xold - self.posgalvo + xest
                         self.time += deadtimes.positionupdate
-                    else:
+                    elif not np.any(np.isnan(xesttot)):
                         self.posEOD = self.posEOD + xest
                 else:
                     xesttot = np.array([0,0,0])
@@ -230,11 +234,11 @@ class SimSequencefile(Simulator):
                     loc.eco[loccounter,0] = np.sum(scanout.phot[:-1])
                     loc.ecc[loccounter,0] = np.sum(scanout.phot[-1])
                     
-                    loc.efo=loc.eco/(np.sum(scanout.par.pattern.pointdwelltime[:-1]))
-                    loc.efc=loc.ecc/(scanout.par.pattern.pointdwelltime[-1])
+                    loc.efo=loc.eco/(np.sum(scanout.par.pattern.pointdwelltime[:-1]))/scanout.repetitions
+                    loc.efc=loc.ecc/(scanout.par.pattern.pointdwelltime[-1])/scanout.repetitions
                 else:
                     loc.eco[loccounter,0] = np.sum(scanout.phot)
-                    loc.efo = loc.eco/(np.sum(scanout.par.pattern.pointdwelltime))
+                    loc.efo = loc.eco/(np.sum(scanout.par.pattern.pointdwelltime))/scanout.repetitions
                     loc.ecc[loccounter,0] = -1
                     loc.efc[loccounter,0] = -1
                     cfr = -1
