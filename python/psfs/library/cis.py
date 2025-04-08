@@ -13,8 +13,8 @@
 #Alternative:
 # [c,s] To get the sine and cosine separately.
 
-#Copyright � Marcel Leutenegger, 2003-2007, �cole Polytechnique F�d�rale de Lausanne (EPFL),
-#Laboratoire d'Optique Biom�dicale (LOB), BM - Station 17, 1015 Lausanne, Switzerland.
+#Copyright (c) Marcel Leutenegger, 2003-2007, Ecole Polytechnique Federale de Lausanne (EPFL),
+#Laboratoire d'Optique Biomedicale (LOB), BM - Station 17, 1015 Lausanne, Switzerland.
 #
 #    This library is free software; you can redistribute it and/or modify it under
 #    the terms of the GNU Lesser General Public License as published by the Free
