@@ -1,7 +1,7 @@
 %% moving, bleaching fluorophore and tracking with Abberior sequence
 addpath(genpath(fileparts(fileparts(mfilename('fullpath'))))); %add all folders to serach path
 
-savepath='/Users/ries/Library/CloudStorage/OneDrive-Personal/Projects/SimulFLUX/Figures/exports for figures/diffusion';
+% savepath='/diffusion'; %if automated saving of results is needed
 %make abberior simulator
 if ~exist('sim','var') || ~isa(sim,"SimSequencefile")
     sim=SimSequencefile;
@@ -156,17 +156,14 @@ hold off
 [Dfl,offfl]=msdfit(msdfl,dtmsd,'r');
 [Dmf,offmf,msdt]=msdfit(msdmf,dtmsd,'b');
 xlim([0,msdt(end)/1e3])
-
-
 legend("fluorophore all","D="+string(Dflr)+"µm2/s","fluorophore tracked","D="+string(Dfl)+"µm2/s","Minflux","D="+string(Dmf)+"µm2/s")
 
-savefig(gcf,[savepath filesep 'tracks_abort_msd.fig'])
+% savefig(gcf,[savepath filesep 'tracks_abort_msd.fig'])
 
 %% investigate maximum diffusion coefficient for various conditions
 sim.sequence=defaultsequence; %reset
 sim.makepatterns;
 Dtest=[0 0.1 0.2 0.25:0.25:7];
-Dtest=0:1;
 
 laserpowers=[0.05 0.1 0.2:0.2:0.8 1:0.5:5];
 clear Dmaxl efoD0l rmseDmaxl
@@ -205,7 +202,7 @@ plot(efoD0l,rmseDmaxl)
 xlabel('efo (kHz)')
 ylabel('rmse at Dmax (nm)')
 title('laserpower')
-% text(0,0.35,num2str(efoDmaxl','%2.0f'))
+
 
 %% redo with no dead times and faster pattern dwell times
 sim.sequence=defaultsequence; %reset
@@ -213,7 +210,6 @@ sim.deadtimes.point=0; sim.deadtimes.estimator=0;
 sim.sequence.Itr(4).patDwellTime=2e-5; %20 us
 sim.makepatterns()
 Dtestf=[0 0.1 0.2 0.3 0.5:0.5:20];
-Dtestf=0:1
 clear Dmaxlf efoD0lf rmseDmaxlf
 f=figure(302); clf
 for k=1:length(laserpowers)
@@ -224,9 +220,9 @@ sim.deadtimes=defaultdeadtimes; %back to default;
 
 f.Position=posfig;
 title('laserpower fast')
-% legend(string(laserpowers'))
-savefig(f,[savepath filesep 'laserpowersfast.fig'])
-saveas(f,[savepath filesep 'laserpowersfast.eps'],'epsc')
+
+% savefig(f,[savepath filesep 'laserpowersfast.fig'])
+% saveas(f,[savepath filesep 'laserpowersfast.eps'],'epsc')
 
 figure(258)
 subplot(3,4,1)
@@ -243,13 +239,9 @@ subplot(3,4,9)
 hold on
 plot(laserpowers,efoD0lf)
 
-
 subplot(3,4,10)
 hold on
 plot(efoD0lf,rmseDmaxlf)
-
-
-
 
 %% L scan pattern size
 sim.sequence=defaultsequence; %reset
@@ -262,15 +254,14 @@ for k=1:length(Ls)
     figure(f);
     sim.sequence.Itr(4).patGeoFactor=Ls(k)/360;
     sim.makepatterns;
-    
     [DmaxL(k),efoD0L(k),rmseDmaxL(k)]=maxDiffusion(sim, laserpowerLnorm(k),repetitions, Dtest,string(Ls(k)))
 end
 title('L')
 subplot(1,3,2)
 text(0,0.35,num2str(laserpowerLnorm','%2.2f'))
 f.Position=posfig;
-savefig(f,[savepath filesep 'Ls.fig'])
-saveas(f,[savepath filesep 'Ls.eps'],'epsc')
+% savefig(f,[savepath filesep 'Ls.fig'])
+% saveas(f,[savepath filesep 'Ls.eps'],'epsc')
 
 figure(258)
 subplot(3,4,2)
@@ -314,8 +305,6 @@ xlabel('photon limit')
 ylabel('rmse at Dmax (nm)')
 title('photon limit')
 
-
-
 %% dwell time
 sim.sequence=defaultsequence; %reset
 dwelltimes=[10 20 50 100 200 500 1000]; %us
@@ -329,8 +318,8 @@ for k=1:length(dwelltimes)
 end
 title('pattern dwell time')
 f.Position=posfig;
-savefig(f,[savepath filesep 'dwelltimes.fig'])
-saveas(f,[savepath filesep 'dwelltimes.eps'],'epsc')
+% savefig(f,[savepath filesep 'dwelltimes.fig'])
+% saveas(f,[savepath filesep 'dwelltimes.eps'],'epsc')
 
 figure(258)
 subplot(3,4,4)
@@ -359,8 +348,8 @@ end
 sim.deadtimes=defaultdeadtimes; %back to default;
 title('pattern dwell time fast')
 f.Position=posfig;
-savefig(f,[savepath filesep 'dwelltimesfast.fig'])
-saveas(f,[savepath filesep 'dwelltimesfast.eps'],'epsc')
+% savefig(f,[savepath filesep 'dwelltimesfast.fig'])
+% saveas(f,[savepath filesep 'dwelltimesfast.eps'],'epsc')
 
 figure(258)
 subplot(3,4,4)
@@ -379,7 +368,6 @@ ylabel('rmse at Dmax (nm)')
 title('pattern dwell time')
 
 
-
 %% damping factor
 sim.sequence=defaultsequence; %reset
 dampingfs=[0 0.2 0.5 1 2 5 10];
@@ -393,8 +381,8 @@ for k=1:length(dampingfs)
 end
 title('damping factor')
 f.Position=posfig;
-savefig(f,[savepath filesep 'dampingfactor.fig'])
-saveas(f,[savepath filesep 'dampingfactor.eps'],'epsc')
+% savefig(f,[savepath filesep 'dampingfactor.fig'])
+% saveas(f,[savepath filesep 'dampingfactor.eps'],'epsc')
 
 figure(258)
 subplot(3,4,11)
@@ -411,7 +399,7 @@ xlabel('pattern dwell time µs')
 ylabel('rmse at Dmax (nm)')
 title('damping factor')
 
-savefig(gcf,[savepath filesep 'D_scan_vars.fig'])
+% savefig(gcf,[savepath filesep 'D_scan_vars.fig'])
 %% compare different scan patterns
 sim.sequence=defaultsequence; %reset
 sim.makepatterns();
@@ -444,7 +432,6 @@ sim.makepatterns;
 [Dmaxp6,efop6]=maxDiffusion(sim, laserpower,repetitions,[],"standard")
 
 %optimized
-
 Lm=150;Ldefault=102;
 sim.sequence=defaultsequence;
 sim.sequence.Itr(4).patDwellTime=5e-5; %50 us
@@ -459,19 +446,6 @@ title("D_s="+Dmaxp6+", D_o="+Dmaxopt)
 f.Position=posfig;
 savefig(f,[savepath filesep 'optim2.fig'])
 saveas(f,[savepath filesep 'optim2.eps'],'epsc')
-%no dead times
-% also decrease pattern time
-
-%%
-% 
-% sim.sequence=defaultsequence;
-% sim.deadtimes.point=0; sim.deadtimes.estimator=0;
-% sim.sequence.Itr(4).patDwellTime=2e-5; %20 us
-% sim.sequence.Itr(4).Mode.pattern='hexagon';
-% sim.deadtimes.point=0; sim.deadtimes.estimator=0;
-% sim.makepatterns;
-% [Dmaxnod,efonod]=maxDiffusion(sim, laserpower,repetitions,[],"fast hex")
-% sim.deadtimes=defaultdeadtimes; %back to default;
 
 %%
 %better estimator
@@ -588,14 +562,11 @@ ylabel("efo kHz")
 legend
 
 subplot(1,3,3)
-
 plot(Ds,mean(rmsem(:,1:2),2,'omitnan'),'Color',hp.Color,DisplayName=dname)
 hold on
 ylabel("RMSE of converged (nm)")
 xlabel('Diffusion coefficient um^2/s')
 legend
-
-% Dmax, efoD0,rmseDmax
 end
 
 
@@ -606,7 +577,6 @@ intm="nearest";
 intm="linear";
 xint=interp1(time,x,timeint,intm);
 yint=interp1(time,y,timeint,intm);
-% maxd=10;
 msd=zeros(maxd,1);
 
 for di=1:maxd
@@ -621,7 +591,6 @@ fp=fit(msdt(2:end),msd(1:end),"poly1");
 hold on;plot(msdt/1e3,fp(msdt)/1e6,linec+"--")
 Dfit=fp.p1/1000/4; %um^2/s
 off=sqrt(fp.p2);
-% title("Dfit: "+string(Dfit)+" µm2/s, offset: " + string(fp.p2)+ " nm, " + "sqrt(off): " +string(off))
 xlabel('time(s)')
 ylabel('MSD (µm^2)')
 end
