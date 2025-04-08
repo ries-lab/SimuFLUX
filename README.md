@@ -38,3 +38,23 @@ jupyter lab
 ```
 
 In Jupyter Lab, open and run the notebooks in the `python/examples` folder.
+
+## Google Colab
+
+The Python notebook can be run from Google Colab without installing any software.
+
+| Notebook Name | Link | Description |
+|---------------|------|-------------|
+| example1_simple_MINFLUX.ipynb | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ries-lab/SimuFLUX/blob/main/python/examples/example1_simple_MINFLUX.ipynb) | Scan a static fluorophore with a donut PSF. |
+| example2_vectorial_PSF.ipynb    | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ries-lab/SimuFLUX/blob/main/python/examples/example2_vectorial_PSF.ipynb) | Use a vectorial PSF to examine the influence of misalignment, background, and fluorescent beads on measurements. Try PhaseFLUX. |
+| example2b_compare_PSFs.ipynb | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ries-lab/SimuFLUX/blob/main/python/examples/example2b_compare_PSFs.ipynb) | Compare different excitation PSFs. Examine the effects of multiple fluorophores. |
+| example2c_phaseplate_misalignment.ipynb  | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ries-lab/SimuFLUX/blob/main/python/examples/example2c_phaseplate_misalignment.ipynb) | Look at phase plate misalignment. |
+| example2d_pinhole_misalignment.ipynb  | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ries-lab/SimuFLUX/blob/main/python/examples/example2d_pinhole_misalignment.ipynb) | Look at pinhole misalignment. |
+| example3_Abberior_sequence.ipynb  | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ries-lab/SimuFLUX/blob/main/python/examples/example3_Abberior_sequence.ipynb) | Use an Abberior sequence file to run an experiment. |
+| example4_blinking_fluorophore.ipynb  | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ries-lab/SimuFLUX/blob/main/python/examples/example4_blinking_fluorophore.ipynb) | Simulate measurement with a blinking fluorophore. Investigate averaging of flickering signal. |
+| example5_moving_fluorophore.ipynb | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ries-lab/SimuFLUX/blob/main/python/examples/example5_moving_fluorophore.ipynb) | Simulate measurement with a moving fluorophore. Investigate diffusion and system vibrations. |
+| example5b_max_diffusion.ipynb | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ries-lab/SimuFLUX/blob/main/python/examples/example5b_max_diffusion.ipynb) | Simulate diffusion and investigate system properties and root mean square error as a function of diffusion coefficient. |
+| example6_Fluorophore_Collections.ipynb | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ries-lab/SimuFLUX/blob/main/python/examples/example6_Fluorophore_Collections.ipynb) | Simulate MINFLUX with multiple fluorophores. Image a simulated nuclear pore complex. |
+| example7_estimators.ipynb | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ries-lab/SimuFLUX/blob/main/python/examples/example7_estimators.ipynb) | Investigate the performance of different MINFLUX estimators. |
+| example8_background.ipynb | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ries-lab/SimuFLUX/blob/main/python/examples/example8_background.ipynb) | Investigate the influence of background from constant offsets, autofluorescence, and nearby fluorophores. |
+| example10_imaging.ipynb | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ries-lab/SimuFLUX/blob/main/python/examples/example10_imaging.ipynb) | Simulate MINFLUX imaging with DNA-PAINT and dSTORM. Tune fluorophore densities to optimal levels. |
