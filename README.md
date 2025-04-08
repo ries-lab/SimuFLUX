@@ -1,4 +1,4 @@
-# SimulFlux
+# SimuFlux
 
 A comprehensive simulator for MINFLUX experiments.
 
@@ -24,8 +24,8 @@ Navigate to the folder containing this repository. Then run, in this folder,
 
 ```
 cd python
-conda create -n simulflux python=3.11
-conda activate simulflux
+conda create -n simuflux python=3.11
+conda activate simuflux
 pip install -r requirements.txt
 ```
 
