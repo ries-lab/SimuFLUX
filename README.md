@@ -44,7 +44,17 @@ In Jupyter Lab, open and run the notebooks in the `python/examples` folder.
 
 ## Google Colab
 
-The Python notebook can be run from Google Colab without installing any software.
+The Python notebooks can be run from Google Colab without installing any software.
+
+Please note that you may occasionally experience an error in one of the notebook cells. 
+If this happens, the notebook will stop running. In the event of an error, please navigate 
+to Runtime > Restart session and start the notebook run from the beginning, following 
+instructions. If the same error occurs twice, please contact the authors via the "Issues" 
+tab at https://github.com/ries-lab/SimuFLUX/.
+
+Please note that if you see a "Runtime Warning" message, this is not an error. The notebook 
+will not stop running and this is not a problem.
+
 
 | Notebook Name | Link | Description |
 |---------------|------|-------------|
