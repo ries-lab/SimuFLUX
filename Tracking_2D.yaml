@@ -5,16 +5,16 @@ Itr:  # Itr is a list of MINFLUX iterations
     dpsf: focFldPlane.pickled
     emod: axial
     epsf: focFldVortex.pickled
-    id: prbt  # Determines if the system is scanning with the galvos (Prbt) or EODs/DM (Mflx). 
+    id: prbt  # Scanning using galvos (prbt) or EODs (mflx).
     modulated: phl
-    pattern: hexagon  # Targeted coordinate pattern (TCP) used in the iteration. 
-    phDiaAU: 1.5  # pinhole diameter in Airy units
-    strategy: BL  # Strategy used during estimator coefficent optimization. 
+    pattern: hexagon  # Scan pattern used in this iteration
+    phDiaAU: 1.5  # Pinhole diameter in Airy units
+    strategy: BL 
   _lemd: 5.7551840880162596e-08  # median residual error after estimator coefficient optimization
   _lemn: 6.973999307003672e-08  # mean residual error after estimator coefficient optimization 
   bgcThreshold: 15000.0  # background threshold (Hz)
-  ccrLimit: -1.0  # if ccrLimit is set to -1, no cfr check is done (PSF is not moved to center point in TCP)
-  estCoeff:  # 3D estimator coefficients (estCoeffL and estCoeffA refer to lateral and axial, resepctively). 
+  ccrLimit: -1.0  # if ccrLimit is set to -1, no cfr check is done (we do not measure at the center of the pattern)
+  estCoeff:  # 3D estimator coefficients (estCoeffL and estCoeffA refer to lateral and axial, resepctively)
   - - - 2.9981537562242293
       - 0.0
       - 0.0
@@ -43,12 +43,12 @@ Itr:  # Itr is a list of MINFLUX iterations
   - 0.475
   - 0.475
   - 0.475
-  patDwellTime: 0.0001  # Time in seconds that the system measures photons from the fluorophore. 
-  patGeoFactor: 0.79  # Determines diameter of TCP pattern (L) as calculated by: patGeoFactor * 360 * (wavelength/642). Do not edit this - estimator coefficients are calculated for specific L sizes. 
-  patRepeat: 1  # Number of times the TCP is completed within a single dwell time. 
-  phtLimit: 40  # Minimum photon counts required to pass an iteration. 
-  pwrFactor: 1.0  # Excitation power scaling. The power set in Imspector at the start of the measurementr is multiplied by "pwrFactor" in each iteration. 
-  wavelength: 6.8e-07  # This value should not be changed. It should always refer to the 642 laser, as this is used as a reference in the system. 
+  patDwellTime: 0.0001  # Dwell time to measure photons
+  patGeoFactor: 0.79  # Determines L as patGeoFactor * 360 * (wavelength/642). Do not edit.
+  patRepeat: 1  # Number of times the pattern is scanned per patDwellTime
+  phtLimit: 40  # Minimum photon count to be considered valid
+  pwrFactor: 1.0  # Excitation power
+  wavelength: 6.8e-07  # Wavelength of excitation. Do not change
 - Mode:  # second iteration
     dim: 2
     dmod: axial
@@ -113,7 +113,7 @@ Itr:  # Itr is a list of MINFLUX iterations
   _lemd: 2.0758580201875813e-08
   _lemn: 2.4943683707002774e-08
   bgcThreshold: 30000.0
-  ccrLimit: 0.8  # cfr check. The cfr check is done (PSF moved to center point in TCP), and the localizaton is discarded as invalid if the calculated cfr is greater than the set threshold. 
+  ccrLimit: 0.8  # Localization is discarded if CFR is greater than this value
   estCoeff:
   - - - -1.139010821696214
       - 0.0
@@ -199,9 +199,9 @@ Itr:  # Itr is a list of MINFLUX iterations
   phtLimit: 20
   pwrFactor: 3.0
   wavelength: 6.42e-07
-bgcSense: false  # If 'true', the microscope estimates the background of the sample on the fly during the measurement. This value is used in addition to the background set in each iteration. 
-ctrDwellFactor: 0.16  # This factor is multiplied with the dwell time of an iteration where a cfr check is performed, determining the dwell time at the center of the TCP. 
-damping: 2  # This factor refers to damping of the galvanometric scanner mirror, with the scanner being moved 1/2^d of distance. This is largely relevant during fast tracking measurements to reduce introduction of shaking after rapid galvo movement. 
+bgcSense: false  # Perform background estimation 
+ctrDwellFactor: 0.16  # Determines dwell time at central position of the pattern. Multiplied by dwell time of the iteration
+damping: 2  # Damping of the galvanometric scanner mirror
 defaultField:
   DR: 1.0
   algo: hexgrid
@@ -211,11 +211,11 @@ field:  # Parameters defining the search grid
   algo: hexgrid  # shape of search pattern
   fldGeoFactor: 0.5  # determines grid spacing
   stride: 1
-headstart: -1  # Iteration to return to after a localization is made on the final iteration. If set to a positive value, the system will return to that specific iteration. If set to a negative value, the system will move back the specified number of iterations. 
+headstart: -1  # Iteration to return to after a localization is made on the final iteration
 id: Tracking_2D  # Sequence identifier
-liveview:  # Renderings to be opened in Imspector after starting MINFLUX acquisition with this sequence. 
+liveview:  # Rendering, not used
   show:
   - loc
-locLimit: -1  # Number of localizations to be made before terminating the localization process; -1 = no limit. 
+locLimit: -1  # Max localizations, -1 = no limit
 maxOffTime: unspecified
-stickiness: 4  # Number of attempts to localize an emitter after failing a thresholding step before terminating the localizaton. 
+stickiness: 4  # Number of attempts to localize an emitter after failing a thresholding step (photon count or CFR)
