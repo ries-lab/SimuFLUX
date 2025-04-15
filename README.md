@@ -7,9 +7,13 @@ A comprehensive simulator for MINFLUX experiments.
 
 ## MATLAB
 
+### Requirements
+
+* Windows 10+, Mac 13.7+ or Linux (Ubuntu 20.04+). 8 GB RAM.
+* [MATLAB](https://www.mathworks.com/products/matlab.html) 2023b+ with the curve fitting toolbox.
+
 ### Setup
 
-Install MATLAB 2023b or newer with the curve fitting toolbox.
 Clone this repository. Open the repository in MATLAB. 
 
 ### Usage
@@ -23,11 +27,15 @@ Installation time for SimuFLUX is < 5 min.
 
 ## Python
 
+
+### Requirements
+
+* Windows 10+, Mac 13.7+ or Linux (Ubuntu 20.04+). 8 GB RAM.
+* [Miniforge](https://github.com/conda-forge/miniforge?tab=readme-ov-file) or an equivalent `conda` environment manager.
+
 ### Setup
 
-Clone this repository. Make sure `conda` is installed, ideally through 
-[Miniforge](https://github.com/conda-forge/miniforge?tab=readme-ov-file).
-Navigate to the folder containing this repository. Then run, in this folder,
+Clone this repository. Navigate to the folder containing this repository. Then run, in this folder,
 
 ```
 cd python
