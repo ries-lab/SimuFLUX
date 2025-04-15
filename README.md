@@ -7,15 +7,19 @@ A comprehensive simulator for MINFLUX experiments.
 
 ## MATLAB
 
-Clone this repository. Open the repository in MATLAB. 
-
 ### Setup
 
 Install MATLAB 2023b or newer with the curve fitting toolbox.
+Clone this repository. Open the repository in MATLAB. 
 
 ### Usage
 
 Open MATLAB. In MATLAB, navigate to the `MATLAB/examples` folder.
+
+### Technical Details
+
+Tested on Windows 11 and Mac OS 14.5. Installation time for MATLAB is ~1 hour.
+Installation time for SimuFLUX is < 5 min.
 
 ## Python
 
@@ -41,6 +45,11 @@ jupyter lab
 ```
 
 In Jupyter Lab, open and run the notebooks in the `python/examples` folder.
+
+### Technical Details
+
+Tested on Windows 11 and Mac OS 14.5. Installation time for Miniforge is ~20 minutes.
+Installation time for SimuFLUX is < 5 min.
 
 ## Google Colab
 
