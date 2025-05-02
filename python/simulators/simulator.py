@@ -220,7 +220,10 @@ class Simulator:
             pattern.pointdwelltime = np.zeros((1,pattern.pos.shape[0])) + pdt[0]
 
         if len(pdt) == 2:
-            pattern.pointdwelltime[:,-1] = pdt[1]
+            if len(pattern.pointdwelltime.shape) > 1:
+                pattern.pointdwelltime[:,-1] = pdt[1]
+            else:
+                pattern.pointdwelltime[-1] = pdt[1]
 
         self.patterns[key] = pattern
 
@@ -421,6 +424,12 @@ class Simulator:
             self.fluorophores.reset(self.time)
             out2 = self.runSequenceintern(seq, kwargs.get('maxlocs',1000))
             out = self.appendout(out, out2)
+        if out is None:
+            print("None after all that?")
+            print("repetitions", kwargs.get('repetitions', 1))
+            print("seq", seq)
+            print("maxlocs", kwargs.get('maxlocs',1000))
+            print("out", out, "out2", out2)
         out.sequence = seq
         out.duration = self.time-timestart
 
@@ -480,7 +489,7 @@ class Simulator:
         brightness = self.fluorophores.brightness
         try:
             bg = self.background / brightness[0]  # Hack, to not have to calculate with all fluorophores
-        except TypeError:
+        except (TypeError, IndexError):
             bg = self.background / brightness
         pattern = self.patterns[patternnames]
 
@@ -525,7 +534,10 @@ class Simulator:
                     # IFisher[coord, coord2] += dpdc[dim[coord] - 1] * dpdc[dim[coord2] - 1] / (pi(np.zeros(3)) + 1e-5)
                     IFisher[coord, coord2] += dpdc[dim[coord]] * dpdc[dim[coord2]] / (pi(np.zeros(3)) + 1e-4)
 
-        crlb = np.linalg.inv(IFisher)
+        try:
+            crlb = np.linalg.inv(IFisher)
+        except np.linalg.LinAlgError:
+            crlb = np.ones_like(IFisher)*np.nan
         locprech = np.sqrt(np.diag(crlb)).T
         locprec = np.zeros(3)
         locprec[np.array(dim)] = locprech

@@ -19,12 +19,7 @@ from ..estimators import backgroundsubtractor
 # To ensure they are found in globals()
 from ..estimators import est_GaussLSQ1_2D
 from ..estimators import est_donutLSQ1_2D
-
-@dataclass
-class Estimator:
-    function: str = None
-    par: dict =  None
-    dim: tuple = None
+from ..estimators import est_qLSQiter2D
 
 class SimSequencefile(Simulator):
     def __init__(self, fluorophores = None, background = 0, background_estimated = 0, loadfile = None):
