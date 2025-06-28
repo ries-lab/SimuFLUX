@@ -161,8 +161,9 @@ classdef SimSequencefile<Simulator
                     out.loc.xgalvo(loccounter,1)=obj.posgalvo(1);out.loc.ygalvo(loccounter,1)=obj.posgalvo(2);out.loc.zgalvo(loccounter,1)=obj.posgalvo(3);
                     out.loc.xeod(loccounter,1)=obj.posEOD(1);out.loc.yeod(loccounter,1)=obj.posEOD(2);out.loc.zeod(loccounter,1)=obj.posEOD(3);
                     
-    
+                    
                     if ~abortphot && ~abortccr %recenter only for valid
+                        vldphotccr=true;
                         %estimate position
                         patternpos=obj.patterns(itrname).pos;
                         L=itrs(itr).patGeoFactor*360; %nm
@@ -189,7 +190,8 @@ classdef SimSequencefile<Simulator
                             obj.posEOD=obj.posEOD+xest;
                         end
                     else
-                        xesttot=[0,0,0];
+                        xesttot=[0,0,0]+NaN;
+                        vldphotccr=false;
                     end
     
                     if itrs(itr).ccrLimit>-1 %probe center
@@ -218,7 +220,7 @@ classdef SimSequencefile<Simulator
                     out.loc.loccounter(loccounter,1)=loccounter;
                     out.loc.cfr(loccounter,1)=cfr;
                     out.loc.phot(loccounter,1)=photsum;
-                    out.loc.vld(loccounter,1)=stickinesscounter<stickiness;
+                    out.loc.vld(loccounter,1)=stickinesscounter<stickiness & vldphotccr;
                     out.loc.abortcondition(loccounter,1)=1*(abortphot) + 2*(abortccr);
                     out.loc.patternrepeat(loccounter,1)=scanout.counter;
                     out.loc.measuretime(loccounter,1)=scanout.time.patterntotaltime;           
