@@ -790,7 +790,10 @@ class Simulator:
             plt.title(title)
 
             # Construct legend
-            ltxt += [f"{ax}: {tag}" for ax in ax1]
+            if len(ax1) < 2:
+                ltxt += [f"{tag}"]
+            else:
+                ltxt += [f"{ax}: {tag}" for ax in ax1]
             plt.legend(ltxt)
 
             # Optional grid for "bias" conditions

@@ -1,6 +1,6 @@
 # SimuFlux
 
-A comprehensive simulator for MINFLUX experiments.
+A comprehensive simulator for MINFLUX experiments. To get started without installing anything, open one of the [Google Colab notebooks](./README.md#google-colab).
 
 **Reference:**
 [Marin, Z, and J Ries. Evaluating MINFLUX Experimental Performance *in silico*. bioRxiv, 2025.04.08.647786 (2025).](https://doi.org/10.1101/2025.04.08.647786)
