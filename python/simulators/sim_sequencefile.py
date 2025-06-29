@@ -222,8 +222,10 @@ class SimSequencefile(Simulator):
                         self.time += deadtimes.positionupdate
                     elif not np.any(np.isnan(xesttot)):
                         self.posEOD = self.posEOD + xest
+                    vldphotccr = True
                 else:
-                    xesttot = np.array([0,0,0])
+                    xesttot = np.array([np.nan,np.nan,np.nan])
+                    vldphotccr = False
                 
                 if itrs[itr]['ccrLimit'] > -1:  # probe center
                     loc.eco[loccounter,0] = np.sum(scanout.phot[:-1])
@@ -250,7 +252,7 @@ class SimSequencefile(Simulator):
                 loc.loccounter[loccounter,0] = loccounter
                 loc.cfr[loccounter,0] = cfr
                 loc.phot[loccounter,0] = photsum
-                loc.vld[loccounter,0] = stickinesscounter<stickiness
+                loc.vld[loccounter,0] = (stickinesscounter<stickiness) & vldphotccr
                 loc.abortcondition[loccounter,0] = 1*(abortphot) + 2*(abortccr)
                 loc.patternrepeat[loccounter,0] = scanout.counter
                 loc.measuretime[loccounter,0] = scanout.time.patterntotaltime
