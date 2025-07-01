@@ -555,7 +555,7 @@ classdef Simulator<handle
                     ' sCRB*sqrt(phot): ', num2str(st.sCRB1,ff1)])
             end
         end
-        function so=scan_fov(obj,seq,xcoords,args)
+        function [so,statsall]=scan_fov(obj,seq,xcoords,args)
             % this function scans the coordinate of a fluorophore and runs
             % a sequence for each position
             arguments
@@ -585,7 +585,7 @@ classdef Simulator<handle
             end
             coords=["x","y","z"];
             posold=fl.pos(args.dimscan);
-            for k=1:length(xcoords)
+            for k=length(xcoords):-1:1
                 fl.pos(args.dimscan)=xcoords(k);
                 out=obj.runSequence(seq,maxlocs=args.maxlocs,repetitions=args.repetitions);
                 stats=obj.summarize_results(out,"display",false);
@@ -595,6 +595,7 @@ classdef Simulator<handle
                 so.sCRB(k,:)=stats.sCRB;
                 so.pos(k,:)=stats.pos;
                 so.phot(k)=stats.phot;
+                statsall(k)=stats;
             end
             so.stdrel=so.std./so.sCRB;
             so.biasrel=so.bias./so.pos;

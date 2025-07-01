@@ -65,7 +65,7 @@ imx(horzcat(psf0,psfph),'Parent',figure(222),'Title',"Misaligned pinhole"); %com
 if ~exist("psf_vecph2","var") %if PSF is already defined, we need not recalculate it if no parameters are changed
     psf_vecph2=PsfVectorial; %simple 2D donut PSF
 end
-psf_vecph2.setpinhole("AU",1,"offset",[150,0]);
+psf_vecph2.setpinhole("AU",0.8,"offset",[360,0]);
 sim.definePattern("donut_ph", psf_vecph2, phasemask="vortex", makepattern="orbitscan", orbitpoints=orbitpoints, ...
     probecenter=probecenter,orbitL=L,pointdwelltime=pointdwelltime,laserpower=laserpower,repetitions=repetitions)
 seq={"donut_ph","estdonut"};

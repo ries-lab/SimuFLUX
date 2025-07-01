@@ -73,36 +73,44 @@ figure(270)
 fl.brightness=2000;
 fl.pos=[0 0 0];
 sim.background=0;
-sim.defineComponent("estdonut","estimator",@est_qLSQiter2D,parameters={L,probecenter},dim=1:2);
-seq={"donut","estdonut"};
+sim.defineComponent("estitr","estimator",@est_qLSQiter2D,parameters={L,probecenter},dim=1:2);
+seq={"donut","estitr"};
 psf_vec.zerooffset=0;
 % xcoords=0:5:50;
 nexttile(2); hold off
-statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,tag="no bg");
-photons=statout.phot(1)
+[statout,sallnobg]=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,tag="no bg",clearfigure=true);
+% photons=statout.phot(1)
 % out=sim.runSequence(seq,maxlocs=1);
 % sim.summarize_results(out);
 
 %background, 
-sim.background=fl.brightness/20;
+sim.background=fl.brightness/50;
 % xcoords=0:2:100;
-statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,clearfigure=false,tag="bg");
-photonsbg=statout.phot(1)
+[statout,sallit]=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,clearfigure=false,tag="bg, iterative");
+% photons_wihtbgitr=statout.phot(1)
+
+disp("signal photons: " + sallit(1).phot_signal + ", bg photons: " + sallit(1).bg_photons_gt);
+
+sim.defineComponent("estdonut","estimator",@est_donutLSQ1_2D,parameters={sim.patterns("donut").pos,L,360},dim=1:2);
+seqc={"donut","estdonut"};
+[statout,sallconv]=sim.scan_fov(seqc,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,clearfigure=false,tag="bg, conventional");
+photons_wihtbgconventional=statout.phot(1)
+
 %background subtracted,
 % bgf=sim.patterns('donut').backgroundfac(1); %background used for simulation
 sim.background_estimated=sim.background*laserpower; %in general, the GT background is not known but needs to be calibrated 
 
 %sim.defineComponent("estdonut","estimator",@est_qLSQiter2D,parameters={L,probecenter},dim=1:2);
 sim.defineComponent("bg","background",@backgroundsubtractor,parameters={"background_estimated"});
-seq={"donut","bg","estdonut"};
+seq={"donut","bg","estitr"};
 psf_vec.zerooffset=0;
 % xcoords=0:2:100;
-statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,clearfigure=false,tag="bg est",title="estimator bias from background");
+[statout,sallest]=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,clearfigure=false,tag="bg est",title="estimator bias from background");
 
 sim.background_estimated=0;
 sim.defineComponent("estimatorbg","estimator",@est_qDirectFitBg1D,parameters={L},dim=1);
 seq={"donut","estimatorbg"};
-statout=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,clearfigure=false,tag="bg fit par",title="estimator bias from background");
+[statout,sallfit]=sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,clearfigure=false,tag="bg fit par",title="estimator bias from background");
 
 
 if ax1v=="pos"
