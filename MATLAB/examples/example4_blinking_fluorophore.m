@@ -59,5 +59,5 @@ plot(allrepetitions,results(3).stdx,'k',allrepetitions, sqrt(results(3).stdx.^2+
 xlabel('repetitions')
 ylabel('std (nm)')
 title("flickering fluorophores, mitigation by repetitive scanning")
-legend("N="+round(results(1).phot(1)), "CRB", "N="+round(results(2).phot(1)), "CRB", "N high", "prediction", "prediction")
+legend("photons="+round(results(1).phot(1)), "CRB", "N="+round(results(2).phot(1)), "CRB", "photons high", "prediction", "prediction")
 
