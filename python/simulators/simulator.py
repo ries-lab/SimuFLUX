@@ -724,7 +724,8 @@ class Simulator:
                  ax1 = "std",            # std, bias, rmse, sCRB, pos: what to displax in the figure, arrray of strings. 
                  clearfigure = False,    # overwrite figure. if false: new plots are added
                  tag = None,             # name of a plot, used in the figure legend
-                 linestyle = ""):
+                 linestyle = "",
+                 return_stats=False):
         
         if isinstance(ax1, (str, int, float)):
             ax1 = [ax1]
@@ -734,7 +735,6 @@ class Simulator:
         so.rmse = np.zeros((len(xcoords),3))
         so.bias = np.zeros((len(xcoords),3))
         so.sCRB = np.zeros((len(xcoords),3))
-        so.bias = np.zeros((len(xcoords),3))
         so.pos = np.zeros((len(xcoords),3))
         so.phot = np.zeros((len(xcoords),))
 
@@ -745,6 +745,9 @@ class Simulator:
             fl = self.fluorophores
 
         # print(f"scan_fov fl.pos: {fl.pos}")
+
+        if return_stats:
+            statsall = []
 
         coords = ["x", "y", "z"]
         posold = fl.pos[dimscan]
@@ -760,6 +763,8 @@ class Simulator:
             so.sCRB[k,:] = stats.sCRB
             so.pos[k,:] = stats.pos
             so.phot[k] = stats.phot
+            if return_stats:
+                statsall.append(stats)
         so.stdrel = so.std/so.sCRB
         so.biasrel = so.bias/so.pos
 
@@ -799,6 +804,9 @@ class Simulator:
             # Optional grid for "bias" conditions
             if any("bias" in ax for ax in ax1):
                 plt.grid(True)
+        
+        if return_stats:
+            return so, statsall
         
         return so
 
