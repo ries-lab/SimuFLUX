@@ -20,9 +20,10 @@ probecenter=true;
 sim.definePattern("donut", psf_vec, phasemask="vortex", makepattern="orbitscan", orbitpoints=orbitpoints, ...
     probecenter=probecenter,orbitL=L,laserpower=laserpower)
 
-ax1v="pos"; 
-% ax1v="rmse"; 
+ 
 %% no background, simple estimator
+ax1v="pos"; 
+ax1v="bias";
 sim.background=0;sim.background_estimated=0;
 sim.defineComponent("estdonut","estimator",@est_donutLSQ1_2D,parameters={sim.patterns("donut").pos,L,360},dim=1:2);
 seq={"donut","estdonut"};
@@ -63,7 +64,7 @@ title(phottxt)
 if ax1v=="pos"
     plot([0 L],[0 L],'k--')
 end
-ax=gca; ax.YLim(1)=0;ax.YLim(2)=65;
+ax=gca; ax.YLim(1)=-40;ax.YLim(2)=15;
 ax.XLim(end)=L*0.75;
 
 
