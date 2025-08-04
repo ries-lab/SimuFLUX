@@ -599,6 +599,7 @@ classdef Simulator<handle
             end
             so.stdrel=so.std./so.sCRB;
             so.biasrel=so.bias./so.pos;
+            so.xcoords=xcoords;
             if args.display
                 axh=gca;
                 if ~isempty(axh.Legend) && ~args.clearfigure
