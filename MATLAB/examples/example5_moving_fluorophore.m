@@ -56,29 +56,34 @@ title("stepping")
 %% instabilities: vibrations
 fl3=FlMoving(brightness=50000); %collect more photons
 fl3.posmode='function';
+sim.psfvec.setpar('beadradius',60e-9)
+sim.makepatterns
 
-figure(261)
-tiledlayout(1,4); nexttile
+figure(262)
+subplot(1,2,1)
 frequencies=[0.05 0.1, 0.2, 0.5, 1, 2, 5, 10]; %kHz
 
 % frequencies=1;
-amplitude=5; %nm
+amplitude=10; %nm
+reps=1;
 
 stdx=0*frequencies;stdxrel=stdx;
 for k=1:length(frequencies)
     posfl=[0 0 0];
     fl3.posfunction={@(t) amplitude*sin(frequencies(k)*t)+posfl(1), @(t) 0*t+posfl(2), @(t) 0*t+posfl(3)};    
     sim.fluorophores=fl3;sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;
-    out=sim.runSequence("repetitions",10);
+    out=sim.runSequence("repetitions",reps);
     filter=out.loc.itr==max(out.loc.itr)&out.loc.vld==1;
     sr=sim.summarize_results(out,display=false,filter=filter);
     stdx(k)=sr.stdraw(1);
     stdxrel(k)=sr.stdraw(1)/sr.sCRB(1);
 end
+
 semilogx(frequencies,stdxrel)
 xlabel('frequncy (kHz)')
 ylabel('std(x)/sCRB(x)')
 title("vibrations: frequency")
+hold on
 
 frequency=0.1;
 amplitudes=0:2:10;
@@ -87,14 +92,16 @@ for k=1:length(amplitudes)
     posfl=[0 0 0];
     fl3.posfunction={@(t) amplitudes(k)*sin(frequency*t)+posfl(1), @(t) 0*t+posfl(2), @(t) 0*t+posfl(3)};    
     sim.fluorophores=fl3;sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;
-    out=sim.runSequence("repetitions",10);
+    out=sim.runSequence("repetitions",reps);
     filter=out.loc.itr==max(out.loc.itr)&out.loc.vld==1;
     sr=sim.summarize_results(out,display=false,filter=filter);
     stdxa(k)=sr.stdraw(1);
     stdxrela(k)=sr.stdraw(1)/sr.sCRB(1);
 end
-nexttile
+subplot(1,2,2)
+
 plot(amplitudes,stdxrela)
 xlabel('amplitude (nm)')
 ylabel('std(x)/sCRB(x)')
 title("vibrations: amplitude")
+hold on

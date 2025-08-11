@@ -208,6 +208,7 @@ classdef PsfVectorial<Psf
             end
         end
         function psfo=beadsize(obj,psf,R)
+            %R bead size in m
             if R==0
                 psfo=psf;
                 return
