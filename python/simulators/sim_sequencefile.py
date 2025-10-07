@@ -87,7 +87,7 @@ class SimSequencefile(Simulator):
             # patterntime = (itr['patDwellTime']/itr['patRepeat'](1+probecenter*self.sequence['ctrDwellFactor']))*1e3  # ms
             pointdwelltime = itr['patDwellTime']/itr['patRepeat']*1e3/patternpoints
             if probecenter:
-                pointdwelltime = [pointdwelltime, pointdwelltime*patternpoints*self.sequence['ctrDwellFactor']]
+                pointdwelltime = np.array([pointdwelltime, pointdwelltime*patternpoints*self.sequence['ctrDwellFactor']])
             # pointdwelltime=patterntime/(patternpoints+probecenter)
 
             laserpower = itr['pwrFactor']
@@ -231,8 +231,9 @@ class SimSequencefile(Simulator):
                     loc.eco[loccounter,0] = np.sum(scanout.phot[:-1])
                     loc.ecc[loccounter,0] = np.sum(scanout.phot[-1])
                     
-                    loc.efo=loc.eco/(np.sum(scanout.par.pattern.pointdwelltime[:-1]))/scanout.repetitions
-                    loc.efc=loc.ecc/(scanout.par.pattern.pointdwelltime[-1])/scanout.repetitions
+                    # TODO: .squeeze() should be OK, since this should reference len(pdt) == 2 case from simulator.py definePattern
+                    loc.efo=loc.eco/(np.sum(scanout.par.pattern.pointdwelltime.squeeze()[:-1]))/scanout.repetitions
+                    loc.efc=loc.ecc/(scanout.par.pattern.pointdwelltime.squeeze()[-1])/scanout.repetitions
                 else:
                     loc.eco[loccounter,0] = np.sum(scanout.phot)
                     loc.efo = loc.eco/(np.sum(scanout.par.pattern.pointdwelltime))/scanout.repetitions

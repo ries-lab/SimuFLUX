@@ -213,7 +213,7 @@ class Simulator:
         
         pdt = kwargs.get("pointdwelltime", [0.01])
         if isinstance(pdt, (int, float)):
-            pdt = [pdt]
+            pdt = np.array([pdt])
         if len(pdt) == pattern.pos.shape[0]:
             pattern.pointdwelltime = pdt
         else:
@@ -767,6 +767,7 @@ class Simulator:
                 statsall.append(stats)
         so.stdrel = so.std/so.sCRB
         so.biasrel = so.bias/so.pos
+        so.xcoords = xcoords
 
         if display:
             import matplotlib.pyplot as plt

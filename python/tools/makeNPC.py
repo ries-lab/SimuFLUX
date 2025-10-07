@@ -7,7 +7,7 @@ def makeNPC(pos=[0,0,0], R=50, copynumber=32, dz=50, rotation=0, twistangle=np.p
     dphi = np.pi/4
     maxphi = 2 * np.pi - dphi - rotation
     nphi = int(maxphi / dphi)
-    phi = np.arange(nphi)*dphi
+    phi = np.arange(nphi+1)*dphi
     v0 = np.zeros_like(phi)
 
     if copynumber == 8:
