@@ -97,7 +97,7 @@ classdef Simulator<handle
                 pattern.pointdwelltime=zeros(1,size(pos,1))+args.pointdwelltime(1);
             end
             if length(args.pointdwelltime)==2
-                pattern.pointdwelltime(end)=args.pointdwelltime(2);
+                pattern.pointdwelltime(end)=args.pointdwelltime(2); %by default central measurement is last
             end
             pattern.L=args.orbitL;
             pattern.dim=args.dim;
