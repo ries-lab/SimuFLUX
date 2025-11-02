@@ -4,7 +4,11 @@ addpath(genpath(fileparts(fileparts(mfilename('fullpath'))))); %add all folders 
 fl=FlStatic(brightness=1000); %define a static fluorophore
 fl.pos=[10 0 0];
 
-if ~exist("psf_vec","var") %if PSF is already defined, we need not recalculate it if no parameters are changed
+loadsave=false; %save all modifications to PSF
+psffile=[fileparts(mfilename('fullpath')) filesep 'defaultVecPSF.mat'];
+if loadsave & exist(psffile,"file") %example of how to save PSFs to not re-calculate them. 
+    load(psffile);
+elseif ~exist("psf_vec","var") %if PSF is already defined, we need not recalculate it if no parameters are changed
     psf_vec=PsfVectorial; %simple 2D donut PSF
 end
 psf_vec.zerooffset=0.000; %true zero
@@ -242,3 +246,7 @@ disp("PhaseFLUX:")
 sim.summarize_results(out);
 % sim.scan_fov(seq,xcoords,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,clearfigure=false,tag="phaseflux x");
 % sim.scan_fov(seq,zcoords,"dimscan",3,"dimplot",3,"maxlocs",numberOfLocalizations,"display",true,ax1=ax1v,tag="phaseflux z");
+
+if loadsave 
+    save(psffile,"psf_vec","psf_vecph2","psf_vecth","psf_vecphaseflux");
+end

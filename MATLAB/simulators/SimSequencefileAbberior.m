@@ -1,4 +1,4 @@
-classdef SimSequencefile3D<Simulator
+classdef SimSequencefileAbberior<Simulator
     properties
         sequence
         estimators=struct('function',"","par",[],"dim",[]);
@@ -8,7 +8,7 @@ classdef SimSequencefile3D<Simulator
         % bgcSenseValue=0;
     end
     methods
-        function obj=SimSequencefile3D(varargin)
+        function obj=SimSequencefileAbberior(varargin)
             obj@Simulator(varargin{:})
             obj.deadtimes=struct('point',0.011,'pattern',0,'estimator',0.015,'positionupdate',0,'localization',0.4);
         end
@@ -197,7 +197,6 @@ classdef SimSequencefile3D<Simulator
         function out=runSequence(obj,args)
             arguments
                 obj
-                % args.maxlocs=10;
                 args.repetitions=1;
                 args.resetfluorophores=false;
             end
@@ -243,7 +242,6 @@ classdef SimSequencefile3D<Simulator
             % obj.posEOD=[0 0 0];
             out=[];
             allbleached=false;
-            % fprintf(1,'Computation Progress: %3d%%\n',0);
             fprintf(1,"scouting, progress: %3d%%\n",0)
             for reps=1:args.maxrep
                 if obj.time>timestart+args.maxtime
@@ -252,7 +250,6 @@ classdef SimSequencefile3D<Simulator
                 prog=reps/args.maxrep*100;
                 prog=max(prog, (obj.time-timestart)/args.maxtime*100);
                 fprintf(1,'\b\b\b\b%3.0f%%',prog)
-                % fprintf(num2str(reps,"%2.0f,"))
                 for pind=1:size(obj.scoutingcoordinates,1)
                     obj.posgalvo(1:2)=obj.scoutingcoordinates(pind,:);
                     obj.posEOD=[0 0 0];
@@ -271,10 +268,7 @@ classdef SimSequencefile3D<Simulator
                 out.duration=obj.time-timestart;
             end
         end
-        % function displayresults(obj)
-        %     keys=obj.patterns.keys;
-        %     displayresults@Sim_Simulator(obj,keys(1),out)
-        % end
+
         function plotpositions(obj, out, args)
             arguments 
                 obj
@@ -320,18 +314,7 @@ classdef SimSequencefile3D<Simulator
             xlabel(ax,xtxt)
             ylabel(ax,'x position(nm)')
             legend(ax,'Estimated','Fluorophore','Galvo','EOD')
-
         end
-        % function so=subtractbackground(obj,si)
-        %     bg=obj.bgcSenseValue;
-        %     so=si;
-        %     if bg>0
-        %         pointtime=si.par.pointdwelltime;
-        %         so.phot=so.phot-bg*pointtime;
-        %         % so.photbg=so.photbg+bg*pointtime; % this is explicitely used in some
-        %         % estimators... not consistent
-        %     end
-        % end
     end
 end
 

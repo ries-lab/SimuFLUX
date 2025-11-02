@@ -256,7 +256,6 @@ classdef PsfVectorial<Psf
             obj.pinholepar.offset=args.offset;
             obj.pinholepar.diameter=args.diameter;
         end
-       
         function savePSF(obj,name)
             PSFinterpolant=obj.PSFinterpolant;
             save(name,'PSFinterpolant')

@@ -1,15 +1,15 @@
 % Run an abberior sequence file and see how EOD an Galvo move.
 addpath(genpath(fileparts(fileparts(mfilename('fullpath'))))); %add all folders to serach path
-if ~exist('sim','var') || ~isa(sim,"SimSequencefile")
-    sim=SimSequencefile3D;
+if ~exist('sim','var') || ~isa(sim,"SimSequencefileAbberior")
+    sim=SimSequencefileAbberior;
 else
     sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];
 end
 laserpower=1;
 fl=FlBleach; %define a bleaching fluorophore
 fl.photonbudget=20000000;
-fl.pos=[10 10 10];
-fl.brightness=300; %kHz 
+fl.pos=[140 10 100];
+fl.brightness=3000; %kHz 
 sim.fluorophores=fl;
 sim.background=30*0; % a background that is not matched with a proper estimate leads to 'tails'
 sim.background_estimated=0; % a similar result is obtained when no background is present but the background is underestimatedd (negative background estimate ). This leads to a bias in the estimator and appearance of "tails"
@@ -17,13 +17,12 @@ sim.background_estimated=0; % a similar result is obtained when no background is
 sim.psfvec.setpinhole("AU",1) %Abberior: imspector pinhole overwrites the pinhole in the settings file
 
 fname='Tracking_3D.json';
-fname='Imaging_3D.json';
+% fname='Imaging_3D.json';
 
 sim.loadsequence(fname);
 
 %test different confounding factors, otherwise comment out:
 sim.psfvec.setpar('beadradius',0*50e-9) %in m can also lead to tails. Set to zero if no bead used
-% sim.sequence.PSF.Itr(1).estimator.par{3}=80; %correct: 120. wrong parameter for first estimator: this makes tails much more pronounced, as currently the Gaussian estimator seems too good.
 sim.sequence.locLimit=100; %only track for 1000 localizations
 sim.makepatterns;
 

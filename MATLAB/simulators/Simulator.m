@@ -52,7 +52,8 @@ classdef Simulator<handle
                 psf % a Psf object that describes the PSF
                 args.phasemask=""; %parameter that defines the shape of the phase mask
                 args.zeropos=0; %position of the zero when calculating PSFs (e.g., PhaseFLUX)
-                args.patternpos=[0, 0, 0];% list of 3D positions where the PSF is moved to. Use either zeropos or pos
+                args.patternpos=[0, 0, 0];% list of 3D positions where the PSF is moved to (EOD, not descanned). Use either zeropos or pos
+                args.pinholeorbit=false; %If true, then patternpos EOD movement is compensated by galvo movement
                 args.makepattern=[]; % orbitscan, zscan, [] (default):no pattern is made
                 args.orbitpoints=4; %  orbitpoints
                 args.orbitL=100; % diameter of scan pattern

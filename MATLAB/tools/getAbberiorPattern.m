@@ -1,10 +1,15 @@
 function [parg,esth]=getAbberiorPattern(itr,seq)
-if contains(itr.Mode.modulated,'phl')&& contains(itr.Mode.pattern,'hexagon') %pinhole orbit: for now Gauss, later implement as pattern, remove here
-    phasemask="flat";
-elseif contains(itr.Mode.epsf,'focFldRing')
+if contains(itr.Mode.epsf,'focFldRing')
     phasemask="tophat";
+    sigma_est_ph=130;
 elseif contains(itr.Mode.epsf,'focFldVortex')
     phasemask="vortex";
+    sigma_est_ph = 190; % Default value for sigma estimation
+end
+if contains(itr.Mode.modulated,'phl')&& contains(itr.Mode.pattern,'hexagon') 
+    pinholeorbit=true;
+else
+    pinholeorbit=false;
 end
 
 % scan patterns
@@ -44,6 +49,7 @@ switch itr.Mode.pattern
         arg={'patternpos',patternpos}; 
     case {'octahedron'}
         dim="xyz";
+        patternpoints=6;
         patternpos=zeros(6,3);
         patternpos(1,1)=L/2;patternpos(2,2)=L/2; patternpos(3,1)=-L/2; patternpos(4,2)=-L/2;
         patternpos(5,3)=-L/2; patternpos(6,3)=L/2;
@@ -60,7 +66,8 @@ if probecenter
 end
 laserpower=itr.pwrFactor;
 arg2={"phasemask",phasemask, "orbitpoints",patternpoints, "orbitL",L,...
-    "probecenter",probecenter,"pointdwelltime",pointdwelltime, "laserpower",laserpower,"repetitions",itr.patRepeat };
+    "probecenter",probecenter,"pointdwelltime",pointdwelltime, "laserpower",...
+    laserpower,"repetitions",itr.patRepeat,"pinholeorbit",pinholeorbit};
 parg=horzcat(arg,arg2);
 
 % estimators
@@ -68,8 +75,8 @@ switch dim
     case"xy" 
         esth.dim=[1,2];
         if contains(itr.Mode.modulated,'phl')
-            esth.function="est_GaussLSQ1_2D";
-            esth.par={"patternpos", L, 120, probecenter};
+            esth.function="est_pinholeorbit";
+            esth.par={"patternpos", L, sigma_est_ph, probecenter};
         else
             esth.function="est_donutLSQ1_2D";
             esth.par={"patternpos", L, 310, 0};
