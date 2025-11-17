@@ -1,7 +1,7 @@
 % Example to get started
 % Define programmatically a simple MINFLUX experiment and look at the
 % results
-addpath(genpath(fileparts(fileparts(mfilename('fullpath'))))); %add all folders to serach path
+addpath(genpath(fileparts(fileparts(fileparts(mfilename('fullpath')))))); %add all folders to serach path
 
 fl=FlStatic; %define a static fluorophore
 fl.pos=[100 20 0];

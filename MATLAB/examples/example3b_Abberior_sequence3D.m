@@ -8,16 +8,17 @@ end
 laserpower=1;
 fl=FlBleach; %define a bleaching fluorophore
 fl.photonbudget=20000000;
-fl.pos=[140 10 100];
-fl.brightness=3000; %kHz 
+fl.pos=[25 0 0];
+fl.brightness=300000; %kHz 
 sim.fluorophores=fl;
 sim.background=30*0; % a background that is not matched with a proper estimate leads to 'tails'
 sim.background_estimated=0; % a similar result is obtained when no background is present but the background is underestimatedd (negative background estimate ). This leads to a bias in the estimator and appearance of "tails"
             %over-estimation of background leads to instabilities
 sim.psfvec.setpinhole("AU",1) %Abberior: imspector pinhole overwrites the pinhole in the settings file
 
-fname='Tracking_3D.json';
+% fname='Tracking_2D.json';
 % fname='Imaging_3D.json';
+fname='test_est.json';
 
 sim.loadsequence(fname);
 

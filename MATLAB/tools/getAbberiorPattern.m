@@ -20,7 +20,7 @@ else
 end
 L=itr.patGeoFactor*360; %nm
 arg2D={'makepattern','orbitscan'};
-dim="xy";
+dim=[1,2];
 switch itr.Mode.pattern
     case 'hexagon'
         arg=arg2D;
@@ -32,7 +32,7 @@ switch itr.Mode.pattern
         arg=arg2D; 
         patternpoints=3;   
     case 'zline'
-        dim="z";
+        dim=3;
         patternpoints=length(L)*2;
         patternpos=zeros(patternpoints,3); patternpos(:,3)=[-L(1), L(1), -L(2), L(2)]/2;
         if probecenter %probecenter, pattern points argument ignored if not makepattern
@@ -40,7 +40,7 @@ switch itr.Mode.pattern
         end
         arg={'patternpos',patternpos}; 
     case 'zline2'
-        dim="z";
+        dim=3;
         patternpoints=length(L)*2;
         patternpos=zeros(patternpoints,3); patternpos(:,3)=[-L(1), L(1)]/2;
         if probecenter %probecenter, pattern points argument ignored if not makepattern
@@ -48,7 +48,7 @@ switch itr.Mode.pattern
         end
         arg={'patternpos',patternpos}; 
     case {'octahedron'}
-        dim="xyz";
+        dim=[1,2,3];
         patternpoints=6;
         patternpos=zeros(6,3);
         patternpos(1,1)=L/2;patternpos(2,2)=L/2; patternpos(3,1)=-L/2; patternpos(4,2)=-L/2;
@@ -71,30 +71,33 @@ arg2={"phasemask",phasemask, "orbitpoints",patternpoints, "orbitL",L,...
 parg=horzcat(arg,arg2);
 
 % estimators
-switch dim
-    case"xy" 
-        esth.dim=[1,2];
-        if contains(itr.Mode.modulated,'phl')
-            esth.function="est_pinholeorbit";
-            esth.par={"patternpos", L, sigma_est_ph, probecenter};
-        else
-            esth.function="est_donutLSQ1_2D";
-            esth.par={"patternpos", L, 310, 0};
-        end
-    case "z"
-        esth.dim=3;
-        if itr.Mode.pattern=="zline" %5 points: now with 3, but make a 5 point estimaotr
-            esth.function="est_zline"; % 
-            esth.par={L};
-        elseif itr.Mode.pattern=="zline2" %3 points
-            esth.function="est_qLSQiter1D"; % 
-            esth.par={L};
-        end
-    case "xyz"
-        esth.dim=[1,2,3];
-        if itr.Mode.pattern=="octahedron"
-            esth.par={"patternpos", L, 310, 0};
-            esth.function="est_octahedron"; %
-        end
-end
+esth.function="est_abberior_debiased";
+esth.par={"patternpos","coefficients","patGeoFactor"};
+esth.dim=dim;
+% switch dim
+%     case"xy" 
+%         esth.dim=[1,2];
+%         if contains(itr.Mode.modulated,'phl')
+%             esth.function="est_pinholeorbit";
+%             esth.par={"patternpos", L, sigma_est_ph, probecenter};
+%         else
+%             esth.function="est_donutLSQ1_2D";
+%             esth.par={"patternpos", L, 310, 0};
+%         end
+%     case "z"
+%         esth.dim=3;
+%         if itr.Mode.pattern=="zline" %5 points: now with 3, but make a 5 point estimaotr
+%             esth.function="est_zline"; % 
+%             esth.par={L};
+%         elseif itr.Mode.pattern=="zline2" %3 points
+%             esth.function="est_qLSQiter1D"; % 
+%             esth.par={L};
+%         end
+%     case "xyz"
+%         esth.dim=[1,2,3];
+%         if itr.Mode.pattern=="octahedron"
+%             esth.par={"patternpos", L, 310, 0};
+%             esth.function="est_octahedron"; %
+%         end
+% end
 end

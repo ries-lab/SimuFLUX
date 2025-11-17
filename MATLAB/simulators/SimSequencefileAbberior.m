@@ -120,7 +120,8 @@ classdef SimSequencefileAbberior<Simulator
                         estf=str2func(estimator.function);
                         estpar=estimator.par;
                         estpar=replaceinlist(estpar,'patternpos',patternpos,'L',L,'probecenter',probecenter,...
-                            'background_est',obj.background_estimated(min(itr,length(obj.background_estimated))),'iteration',itr);
+                            'background_est',obj.background_estimated(min(itr,length(obj.background_estimated))),...
+                            'iteration',itr,"coefficients", itrs(itr).estCoeff,"patGeoFactor", itrs(itr).patGeoFactor);
                         xesth=estf(scanout.photrate,estpar{:});
                         if ~all(size(estimator.dim)==size(xesth)) % extra estimates returned
                             xesth=xesth(estimator.dim); %now only estimator dimension
