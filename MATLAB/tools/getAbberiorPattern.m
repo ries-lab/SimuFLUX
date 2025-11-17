@@ -71,33 +71,33 @@ arg2={"phasemask",phasemask, "orbitpoints",patternpoints, "orbitL",L,...
 parg=horzcat(arg,arg2);
 
 % estimators
-esth.function="est_abberior_debiased";
-esth.par={"patternpos","coefficients","patGeoFactor"};
+% esth.function="est_abberior_debiased";
+% esth.par={"patternpos","coefficients","patGeoFactor"};
 esth.dim=dim;
-% switch dim
-%     case"xy" 
-%         esth.dim=[1,2];
-%         if contains(itr.Mode.modulated,'phl')
-%             esth.function="est_pinholeorbit";
-%             esth.par={"patternpos", L, sigma_est_ph, probecenter};
-%         else
-%             esth.function="est_donutLSQ1_2D";
-%             esth.par={"patternpos", L, 310, 0};
-%         end
-%     case "z"
-%         esth.dim=3;
-%         if itr.Mode.pattern=="zline" %5 points: now with 3, but make a 5 point estimaotr
-%             esth.function="est_zline"; % 
-%             esth.par={L};
-%         elseif itr.Mode.pattern=="zline2" %3 points
-%             esth.function="est_qLSQiter1D"; % 
-%             esth.par={L};
-%         end
-%     case "xyz"
-%         esth.dim=[1,2,3];
-%         if itr.Mode.pattern=="octahedron"
-%             esth.par={"patternpos", L, 310, 0};
-%             esth.function="est_octahedron"; %
-%         end
-% end
+switch mat2str(dim)
+    case mat2str([1,2])
+        % esth.dim=[1,2];
+        if contains(itr.Mode.modulated,'phl')
+            esth.function="est_pinholeorbit";
+            esth.par={"patternpos", L, sigma_est_ph, probecenter};
+        else
+            esth.function="est_donutLSQ1_2D";
+            esth.par={"patternpos", L, 310, 0};
+        end
+    case mat2str(3)
+        % esth.dim=3;
+        if itr.Mode.pattern=="zline" %5 points: now with 3, but make a 5 point estimaotr
+            esth.function="est_zline"; % 
+            esth.par={L};
+        elseif itr.Mode.pattern=="zline2" %3 points
+            esth.function="est_qLSQiter1D"; % 
+            esth.par={L};
+        end
+    case mat2str([1,2,3])
+        % esth.dim=[1,2,3];
+        if itr.Mode.pattern=="octahedron"
+            esth.par={"patternpos", L, 310, 0};
+            esth.function="est_octahedron"; %
+        end
+end
 end
