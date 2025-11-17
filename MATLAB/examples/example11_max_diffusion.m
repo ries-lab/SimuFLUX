@@ -3,12 +3,11 @@ addpath(genpath(fileparts(fileparts(mfilename('fullpath'))))); %add all folders 
 
 % savepath='/diffusion'; %if automated saving of results is needed
 %make abberior simulator
-if ~exist('sim','var') || ~isa(sim,"SimSequencefile")
-    sim=SimSequencefile;
+if ~exist('sim','var') || ~isa(sim,"SimSequencefileAbberior")
+    sim=SimSequencefileAbberior;
 end
 fname='Tracking_2D.json';
-fname2='PSFvectorial2D.json'; %use a PSF that is defined via a json file
-sim.loadsequence(fname,fname2);
+sim.loadsequence(fname);
 sim.sequence.locLimit=100;
 sim.makepatterns;
 

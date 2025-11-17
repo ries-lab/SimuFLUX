@@ -132,17 +132,20 @@ classdef Simulator<handle
                     timep=timep+time; %for calculating average time point
                     [flposh,isactive]=fluorophores.position(time);
                     flposrel=flposh-posgalvo;
-                    [intensityh,pinholehfac]=pattern.psf(k).intensity(flposrel(isactive,:),pattern.pos(k,:)+posEOD,pattern.phasemask(k),pattern.zeropos(k));
+                    flposrel(:,3)=flposrel(:,3)-pattern.pos(k,3)-posEOD(:,3); % EOD used for DM: descanned in z
+                    patternpos=pattern.pos(k,:)+posEOD; %EOD: only in xy (non-desceanned)
+                    patternpos(:,3)=0; 
+                    [intensityh,pinholehfac]=pattern.psf(k).intensity(flposrel(isactive,:),patternpos,pattern.phasemask(k),pattern.zeropos(k));
                     intensityh=intensityh*pattern.laserpower(k);
                     flint=fluorophores.intensity(intensityh,pattern.pointdwelltime(k),time,pinholehfac);
                     intensity=sum(flint);
                     flpos(:,:)=flpos(:,:)+flposh;
                     flintall(isactive,:)=flintall(isactive,:)+flint;
                     time=time+pattern.pointdwelltime(k)+deadtimes.point;
-                    % bgphoth=pattern.backgroundfac(k)*background*pattern.pointdwelltime(k);
                     bgphoth=background*pattern.pointdwelltime(k)*pattern.laserpower(k); %XXX changed now to multiply the laser power
                     bgphot=bgphoth+bgphot;
                     intall(k)=intall(k)+intensity+bgphoth; %sum over repetitions, fluorophores
+                    % fluorophores.updateonoff(time);
                 end
                 time=time+deadtimes.pattern;
                 fluorophores.updateonoff(time); %try moving into loop, how slow it gets
@@ -164,13 +167,10 @@ classdef Simulator<handle
             out.par=pattern.par;
             out.par.L=pattern.L;
             out.par.pattern.L=pattern.L;
-            % out.par.patternpos=pattern.pos;
-            % out.par.zeropos=pattern.zeropos;
             out.par.pattern.dim=pattern.dim;
             out.par.pattern.pos=pattern.pos;
             out.par.pattern.zeropos=pattern.zeropos;
             out.par.pattern.phasemask=pattern.phasemask;
-            % out.par.pattern.backgroundfac=pattern.backgroundfac;
             out.par.pattern.laserpower=pattern.laserpower;
             out.par.pattern.pointdwelltime=pattern.pointdwelltime;
             obj.time=time;

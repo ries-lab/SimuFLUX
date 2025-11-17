@@ -46,15 +46,16 @@ sim.scan_fov(seq,z,dimplot=1,dimscan=3,fluorophorenumber=2,ax1=["std","rmse","sC
 
 %% Imaging of blinking fluorophores with Abberior sequence
 %make abberior simulator
-if ~exist('sim','var') || ~isa(sim,"SimSequencefile")
-    sim=SimSequencefile;
+if ~exist('sim2','var') || ~isa(sim2,"SimSequencefileAbberior")
+    sim2=SimSequencefileAbberior;
 else
-    sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;sim.background=0;
+    sim2.posgalvo=[0 0 0];sim2.posEOD=[0 0 0];sim2.time=0;sim2.background=0;
 end
 fname='Imaging_2D.json';
-sim.loadsequence(fname); %only sequence file, then simple gauss and donut PSFs are used (fast)
+sim2.loadsequence(fname); %only sequence file, then simple gauss and donut PSFs are used (fast)
+sim2.psfvec.setpinhole("AU",1)
 % sim.makepatterns;
-sim.makescoutingpattern([-100 -100; 400 250 ]) %for imaging
+sim2.makescoutingpattern([-100 -100; 400 250 ]) %for imaging
 
 % make fake NPCs
 
@@ -67,7 +68,7 @@ titles=["PALM","dSTORM"];
 
 for k=1:length(photonbudget)
 fc=FlCollectionBlinking;
-%set parameterst for caged fluorophore, PAFP or similar
+%set parameters for caged fluorophore, PAFP or similar
 laserpower=5;
 switchpar.brightness=100*laserpower;
 switchpar.toffsmlm=10*1e3; %on-switching time in ms
@@ -83,8 +84,8 @@ fc.addstatic(makeNPC(pos=[0 0 0]));
 fc.addstatic(makeNPC(pos=[250 50 0]));
 fc.addstatic(makeNPC(pos=[50 150 0]));
 
-sim.fluorophores=fc;
-out=sim.scoutingSequence(maxrep=5000);
+sim2.fluorophores=fc;
+out=sim2.scoutingSequence(maxrep=5000);
 
 %plot results
 
@@ -92,7 +93,7 @@ vld=out.loc.vld==1 & out.loc.itr==max(out.loc.itr) ;
 vldcfr=vld & out.loc.cfr<0.1;
 notvld=~vld & ~vldcfr;
 figure(262+k); hold off;
-plot(sim.scoutingcoordinates(:,1),sim.scoutingcoordinates(:,2),'k+')
+plot(sim2.scoutingcoordinates(:,1),sim2.scoutingcoordinates(:,2),'k+')
 hold on
 plot(out.loc.xnm(notvld),out.loc.ynm(notvld),'c.')
 plot(out.loc.xnm(vld),out.loc.ynm(vld),'m.')

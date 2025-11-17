@@ -1,13 +1,13 @@
 %% moving, bleaching fluorophore and tracking with Abberior sequence
 addpath(genpath(fileparts(fileparts(mfilename('fullpath'))))); %add all folders to serach path
 %make abberior simulator
-if ~exist('sim','var') || ~isa(sim,"SimSequencefile")
-    sim=SimSequencefile;
+if ~exist('sim','var') || ~isa(sim,"SimSequencefileAbberior")
+    sim=SimSequencefileAbberior;
 end
 
 fname='Tracking_2D.json';
-fname2='PSFvectorial2D.json'; %use a PSF that is defined via a json file
-sim.loadsequence(fname,fname2);
+sim.psfvec.setpinhole("AU",1) %Abberior: imspector pinhole overwrites the pinhole in the settings file
+sim.loadsequence(fname);
 sim.makepatterns;
 
 %% make diffusing, bleaching fluorophores
@@ -37,7 +37,7 @@ title("diffusion")
 % fig. 1
 sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;
 fl2=FlMoveBleach;
-fl2.photonbudget=5000;
+fl2.photonbudget=25000;
 fl2.brightness=200;
 updatetime=0.01; %us
 stepsize=16; %nm

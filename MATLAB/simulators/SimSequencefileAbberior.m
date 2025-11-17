@@ -129,15 +129,18 @@ classdef SimSequencefileAbberior<Simulator
                         obj.time=obj.time+deadtimes.estimator;
                         xestabs(estimator.dim)=xesth+obj.posgalvo(estimator.dim)+obj.posEOD(estimator.dim);
                         
+
                         %recenter
-                        if itr>=maxiter+obj.sequence.headstart+1 && ~any(isnan(xestabs))
+                        if ~any(isnan(xestabs)) %recenter EOD
+                            obj.posEOD(estimator.dim)=obj.posEOD(estimator.dim)+xesth;
+                        end
+                        if itr>=maxiter+obj.sequence.headstart+1 && ~any(isnan(xestabs)) %recenter Galvo
                             dampf=2^(-obj.sequence.damping);
                             xold=obj.posgalvo;
-                            obj.posgalvo(estimator.dim)=(1-dampf)*obj.posgalvo(estimator.dim)+dampf*(xestabs(estimator.dim));
-                            obj.posEOD(estimator.dim)=obj.posEOD(estimator.dim)+xold(estimator.dim)-obj.posgalvo(estimator.dim)+xesth;
+                            dimgalvo=setdiff(estimator.dim,3); %do not correct z with a galvo
+                            obj.posgalvo(dimgalvo)=(1-dampf)*obj.posgalvo(dimgalvo)+dampf*(xestabs(dimgalvo));
+                            obj.posEOD(dimgalvo)=obj.posEOD(dimgalvo)+xold(dimgalvo)-obj.posgalvo(dimgalvo);%+xesth;
                             obj.time=obj.time+deadtimes.positionupdate;
-                        elseif ~any(isnan(xestabs))
-                            obj.posEOD(estimator.dim)=obj.posEOD(estimator.dim)+xesth;
                         end
                     else
                         xestabs=[0,0,0]+NaN;

@@ -23,7 +23,7 @@ out=sim.runSequence({"donut","estsq"});sim.summarize_results(out);
 
 %% plot std vs repetitions
 %Fig. 2
-allrepetitions=1:1:25;
+allrepetitions=1:2.5:25;
 laserpowers=[10 100 100000]/0.88;
 
 
@@ -40,8 +40,8 @@ for l=1:length(laserpowers)
         results(l).stdx(k)=sr.std(1);
         results(l).stdy(k)=sr.std(2);
         % crb=sr.sCRB(1);
-        results(l).stdxrel(k)=stdx(k)/sr.sCRB(1);
-        results(l).stdyrel(k)=stdy(k)/sr.sCRB(2);
+        results(l).stdxrel(k)=results(l).stdx(k)/sr.sCRB(1);
+        results(l).stdyrel(k)=results(l).stdy(k)/sr.sCRB(2);
         results(l).biasx(k)=sr.bias(1);
         results(l).biasy(k)=sr.bias(2);
         results(l).crb(k)=sr.sCRB(1);
