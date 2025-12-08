@@ -5,3 +5,4 @@ from .copyfields import copyfields
 from .psf_sequence import psf_sequence
 from .sumstruct import sumstruct
 from .makeNPC import makeNPC
+from .get_abberior_pattern import get_abberior_pattern

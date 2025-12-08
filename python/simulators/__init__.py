@@ -1,2 +1,3 @@
 from .simulator import Simulator
 from .sim_sequencefile import SimSequencefile
+from .sim_sequencefile_abberior import SimSequencefileAbberior

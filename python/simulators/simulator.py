@@ -66,6 +66,7 @@ class Par:
     laserpower: float = 1.0  # usually we use relative, but can also be absolute.
     repetitions: int = 1  # repetitions of the patern scan before position estimation
     dim: tuple = (0,1)  # dimensions in which the scan is performed
+    pinholeorbit: bool = False
 
 @dataclass
 class Summary:
@@ -220,6 +221,7 @@ class Simulator:
             pattern.pointdwelltime = np.zeros((1,pattern.pos.shape[0])) + pdt[0]
 
         if len(pdt) == 2:
+            # by default, the central measurement is last
             if len(pattern.pointdwelltime.shape) > 1:
                 pattern.pointdwelltime[:,-1] = pdt[1]
             else:

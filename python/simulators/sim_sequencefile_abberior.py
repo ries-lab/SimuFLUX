@@ -1,5 +1,3 @@
-import os
-import pathlib
 import json
 from types import SimpleNamespace
 
@@ -7,20 +5,22 @@ import numpy as np
 
 from .simulator import Simulator, Deadtimes, PatternScan, initlocs
 from ..psfs import PsfVectorial
-from ..psfs import PsfGauss2D
-from ..psfs import PsfDonut2D
 from ..tools import copyfields
-from ..tools import psf_sequence
 from ..tools import sumstruct
 from ..tools import replace_in_list
+from ..tools import get_abberior_pattern
 from ..estimators import backgroundsubtractor
 
 # To ensure they are found in globals()
 from ..estimators import est_GaussLSQ1_2D
 from ..estimators import est_donutLSQ1_2D
 from ..estimators import est_qLSQiter2D
+from ..estimators import est_pinholeorbit
+from ..estimators import est_zline
+from ..estimators import est_qLSQiter1D
+from ..estimators import est_octahedron
 
-class SimSequencefile(Simulator):
+class SimSequencefileAbberior(Simulator):
     def __init__(self, fluorophores = None, background = 0, background_estimated = 0, loadfile = None):
         super().__init__(fluorophores, background, background_estimated, loadfile)
 
@@ -49,62 +49,25 @@ class SimSequencefile(Simulator):
             self.makepatterns()
 
     def makepatterns(self, psfs=None, phasemasks=None):
-        if phasemasks is None:
-            if 'PSF' in self.sequence.keys() and 'global' in self.sequence['PSF'].keys():
-                psfs, phasemasks = psf_sequence(self.sequence['PSF'], self.psfvec, self.sequence)
-            else:
-                psfs, phasemasks = [], []
-                psfs.append(PsfGauss2D())
-                psfs.append(PsfDonut2D())
-                phasemasks.append({'phasemask': 'gauss2D'})
-                phasemasks.append({'phasemask': 'donut2D'})
-                base_path = pathlib.Path(__file__).parent.parent
-                self.loadsequence(os.path.join(base_path, 'settings', 'defaultestimators.json'), 'noupdate')
+        if psfs is not None or phasemasks is not None:
+            raise UserWarning("psfs explicitely input to makepatterns currently ignored, psfs are based on sequence file")
+        
+        psf = self.psfvec
 
         itrs = self.sequence['Itr']
+        while len(self.estimators) < len(itrs):
+            self.estimators.append([])
         for k, itr in enumerate(itrs):
-            probecenter = False if itr['ccrLimit'] == -1 else True
-            L = itr['patGeoFactor']*360
-            kmin = np.minimum(k,len(phasemasks)-1)
-            psf = psfs[kmin]
-            phasemask = phasemasks[kmin]['phasemask']
-
-            estimatorh = self.sequence['PSF']['Itr'][kmin]['estimator']
-            while len(self.estimators) < (k+1):
-                self.estimators.append([])
-            self.estimators[k] = estimatorh
-
-            if itr['Mode']['pattern'] == "hexagon":
-                patternpoints = 6
-            elif itr['Mode']['pattern'] == "square":
-                patternpoints = 4
-            elif itr['Mode']['pattern'] == "triangle":
-                patternpoints = 3
-            else:
-                raise UserWarning(f"Pattern {itr['Mode']['id']} not implemented")
-            
-            # patterntime = (itr['patDwellTime']/itr['patRepeat'](1+probecenter*self.sequence['ctrDwellFactor']))*1e3  # ms
-            pointdwelltime = itr['patDwellTime']/itr['patRepeat']*1e3/patternpoints
-            if probecenter:
-                pointdwelltime = [pointdwelltime, pointdwelltime*patternpoints*self.sequence['ctrDwellFactor']]
-            # pointdwelltime=patterntime/(patternpoints+probecenter)
-
-            laserpower = itr['pwrFactor']
-            self.definePattern(f"itr{k}", psf, 
-                               phasemask=phasemask, 
-                               makepattern='orbitscan', 
-                               orbitpoints=patternpoints, 
-                               orbitL=L,
-                               probecenter=probecenter,
-                               pointdwelltime=pointdwelltime, 
-                               laserpower=laserpower,
-                               repetitions=itr['patRepeat'])
+            parg, estimator = get_abberior_pattern(itr, self.sequence)
+            self.definePattern(f"itr{k}", psf, **parg)
+            self.estimators[k] = estimator
             
     def runSequenceintern(self):
         # compatible with MFSimulator: repetitions.
         itrs = self.sequence['Itr']
         maxiter = len(itrs)-1
         starttime = self.time
+        xestabs = self.posgalvo + self.posEOD # first estimate: pattern center
 
         deadtimes = self.deadtimes
 
@@ -114,7 +77,7 @@ class SimSequencefile(Simulator):
         if 'maxOffTime' not in self.sequence.keys() or \
             ((not (isinstance(self.sequence['maxOffTime'], (int, float))) \
                 and self.sequence['maxOffTime'] == 'unspecified')):
-            maxOffTime = 3
+            maxOffTime = 20
         else:
             maxOffTime = self.sequence['maxOffTime']*1e6  # to us
         
@@ -133,7 +96,6 @@ class SimSequencefile(Simulator):
         numitr, itr = 0, 0
         abortphot = False
         stickinesscounter = 0
-        xest = np.array([0,0,0])
         par = []
         raw = []
         flpos = []
@@ -194,7 +156,7 @@ class SimSequencefile(Simulator):
                 if not abortphot and not abortccr:  # recenter only for valid
                     # estimate position
                     patternpos = self.patterns[itrname].pos
-                    L = itrs[itr]['patGeoFactor']*360  #nm
+                    L = np.array(itrs[itr]['patGeoFactor'])*360  #nm
                     estimator = self.estimators[itr]
                     estf = globals()[estimator['function']]
                     estpar = estimator['par'].copy()
@@ -205,25 +167,38 @@ class SimSequencefile(Simulator):
                                             'L', L,
                                             'probecenter', probecenter,
                                             'background_est', bg_est,
-                                            'iteration', itr)
+                                            'iteration', itr,
+                                            'coefficients', itrs[itr]['estCoeff'],
+                                            'patGeoFactor', itrs[itr]['patGeoFactor'])
+
                     xesth = estf(scanout.photrate, *estpar)
-                    xest[np.array(estimator['dim'])] = xesth[np.array(estimator['dim'])]
+                    ed = list(estimator['dim']) if not isinstance(estimator['dim'], int) else [estimator['dim']]
+                    # print(scanout.photrate.shape, xesth.shape, estimator['dim'])
+                    if not len(ed) == xesth.shape[0]:
+                        # extra estimates returned
+                        xesth = xesth[ed]  # now only estimator dimension
+
                     self.time = self.time + deadtimes.estimator
 
-                    xesttot = xest + self.posgalvo + self.posEOD
+                    xestabs[ed] = xesth + self.posgalvo[ed] + self.posEOD[ed]
                     
                     # recenter
-                    if (itr==maxiter) and not np.any(np.isnan(xesttot)):
+                    if not np.any(np.isnan(xestabs)):
+                        # recenter EOD
+                        self.posEOD[ed] = self.posEOD[ed] + xesth
+
+                    if (itr >= (maxiter + self.sequence['headstart'] + 1)) and not np.any(np.isnan(xestabs)):
+                        # recenter galvo
                         dampf = 2**(-self.sequence['damping'])
                         xold = self.posgalvo.copy()
-                        self.posgalvo = (1-dampf)*self.posgalvo+dampf*(xesttot)
-                        self.posEOD = self.posEOD + xold - self.posgalvo + xest
+                        dimgalvo = list(set(ed) - set([2]))  # do not correct z with a galvo
+                        self.posgalvo[dimgalvo] = (1-dampf)*self.posgalvo[dimgalvo]+dampf*(xestabs[dimgalvo])
+                        self.posEOD[dimgalvo] = self.posEOD[dimgalvo] + xold[dimgalvo] - self.posgalvo[dimgalvo]
                         self.time += deadtimes.positionupdate
-                    elif not np.any(np.isnan(xesttot)):
-                        self.posEOD = self.posEOD + xest
+
                     vldphotccr = True
                 else:
-                    xesttot = np.array([np.nan,np.nan,np.nan])
+                    xestabs = np.array([np.nan,np.nan,np.nan])
                     vldphotccr = False
                 
                 if itrs[itr]['ccrLimit'] > -1:  # probe center
@@ -239,9 +214,9 @@ class SimSequencefile(Simulator):
                     loc.efc[loccounter,0] = -1
                     cfr = -1
 
-                loc.xnm[loccounter,0] = xesttot[0]
-                loc.ynm[loccounter,0] = xesttot[1]
-                loc.znm[loccounter,0] = xesttot[2]
+                loc.xnm[loccounter,0] = xestabs[0]
+                loc.ynm[loccounter,0] = xestabs[1]
+                loc.znm[loccounter,0] = xestabs[2]
                 loc.xfl1[loccounter,0] = scanout.flpos[0,0]/scanout.counter
                 loc.yfl1[loccounter,0] = scanout.flpos[0,1]/scanout.counter
                 loc.zfl1[loccounter,0] = scanout.flpos[0,2]/scanout.counter
