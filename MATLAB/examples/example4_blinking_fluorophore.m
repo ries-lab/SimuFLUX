@@ -23,7 +23,7 @@ out=sim.runSequence({"donut","estsq"});sim.summarize_results(out);
 
 %% plot std vs repetitions
 %Fig. 2
-allrepetitions=1:2.5:25;
+allrepetitions=1:3:25;
 laserpowers=[10 100 100000]/0.88;
 
 

@@ -19,6 +19,27 @@ class PSFStruct:
     normalization : float = 1
     interp : callable = None
 
+class Interpolator:
+    """ Thin wrapper to support nearest neighbor interpolation only out of bounds. """
+    def __init__(self, points, values, method='cubic'):
+        self.inbounds_interp = RegularGridInterpolator(points, 
+                                                       values, 
+                                                       method = method, 
+                                                       bounds_error = True,
+                                                       fill_value = np.nan)
+        self.outofbounds_interp = RegularGridInterpolator(points, 
+                                                          values, 
+                                                          method = 'nearest', 
+                                                          bounds_error = False,
+                                                          fill_value = None)
+    def __call__(self, xi):
+        try:
+            return self.inbounds_interp(xi)
+        except ValueError:
+            # out of bounds, use nearest neighbor
+            return self.outofbounds_interp(xi)
+    
+
 def addzernikeaberrations(sys, addpar):
     if 'Zr' in sys:
         sys['Ei'].append('zernike')
@@ -192,11 +213,14 @@ class PsfVectorial(Psf):
             PSFdonut = PSFStruct()
             PSF, PSFdonut.normalization = normpsf(PSF)
             xx, yy, zz = range4PSF(PSF,out['dr'],out['dz'])
-            PSFdonut.interp = RegularGridInterpolator((xx, yy, zz), 
-                                                       PSF, 
-                                                       method = intmethod, 
-                                                       bounds_error = bounds_error,
-                                                       fill_value = extraolation_method)
+            # PSFdonut.interp = RegularGridInterpolator((xx, yy, zz), 
+            #                                            PSF, 
+            #                                            method = intmethod, 
+            #                                            bounds_error = bounds_error,
+            #                                            fill_value = extraolation_method)
+            PSFdonut.interp = Interpolator((xx, yy, zz), 
+                                            PSF, 
+                                            method = intmethod)
             self.PSFs[key] = PSFdonut
         elif "halfmoon" in phasepattern:
             # convert L into phase
@@ -213,16 +237,18 @@ class PsfVectorial(Psf):
             PSFy = PSFStruct()
             PSF, PSFx.normalization = normpsf(PSF)
             xx, yy, zz = range4PSF(PSF,out['dr'],out['dz'])
-            PSFx.interp = RegularGridInterpolator((xx, yy, zz), 
-                                                   PSF.transpose(1,0,2), 
-                                                   method = intmethod, 
-                                                   bounds_error = bounds_error,
-                                                   fill_value = extraolation_method)
-            PSFy.interp = RegularGridInterpolator((xx, yy, zz), 
-                                                   PSF, 
-                                                   method = intmethod, 
-                                                   bounds_error = bounds_error,
-                                                   fill_value = extraolation_method)   
+            # PSFx.interp = RegularGridInterpolator((xx, yy, zz), 
+            #                                        PSF.transpose(1,0,2), 
+            #                                        method = intmethod, 
+            #                                        bounds_error = bounds_error,
+            #                                        fill_value = extraolation_method)
+            # PSFy.interp = RegularGridInterpolator((xx, yy, zz), 
+            #                                        PSF, 
+            #                                        method = intmethod, 
+            #                                        bounds_error = bounds_error,
+            #                                        fill_value = extraolation_method)   
+            PSFx.interp = Interpolator((xx, yy, zz), PSF.transpose(1,0,2))
+            PSFy.interp = Interpolator((xx, yy, zz), PSF)
             PSFy.normalization = PSFx.normalization
             self.PSFs[genkey("halfmoonx",Lxs)] = PSFx
             self.PSFs[genkey("halfmoony",Lxs)] = PSFy
@@ -248,11 +274,12 @@ class PsfVectorial(Psf):
             psfph = conv2fft(psfg, kernel)
             xx, yy, zz = range4PSF(psfph, out['dr'], out['dz'])
             PSFdonut = PSFStruct()
-            PSFdonut.interp = RegularGridInterpolator((xx, yy, zz),
-                                                      psfph, 
-                                                      method = intmethod, 
-                                                      bounds_error = bounds_error,
-                                                      fill_value = extraolation_method)
+            # PSFdonut.interp = RegularGridInterpolator((xx, yy, zz),
+            #                                           psfph, 
+            #                                           method = intmethod, 
+            #                                           bounds_error = bounds_error,
+            #                                           fill_value = extraolation_method)
+            PSFdonut.interp = Interpolator((xx, yy, zz), psfph)
             self.PSFs[key] = PSFdonut
         elif phasepattern == "tophat":
             dzdphi = -3.6  #nm/degree
@@ -266,11 +293,12 @@ class PsfVectorial(Psf):
             PSFdonut = PSFStruct()
             PSF, PSFdonut.normalization = normpsf(PSF)
             xx, yy, zz = range4PSF(PSF,out['dr'],out['dz'])
-            PSFdonut.interp = RegularGridInterpolator((xx, yy, zz), 
-                                                       PSF, 
-                                                       method = intmethod, 
-                                                       bounds_error = bounds_error,
-                                                       fill_value = extraolation_method)
+            # PSFdonut.interp = RegularGridInterpolator((xx, yy, zz), 
+            #                                            PSF, 
+            #                                            method = intmethod, 
+            #                                            bounds_error = bounds_error,
+            #                                            fill_value = extraolation_method)
+            PSFdonut.interp = Interpolator((xx, yy, zz), PSF)
             self.PSFs[key] = PSFdonut
         elif phasepattern == "vortex":
             sys['Ei'] = ['phaseramp', 'circular']
@@ -283,11 +311,12 @@ class PsfVectorial(Psf):
             PSF, PSFdonut.normalization = normpsf(PSF)
             xx, yy, zz = range4PSF(PSF, out['dr'], out['dz'])
             # print(xx.shape, yy.shape, zz.shape, PSF.shape, PSF.dtype, np.sum(np.isnan(PSF)))
-            PSFdonut.interp = RegularGridInterpolator((xx, yy, zz), 
-                                                      PSF, 
-                                                      method = intmethod, 
-                                                      bounds_error = bounds_error,
-                                                      fill_value = extraolation_method)
+            # PSFdonut.interp = RegularGridInterpolator((xx, yy, zz), 
+            #                                           PSF, 
+            #                                           method = intmethod, 
+            #                                           bounds_error = bounds_error,
+            #                                           fill_value = extraolation_method)
+            PSFdonut.interp = Interpolator((xx, yy, zz), PSF)
             self.PSFs[key] = PSFdonut
         else:
             raise UserWarning(f"{phasepattern} PSF name not defined.")
