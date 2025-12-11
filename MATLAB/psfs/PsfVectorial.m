@@ -206,6 +206,10 @@ classdef PsfVectorial<Psf
                 otherwise
                     warning(phasepattern+" PSF name not defined")
             end
+
+            obj.parameters.opt=opt;
+            obj.parameters.addpar=out;
+            obj.parameters.sys=sys;   
         end
         function psfo=beadsize(obj,psf,R)
             %R bead size in m
