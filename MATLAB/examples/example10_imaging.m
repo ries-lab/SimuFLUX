@@ -2,15 +2,14 @@
 addpath(genpath(fileparts(fileparts(mfilename('fullpath'))))); %add all folders to serach path
 
 %make abberior simulator
-if ~exist('sim','var') || ~isa(sim,"SimSequencefile")
-    sim=SimSequencefile;
+if ~exist('sim','var') || ~isa(sim,"SimSequencefileAbberior")
+    sim=SimSequencefileAbberior;
 else
     sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;
 end
 fname='Imaging_2D.json';
-sim.loadsequence(fname,'PSFvectorial2D.json'); %only sequence file, then simple gauss and donut PSFs are used (fast)
-% sim.makepatterns;
-% sim.scoutingcoordinates=[0 0];
+sim.loadsequence(fname); 
+
 sim.makescoutingpattern([-80 -150; 120 100 ]) %for imaging
 sim.sequence.locLimit=1000;% to avoid getting stuck with background fluorophore
 %

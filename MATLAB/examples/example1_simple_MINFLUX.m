@@ -21,7 +21,8 @@ laserpower=2; %relative, increases brightness
 pointdwelltime=1/(orbitpoints+probecenter); %ms, measurement time in each point
 repetitions=2; %how often to repeat the pattern scan
 sim.definePattern("donut", psf_donut, makepattern="orbitscan", orbitpoints=orbitpoints, ...
-    probecenter=probecenter,orbitL=L,pointdwelltime=pointdwelltime,laserpower=laserpower,repetitions=repetitions)
+    probecenter=probecenter,orbitL=L,pointdwelltime=pointdwelltime,...
+    laserpower=laserpower,repetitions=repetitions)
 % sim.definePattern(key, PSF_object, arguments...)
 
 %we need an estimator. Define as component

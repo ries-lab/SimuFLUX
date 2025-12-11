@@ -1,24 +1,32 @@
 import numpy as np
 
-def est_qLSQiter1D(photonsi, L, iter=15, eps=0.1):
+def est_qLSQiter1D(photonsi, L, iter=15, eps=0.1, xestin=0):
     """
     Eilers 2.64, k=1
+
+    eps and xestin in nm
     """
 
     if len(photonsi) == 2:
         itfun = iteration
-    else:
+    elif len(photonsi) == 3:
         itfun = iterationcenter
+    else:
+        raise ValueError("1D estimator only for 2 or 3 measuerment points")
 
     pi = photonsi / np.sum(photonsi)
-    xest = np.array([0.0])
+    # xest = np.array([0.0])
+    xest = xestin
     for _ in range(iter):
-        xo = xest.copy()
+        try:
+            xo = xest.copy()
+        except AttributeError:
+            xo = xest
         xest = itfun(pi, xest, L)
         if np.sum((xest - xo)**2) < eps**2:
             break
     # xest = np.clip(xest, -L, L) # avoid crazy high numbers
-    xest[np.abs(xest)>1.3*L] = np.nan
+    xest[np.abs(xest-xestin)>1.3*L] = np.nan
     return xest
 
 

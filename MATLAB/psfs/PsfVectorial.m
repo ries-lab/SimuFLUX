@@ -206,8 +206,13 @@ classdef PsfVectorial<Psf
                 otherwise
                     warning(phasepattern+" PSF name not defined")
             end
+
+            obj.parameters.opt=opt;
+            obj.parameters.addpar=out;
+            obj.parameters.sys=sys;   
         end
         function psfo=beadsize(obj,psf,R)
+            %R bead size in m
             if R==0
                 psfo=psf;
                 return
@@ -255,7 +260,6 @@ classdef PsfVectorial<Psf
             obj.pinholepar.offset=args.offset;
             obj.pinholepar.diameter=args.diameter;
         end
-       
         function savePSF(obj,name)
             PSFinterpolant=obj.PSFinterpolant;
             save(name,'PSFinterpolant')

@@ -19,6 +19,7 @@ class Pattern:
     repetitions: int = 1 
     par: dict = None              
     pos: list = None
+    pinholeorbit: bool = False
     psf: list = None
     phasemask: list = None
     zeropos: list = None
@@ -66,6 +67,7 @@ class Par:
     laserpower: float = 1.0  # usually we use relative, but can also be absolute.
     repetitions: int = 1  # repetitions of the patern scan before position estimation
     dim: tuple = (0,1)  # dimensions in which the scan is performed
+    pinholeorbit: bool = False
 
 @dataclass
 class Summary:
@@ -177,8 +179,8 @@ class Simulator:
         orbitL = kwargs.get("orbitL", 100)
         pattern = Pattern(repetitions = kwargs.get("repetitions", 1),  
                           par = Par(**kwargs),
-                          pos = kwargs.get("patternpos", np.atleast_2d(np.array([0, 0, 0]))),
-                          zeropos = kwargs.get("zeropos", np.array([[0]])),
+                          pos = kwargs.get("patternpos", np.atleast_2d(np.array([0.0, 0.0, 0.0]))),
+                          zeropos = kwargs.get("zeropos", np.array([[0.0]])),
                           L = orbitL,
                           dim = kwargs.get("dim", (0, 1)),
                           type = "pattern")
@@ -188,7 +190,7 @@ class Simulator:
                                                   kwargs.get("probecenter", True), kwargs.get("orbitorder", None))
             pattern.pos *= orbitL / 2
         
-        zeropos = kwargs.get("zeropos", np.array([[0]]))
+        zeropos = kwargs.get("zeropos", np.array([[0.0]]))
 
         if (pattern.pos.shape[0] == 1) and (zeropos.shape[1] > 1):
             pattern.pos = np.tile(pattern.pos, (zeropos.shape[1], 1))
@@ -220,6 +222,7 @@ class Simulator:
             pattern.pointdwelltime = np.zeros((1,pattern.pos.shape[0])) + pdt[0]
 
         if len(pdt) == 2:
+            # by default, the central measurement is last
             if len(pattern.pointdwelltime.shape) > 1:
                 pattern.pointdwelltime[:,-1] = pdt[1]
             else:
@@ -254,10 +257,27 @@ class Simulator:
                 # if not np.any(isactive):
                 #     intensityh, pinholehfac, flint, intensity = 0, 0, 0, 0
                 # else:
+                # print("shapes", flposrel.shape, pattern.pos.shape, posEOD.shape)
+                # Try/except block to mimic MATLAB indexing behavior
+                try:
+                    flposrel[:,2] = flposrel[:,2]-pattern.pos[k,2]-posEOD[:,2]  # EOD used for DM: descanned in z
+                    patternpos = pattern.pos[k,:]+posEOD  # EOD: only in xy (non-desceanned)
+                    patternpos[:,2] = 0
+                except IndexError:
+                    try:
+                        flposrel[2] = flposrel[2]-pattern.pos[k,2]-posEOD[2]
+                        patternpos = pattern.pos[k,:]+posEOD  # EOD: only in xy (non-desceanned)
+                        patternpos[2] = 0
+                    except IndexError:
+                        patternpos = pattern.pos[k,:]+posEOD
+                        
                 intensityh, pinholehfac = pattern.psf[k].intensity(flposrel[isactive,:],
-                                                                   pattern.pos[k,:] + posEOD,
+                                                                   patternpos,
                                                                    pattern.phasemask[k], 
                                                                    pattern.zeropos[:,k])
+                
+                # print(pattern.pos.shape, pattern.pos[k,:], flposrel, patternpos, intensityh, posEOD)
+                
                 intensityh *= pattern.laserpower[k]
                 flint = fluorophores.intensity(intensityh,
                                                pattern.pointdwelltime[:,k],
@@ -267,7 +287,6 @@ class Simulator:
                 flpos += flposh
                 flintall[isactive,:] += flint
                 time = time + pattern.pointdwelltime[:,k] + deadtimes.point
-                # bgphoth = pattern.backgroundfac[k] * background * pattern.pointdwelltime[:,k]
                 bgphoth = background * pattern.pointdwelltime[:,k] * pattern.laserpower[k]
                 bgphot += bgphoth
                 intall[k] += intensity + bgphoth  # sum over repetitions, fluorophores
@@ -276,6 +295,7 @@ class Simulator:
         
         out = PatternScan()
         out.phot = np.random.poisson(intall)  # later: fl.tophot(intenall): adds bg, multiplies with brightness, does 
+        # print(f"counts {intall} {out.phot}")
         out.photrate = out.phot / pattern.pointdwelltime.T
         out.pointdwelltime = pattern.pointdwelltime.T
         out.bg_photons_gt = np.array([bgphot], dtype=float)
@@ -291,8 +311,8 @@ class Simulator:
         out.repetitions = repetitions
         out.par = pattern.par  # copy.deepcopy(pattern.par)
         out.par.L = pattern.L
-        out.par.patternpos = pattern.pos
-        out.par.zeropos = pattern.zeropos
+        # out.par.patternpos = pattern.pos
+        # out.par.zeropos = pattern.zeropos
         out.par.dim = pattern.dim
         out.par.pattern = pattern  # copy.deepcopy(pattern)
         

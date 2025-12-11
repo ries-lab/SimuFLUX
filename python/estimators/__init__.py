@@ -6,4 +6,7 @@ from .est_qLSQ1_2D import est_qLSQ1_2D
 from .est_qLSQiter1D import est_qLSQiter1D
 from .est_qLSQiter2D import est_qLSQiter2D
 from .est_qMLE1D import est_qMLE1D
+from .est_octahedron import est_octahedron
+from .est_zline import est_zline
+from .est_pinholeorbit import est_pinholeorbit
 from .simple_recenter import simple_recenter
