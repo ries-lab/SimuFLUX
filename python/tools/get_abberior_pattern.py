@@ -29,14 +29,11 @@ def get_abberior_pattern(itr, seq):
         lenL = len(L) if (isinstance(L, list) or isinstance(L, np.ndarray)) else 1
         patternpoints = lenL*2
         patternpos = np.zeros((patternpoints,3))
-        patternpos[:,2] = np.array([-L[0], L[0], -L[1], L[1]])/2
+        patternpos[:,2] = np.array([-L[0], L[0], -L[1], L[1]])/2.0
         if probecenter:
             # probecenter, pattern points argument ignored if not makepattern
-            patternpos = np.vstack([patternpos, 
-                                    np.zeros(patternpos.shape[1], 
-                                             dtype=patternpos.dtype)])
+            patternpos = np.vstack([patternpos, np.zeros(3)])
             
-        patternpos = np.vstack([patternpos, np.zeros(patternpos.shape[1], dtype=patternpos.dtype)])
         arg = {'patternpos': patternpos}
     elif itr["Mode"]["pattern"] == "zline2":
         dim = 2
@@ -49,9 +46,7 @@ def get_abberior_pattern(itr, seq):
             patternpos[:,2] = np.array([-L, L])/2
         if probecenter:
             # probecenter, pattern points argument ignored if not makepattern
-            patternpos = np.vstack([patternpos, 
-                                    np.zeros(patternpos.shape[1], 
-                                             dtype=patternpos.dtype)])
+            patternpos = np.vstack([patternpos, np.zeros(3)])
         arg = {'patternpos': patternpos}
     elif itr["Mode"]["pattern"] == "octahedron":
         dim = (0,1,2)

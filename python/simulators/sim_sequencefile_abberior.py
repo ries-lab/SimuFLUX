@@ -255,7 +255,7 @@ class SimSequencefileAbberior(Simulator):
             if itr > maxiter:
                 itr += self.sequence['headstart']
             numitr += 1
-        
+
         # Convert from raggedarray to complete array
         if len(flpos) > 0:
             rawsh1 = np.max([len(x) for x in raw])

@@ -3,12 +3,14 @@ import numpy as np
 from .est_qLSQiter1D import est_qLSQiter1D
 
 def est_zline(photonsi, L, iter=15, eps=0.1):
-    print("zline", L)
     phot1 = photonsi[0:2]
     phot2 = photonsi[2:4]
     if len(photonsi) == 5:
         phot1 = np.vstack([phot1, photonsi[4]])
         phot2 = np.vstack([phot2, photonsi[4]])
+
+    # print(photonsi.shape)
+    # print("zline", phot1.shape, phot2.shape)
 
     c = np.array([2.1415, -3.2122, 2.0062, -0.4677])*1e3
     fr = phot2[1]/(phot2[0]+phot2[1])

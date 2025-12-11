@@ -1,6 +1,6 @@
 import numpy as np
 
-def est_qLSQiter1D(photonsi, L, iter=15, eps=0.1, xestin=np.array([0.0])):
+def est_qLSQiter1D(photonsi, L, iter=15, eps=0.1, xestin=0):
     """
     Eilers 2.64, k=1
 
@@ -18,7 +18,10 @@ def est_qLSQiter1D(photonsi, L, iter=15, eps=0.1, xestin=np.array([0.0])):
     # xest = np.array([0.0])
     xest = xestin
     for _ in range(iter):
-        xo = xest.copy()
+        try:
+            xo = xest.copy()
+        except AttributeError:
+            xo = xest
         xest = itfun(pi, xest, L)
         if np.sum((xest - xo)**2) < eps**2:
             break
