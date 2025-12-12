@@ -264,10 +264,13 @@ class Simulator:
                     patternpos = pattern.pos[k,:]+posEOD  # EOD: only in xy (non-desceanned)
                     patternpos[:,2] = 0
                 except IndexError:
-                    flposrel[2] = flposrel[2]-pattern.pos[k,2]-posEOD[2]
-                    patternpos = pattern.pos[k,:]+posEOD  # EOD: only in xy (non-desceanned)
-                    patternpos[2] = 0
-
+                    try:
+                        flposrel[2] = flposrel[2]-pattern.pos[k,2]-posEOD[2]
+                        patternpos = pattern.pos[k,:]+posEOD  # EOD: only in xy (non-desceanned)
+                        patternpos[2] = 0
+                    except IndexError:
+                        patternpos = pattern.pos[k,:]+posEOD
+                        
                 intensityh, pinholehfac = pattern.psf[k].intensity(flposrel[isactive,:],
                                                                    patternpos,
                                                                    pattern.phasemask[k], 

@@ -205,8 +205,8 @@ class SimSequencefileAbberior(Simulator):
                     loc.eco[loccounter,0] = np.sum(scanout.phot[:-1])
                     loc.ecc[loccounter,0] = np.sum(scanout.phot[-1])
                     
-                    loc.efo=loc.eco/(np.sum(scanout.par.pattern.pointdwelltime[:-1]))/scanout.repetitions
-                    loc.efc=loc.ecc/(scanout.par.pattern.pointdwelltime[-1])/scanout.repetitions
+                    loc.efo=loc.eco/(np.sum(scanout.par.pattern.pointdwelltime.squeeze()[:-1]))/scanout.repetitions
+                    loc.efc=loc.ecc/(scanout.par.pattern.pointdwelltime.squeeze()[-1])/scanout.repetitions
                 else:
                     loc.eco[loccounter,0] = np.sum(scanout.phot)
                     loc.efo = loc.eco/(np.sum(scanout.par.pattern.pointdwelltime))/scanout.repetitions
