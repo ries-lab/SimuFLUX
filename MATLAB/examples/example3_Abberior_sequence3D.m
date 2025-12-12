@@ -21,9 +21,7 @@ sim.background=30*0; % a background that is not matched with a proper estimate l
 sim.background_estimated=0; % a similar result is obtained when no background is present but the background is underestimatedd (negative background estimate ). This leads to a bias in the estimator and appearance of "tails"
             %over-estimation of background leads to instabilities
 sim.psfvec.setpinhole("AU",1) %Abberior: imspector pinhole overwrites the pinhole in the settings file
-
 sim.loadsequence(fname);
-
 %test different confounding factors, otherwise comment out:
 sim.psfvec.setpar('beadradius',0*50e-9) %in m can also lead to tails. Set to zero if no bead used
 sim.sequence.locLimit=100; %only track for 1000 localizations

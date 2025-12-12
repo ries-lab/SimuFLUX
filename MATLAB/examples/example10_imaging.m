@@ -8,6 +8,7 @@ else
     sim.posgalvo=[0 0 0];sim.posEOD=[0 0 0];sim.time=0;
 end
 fname='Imaging_2D.json';
+sim.psfvec.setpinhole("AU",1) %Abberior: imspector pinhole overwrites the pinhole in the settings file
 sim.loadsequence(fname); 
 
 sim.makescoutingpattern([-80 -150; 120 100 ]) %for imaging
