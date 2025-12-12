@@ -7,6 +7,7 @@ if ~exist('sim','var') || ~isa(sim,"SimSequencefileAbberior")
     sim=SimSequencefileAbberior;
 end
 fname='Tracking_2D.json';
+sim.psfvec.setpinhole("AU",1) %Abberior: imspector pinhole overwrites the pinhole in the settings file
 sim.loadsequence(fname);
 sim.sequence.locLimit=100;
 sim.makepatterns;
