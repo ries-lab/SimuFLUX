@@ -20,7 +20,9 @@ class PSFStruct:
     interp : callable = None
 
 class Interpolator:
-    """ Thin wrapper to support nearest neighbor interpolation only out of bounds. """
+    """ Thin wrapper to support nearest neighbor interpolation only out of bounds.
+    
+    Mimics how we use griddedInterpolant in the MATLAB version. """
     def __init__(self, points, values, method='cubic'):
         self.inbounds_interp = RegularGridInterpolator(points, 
                                                        values, 
@@ -38,6 +40,14 @@ class Interpolator:
         except ValueError:
             # out of bounds, use nearest neighbor
             return self.outofbounds_interp(xi)
+        
+    @property
+    def values(self):
+        return self.inbounds_interp.values
+    
+    @property
+    def grid(self):
+        return self.inbounds_interp.grid
     
 
 def addzernikeaberrations(sys, addpar):
