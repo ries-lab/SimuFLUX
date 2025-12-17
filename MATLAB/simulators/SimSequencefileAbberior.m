@@ -319,6 +319,12 @@ classdef SimSequencefileAbberior<Simulator
             ylabel(ax,'x position(nm)')
             legend(ax,'Estimated','Fluorophore','Galvo','EOD')
         end
+        function setGaussScouting(obj)
+            obj.sequence.Itr(1).Mode.modulated='gauss_scouting';
+            obj.sequence.Itr(1).Mode.epsf='focFldPlane';
+            obj.sequence.Itr(1).Mode.dim=[1 2];
+            obj.sequence.Itr(1).Mode.epsf='focFldPlane';      
+        end
     end
 end
 

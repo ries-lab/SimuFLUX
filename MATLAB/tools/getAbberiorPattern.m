@@ -5,6 +5,9 @@ if contains(itr.Mode.epsf,'focFldRing')
 elseif contains(itr.Mode.epsf,'focFldVortex')
     phasemask="vortex";
     sigma_est_ph = 190; % Default value for sigma estimation
+elseif contains(itr.Mode.epsf,'focFldPlane') %Gaussian, defined by me
+    phasemask="flat";
+    sigma_est_ph = 120; %XXXX 
 end
 if contains(itr.Mode.modulated,'phl')&& contains(itr.Mode.pattern,'hexagon') 
     pinholeorbit=true;
@@ -80,6 +83,9 @@ switch mat2str(dim)
         if contains(itr.Mode.modulated,'phl')
             esth.function="est_pinholeorbit";
             esth.par={"patternpos", L, sigma_est_ph, probecenter};
+        elseif contains(itr.Mode.modulated,'gauss_scouting')
+            esth.function="est_GaussLSQ1_2D";
+            esth.par={"patternpos", L, sigma_est_ph, false};
         else
             esth.function="est_donutLSQ1_2D";
             esth.par={"patternpos", L, 310, 0};

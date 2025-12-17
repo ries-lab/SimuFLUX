@@ -25,6 +25,7 @@ sim.loadsequence(fname);
 %test different confounding factors, otherwise comment out:
 sim.psfvec.setpar('beadradius',0*50e-9) %in m can also lead to tails. Set to zero if no bead used
 sim.sequence.locLimit=100; %only track for 1000 localizations
+% sim.setGaussScouting;
 sim.makepatterns;
 
 out=sim.runSequence("repetitions",1);
