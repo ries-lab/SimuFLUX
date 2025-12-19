@@ -388,7 +388,7 @@ class SimSequencefileAbberior(Simulator):
         ax.legend(['Estimated','Fluorophore','Galvo','EOD'])
 
     def setGaussScouting(self):
-        self.sequence['Itr'][0]['Mode']['modualted'] = 'gauss_scouting'
+        self.sequence['Itr'][0]['Mode']['modulated'] = 'gauss_scouting'
         self.sequence['Itr'][0]['Mode']['epsf'] = 'focFldPlane'
         self.sequence['Itr'][0]['Mode']['dim'] = (0,1)
 
