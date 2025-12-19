@@ -7,6 +7,9 @@ def get_abberior_pattern(itr, seq):
     elif "focFldVortex" in itr["Mode"]["epsf"]:
         phasemask = "vortex"
         sigma_est_ph = 190
+    elif "focFldPlane" in itr["Mode"]["epsf"]:
+        phasemask = "flat"
+        sigma_est_ph = 120
 
     pinholeorbit = ("phl" in itr["Mode"]["modulated"]) and ("hexagon" in itr["Mode"]["pattern"])
     probecenter = itr["ccrLimit"] != -1
@@ -85,6 +88,9 @@ def get_abberior_pattern(itr, seq):
         if "phl" in itr["Mode"]["modulated"]:
             esth["function"] = "est_pinholeorbit"
             esth["par"] = ["patternpos", L, sigma_est_ph, probecenter]
+        elif "gauss_scouting" in itr["Mode"]["modulated"]:
+            esth["function"] = "est_GaussLSQ1_2D"
+            esth["par"] = ["patternpos", L, sigma_est_ph, 0]
         else:
             esth["function"] = "est_donutLSQ1_2D"
             esth["par"] = ["patternpos", L, 310, 0]

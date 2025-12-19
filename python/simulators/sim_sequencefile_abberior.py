@@ -181,7 +181,7 @@ class SimSequencefileAbberior(Simulator):
                     self.time = self.time + deadtimes.estimator
 
                     xestabs[ed] = xesth + self.posgalvo[ed] + self.posEOD[ed]
-                    
+
                     # recenter
                     if not np.any(np.isnan(xestabs)):
                         # recenter EOD
@@ -386,6 +386,12 @@ class SimSequencefileAbberior(Simulator):
         ax.set_xlabel(xtxt)
         ax.set_ylabel('x position (nm)')
         ax.legend(['Estimated','Fluorophore','Galvo','EOD'])
+
+    def setGaussScouting(self):
+        self.sequence['Itr'][0]['Mode']['modualted'] = 'gauss_scouting'
+        self.sequence['Itr'][0]['Mode']['epsf'] = 'focFldPlane'
+        self.sequence['Itr'][0]['Mode']['dim'] = (0,1)
+
 
 
 def makehexgrid(roi, d):
